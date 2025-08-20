@@ -1,0 +1,105 @@
+// Production schema for PostgreSQL on Render
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  username        String    @unique
+  password        String
+  inGameName      String?
+  inGameRank      String?
+  discordName     String?
+  twitchName      String?
+  instagramName   String?
+  tier            String?   // "tier1", "tier2", "tier3"
+  isStreamer      Boolean   @default(false)  // Separate streamer status
+  isVerified      Boolean   @default(false)
+  rulesAccepted   Boolean   @default(false)
+  
+  // Einzelne Social Media Verifikationen
+  twitchVerified    Boolean   @default(false)
+  instagramVerified Boolean   @default(false)
+  discordVerified   Boolean   @default(false)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relations
+  teamMember      TeamMember?
+}
+
+model Team {
+  id       String @id @default(cuid())
+  name     String @unique
+  position Int    @unique // 1-8 for tournament position
+  isLive   Boolean @default(false) // For streaming assignments
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  members TeamMember[]
+  
+  // Tournament bracket relations
+  winnerMatchesAsTeam1 Match[] @relation("Team1")
+  winnerMatchesAsTeam2 Match[] @relation("Team2")
+  loserMatchesAsTeam1  Match[] @relation("LoserTeam1")
+  loserMatchesAsTeam2  Match[] @relation("LoserTeam2")
+}
+
+model TeamMember {
+  id     String @id @default(cuid())
+  userId String @unique
+  teamId String
+  
+  createdAt DateTime @default(now())
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+}
+
+model Admin {
+  id       String @id @default(cuid())
+  username String @unique
+  password String
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Match {
+  id         String    @id @default(cuid())
+  bracket    String    // "winner" or "loser"
+  round      Int       // 1, 2, 3, etc.
+  matchNumber Int      // Position in round
+  
+  team1Id    String?
+  team2Id    String?
+  winnerId   String?
+  
+  // For loser bracket - teams that lost from winner bracket
+  loserTeam1Id String?
+  loserTeam2Id String?
+  
+  isComplete Boolean   @default(false)
+  scheduledAt DateTime?
+  completedAt DateTime?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  team1      Team? @relation("Team1", fields: [team1Id], references: [id])
+  team2      Team? @relation("Team2", fields: [team2Id], references: [id])
+  loserTeam1 Team? @relation("LoserTeam1", fields: [loserTeam1Id], references: [id])
+  loserTeam2 Team? @relation("LoserTeam2", fields: [loserTeam2Id], references: [id])
+  
+  @@unique([bracket, round, matchNumber])
+}

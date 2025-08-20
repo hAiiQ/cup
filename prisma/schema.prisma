@@ -1,0 +1,97 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  username        String    @unique
+  password        String
+  inGameName      String?
+  inGameRank      String?
+  discordName     String?
+  twitchName      String?
+  instagramName   String?
+  tier            String?   // "tier1", "tier2", "tier3"
+  isStreamer      Boolean   @default(false)  // Separate streamer status
+  isVerified      Boolean   @default(false)
+  rulesAccepted   Boolean   @default(false)
+  
+  // Einzelne Social Media Verifikationen
+  twitchVerified    Boolean   @default(false)
+  instagramVerified Boolean   @default(false)
+  discordVerified   Boolean   @default(false)
+  
+  // In-Game Verifikationen
+  inGameNameVerified Boolean   @default(false)
+  inGameRankVerified Boolean   @default(false)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relations
+  teamMemberships TeamMember[]
+}
+
+model Team {
+  id          String    @id @default(cuid())
+  name        String    @default("Team")
+  imageUrl    String?
+  position    Int       @unique @default(0) // Position in bracket
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relations
+  members     TeamMember[]
+  winnerMatches Match[] @relation("WinnerTeam")
+  team1Matches  Match[] @relation("Team1")
+  team2Matches  Match[] @relation("Team2")
+}
+
+model TeamMember {
+  id      String @id @default(cuid())
+  userId  String
+  teamId  String
+  role    String @default("member") // "member", "captain"
+  
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team    Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, teamId])
+}
+
+model Match {
+  id          String    @id @default(cuid())
+  round       Int
+  bracket     String    // "winner", "loser", "grand"
+  matchNumber Int       @default(1)
+  team1Id     String?
+  team2Id     String?
+  team1Score  Int       @default(0)
+  team2Score  Int       @default(0)
+  winnerId    String?
+  isFinished  Boolean   @default(false)
+  isLive      Boolean   @default(false)
+  scheduledAt DateTime?
+  playedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  team1       Team?     @relation("Team1", fields: [team1Id], references: [id])
+  team2       Team?     @relation("Team2", fields: [team2Id], references: [id])
+  winner      Team?     @relation("WinnerTeam", fields: [winnerId], references: [id])
+}
+
+model Admin {
+  id       String @id @default(cuid())
+  username String @unique
+  password String
+  role     String @default("admin")
+}
