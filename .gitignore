@@ -21,6 +21,11 @@ prisma/dev.db
 prisma/dev.db-journal
 /generated/prisma
 
+# Large video files (too big for GitHub)
+public/OXS/promo/
+*.mp4
+*.mov
+
 # Logs
 logs
 *.log
