@@ -38,37 +38,34 @@ export async function POST(
     }
 
     const { id } = await params
-    const { tier } = await request.json()
+    const { winnerId } = await request.json()
     
-    if (!['tier1', 'tier2', 'tier3'].includes(tier)) {
+    if (!winnerId) {
       return NextResponse.json(
-        { error: 'Ungültiges Tier' },
+        { error: 'Gewinner-ID ist erforderlich' },
         { status: 400 }
       )
     }
 
-    const user = await prisma.user.update({
+    // Simple match update without complex tournament logic
+    await prisma.match.update({
       where: { id },
       data: {
-        tier,
-        isVerified: true
+        winnerId,
+        isFinished: true,
+        playedAt: new Date()
       }
     })
 
-    return NextResponse.json({
-      message: 'User erfolgreich verifiziert',
-      user: {
-        id: user.id,
-        username: user.username,
-        tier: user.tier,
-        isVerified: user.isVerified
-      }
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Match-Ergebnis erfolgreich gespeichert' 
     })
 
   } catch (error) {
-    console.error('User verification error:', error)
+    console.error('Set match winner error:', error)
     return NextResponse.json(
-      { error: 'Interner Serverfehler' },
+      { error: error instanceof Error ? error.message : 'Interner Serverfehler' },
       { status: 500 }
     )
   }

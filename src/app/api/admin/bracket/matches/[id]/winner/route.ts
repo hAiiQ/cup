@@ -251,7 +251,7 @@ async function advanceTournament(matchId: string, winnerId: string) {
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const admin = await verifyAdmin(request)

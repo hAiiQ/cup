@@ -3,7 +3,7 @@ services:
   - type: web
     name: tournament-portal
     env: node
-    buildCommand: npm install && npm run build:production
+    buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
