@@ -33,6 +33,10 @@ async function verifyAdmin(request: NextRequest) {
   return admin
 }
 
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const admin = await verifyAdmin(request)

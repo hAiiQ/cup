@@ -10,6 +10,10 @@ interface SocialAccounts {
   discord?: string
 }
 
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const { token, socialAccounts } = await request.json() as {

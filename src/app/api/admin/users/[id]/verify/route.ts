@@ -23,6 +23,10 @@ async function verifyAdmin(request: NextRequest) {
   return admin
 }
 
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }

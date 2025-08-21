@@ -7,8 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "render-build": "npm install --legacy-peer-deps && npx prisma generate && npx prisma db push && npm run build",
-    "postinstall": "npx prisma generate"
+    "postinstall": "npx prisma generate",
+    "render-postbuild": "npx prisma db push && node scripts/setup-production.js"
   },
   "keywords": [],
   "author": "",
