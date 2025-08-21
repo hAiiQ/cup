@@ -8,10 +8,13 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🔍 Registration attempt started');
     const { username, password, inGameName, inGameRank, discordName, twitchName, instagramName } = await request.json()
+    console.log('📝 Registration data received:', { username, inGameName, inGameRank });
 
     // Validation
     if (!username || !password) {
+      console.log('❌ Missing username or password');
       return NextResponse.json(
         { error: 'Benutzername und Passwort sind erforderlich' },
         { status: 400 }
@@ -33,7 +36,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already exists (case-insensitive check)
+    console.log('🔍 Checking existing users...');
     const existingUsers = await prisma.user.findMany()
+    console.log('📊 Found', existingUsers.length, 'existing users');
     
     // Check if any existing user has the same username (case-insensitive)
     const usernameExists = existingUsers.some(user => 
@@ -41,6 +46,7 @@ export async function POST(request: NextRequest) {
     )
 
     if (usernameExists) {
+      console.log('❌ Username already exists:', username);
       return NextResponse.json(
         { error: 'Benutzername ist bereits vergeben' },
         { status: 400 }
@@ -48,8 +54,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Hash password and create user with original case
+    console.log('🔐 Hashing password...');
     const hashedPassword = await hashPassword(password)
     
+    console.log('👤 Creating user in database...');
     const user = await prisma.user.create({
       data: {
         username: username.trim(), // Keep original case, just trim whitespace
@@ -62,6 +70,7 @@ export async function POST(request: NextRequest) {
         rulesAccepted: true, // Automatically set to true when registration is completed
       }
     })
+    console.log('✅ User created successfully:', user.id);
 
     // Generate token
     const token = generateToken(user.id)
@@ -92,9 +101,11 @@ export async function POST(request: NextRequest) {
     return response
 
   } catch (error) {
-    console.error('Registration error:', error)
+    console.error('❌ Registration error details:', error)
+    console.error('❌ Registration error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('❌ Registration error message:', error instanceof Error ? error.message : String(error));
     return NextResponse.json(
-      { error: 'Interner Serverfehler' },
+      { error: 'Interner Serverfehler: ' + (error instanceof Error ? error.message : String(error)) },
       { status: 500 }
     )
   }
