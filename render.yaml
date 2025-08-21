@@ -2,7 +2,7 @@ services:
   - type: web
     name: path-of-loki
     env: node
-    buildCommand: npm install && npx prisma generate && node scripts/manual-db-setup.js && npm run build
+    buildCommand: npm install && npx prisma generate && npx prisma db push --accept-data-loss && npm run build
     startCommand: npm start
     envVars:
       - key: DATABASE_URL
