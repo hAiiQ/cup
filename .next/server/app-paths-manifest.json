@@ -1,0 +1,10 @@
+{
+  "/api/admin/wheel/teams/route": "app/api/admin/wheel/teams/route.js",
+  "/api/admin/wheel/users/route": "app/api/admin/wheel/users/route.js",
+  "/api/user/profile/route": "app/api/user/profile/route.js",
+  "/admin/page": "app/admin/page.js",
+  "/admin/wheel/page": "app/admin/wheel/page.js",
+  "/register/page": "app/register/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/admin/dashboard/page": "app/admin/dashboard/page.js"
+}

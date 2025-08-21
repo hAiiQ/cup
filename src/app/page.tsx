@@ -27,6 +27,23 @@ export default function HomePage() {
               Nimm teil am ultimativen Marvel Rivals Tournament. Registriere dich, entdecke neue Spieler und kämpfe um den Sieg!
             </p>
             
+            {/* Tournament Details */}
+            <div className="flex justify-center gap-6 mb-8 flex-wrap">
+              <div className="bg-gradient-to-r from-red-500 to-pink-600 rounded-xl px-6 py-4 border-2 border-red-400/50 shadow-2xl transform hover:scale-105 transition-all duration-300">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-white mb-1">📅 29. August 2025</div>
+                  <div className="text-red-100 text-sm font-medium">Tournament Start</div>
+                </div>
+              </div>
+              
+              <div className="bg-gradient-to-r from-yellow-500 to-orange-600 rounded-xl px-6 py-4 border-2 border-yellow-400/50 shadow-2xl transform hover:scale-105 transition-all duration-300">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-white mb-1">💰 120€ Preisgeld</div>
+                  <div className="text-yellow-100 text-sm font-medium">Zu gewinnen</div>
+                </div>
+              </div>
+            </div>
+            
             <div className="space-y-4 mb-12">
               {!loading && !isLoggedIn && (
                 <Link href="/register" className="inline-block bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105">

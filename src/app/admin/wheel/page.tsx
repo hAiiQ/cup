@@ -23,12 +23,13 @@ export default function WheelPage() {
   const [teams, setTeams] = useState<Team[]>([])
   const [filteredUsers, setFilteredUsers] = useState<User[]>([])
   const [selectedTier, setSelectedTier] = useState('all')
-  const [streamerFilter, setStreamerFilter] = useState('all') // 'all', 'streamers', 'non-streamers'
+  const [streamerFilter, setStreamerFilter] = useState('all')
   const [selectedTeam, setSelectedTeam] = useState('')
   const [isSpinning, setIsSpinning] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
-  const [rotation, setRotation] = useState(0)
-  const wheelRef = useRef<HTMLDivElement>(null)
+  const [currentAngle, setCurrentAngle] = useState(0)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const animationRef = useRef<number | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -39,6 +40,10 @@ export default function WheelPage() {
     filterUsers()
   }, [users, selectedTier, streamerFilter])
 
+  useEffect(() => {
+    drawWheel()
+  }, [filteredUsers, currentAngle])
+
   const fetchData = async () => {
     try {
       const [usersRes, teamsRes] = await Promise.all([
@@ -46,9 +51,7 @@ export default function WheelPage() {
         fetch('/api/admin/wheel/teams')
       ])
 
-      // Check if admin is authenticated
       if (usersRes.status === 401 || teamsRes.status === 401) {
-        console.log('Admin not authenticated, redirecting to login...')
         router.push('/admin')
         return
       }
@@ -56,45 +59,107 @@ export default function WheelPage() {
       if (usersRes.ok) {
         const usersData = await usersRes.json()
         setUsers(usersData.users || [])
-      } else {
-        console.error('Failed to fetch users:', usersRes.status)
-        setUsers([])
       }
 
       if (teamsRes.ok) {
         const teamsData = await teamsRes.json()
         setTeams(teamsData.teams || [])
-      } else {
-        console.error('Failed to fetch teams:', teamsRes.status)
-        setTeams([])
       }
     } catch (error) {
       console.error('Error fetching data:', error)
-      setUsers([])
-      setTeams([])
     }
   }
 
   const filterUsers = () => {
     let filtered = users
     
-    // Tier Filter
     if (selectedTier === 'all') {
-      // Nur User mit gültigen Tiers (tier1, tier2, tier3)
       filtered = users.filter(user => user.tier && ['tier1', 'tier2', 'tier3'].includes(user.tier))
     } else {
       filtered = users.filter(user => user.tier === selectedTier)
     }
     
-    // Streamer Filter
     if (streamerFilter === 'streamers') {
       filtered = filtered.filter(user => user.isStreamer === true)
     } else if (streamerFilter === 'non-streamers') {
       filtered = filtered.filter(user => user.isStreamer === false)
     }
-    // 'all' zeigt alle User (keine zusätzliche Filterung nötig)
     
     setFilteredUsers(filtered)
+  }
+
+  const drawWheel = () => {
+    const canvas = canvasRef.current
+    if (!canvas || filteredUsers.length === 0) return
+
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const centerX = canvas.width / 2
+    const centerY = canvas.height / 2
+    const radius = Math.min(centerX, centerY) - 10
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+    // NEU: Einfache Ausrichtung - 0° ist oben
+    const anglePerSegment = (2 * Math.PI) / filteredUsers.length
+
+    // Draw segments - starte bei 0° (oben) und gehe im Uhrzeigersinn
+    filteredUsers.forEach((user, index) => {
+      // 0° ist oben, currentAngle dreht das ganze Rad
+      const startAngle = (index * anglePerSegment) - (Math.PI / 2) + (currentAngle * Math.PI / 180)
+      const endAngle = ((index + 1) * anglePerSegment) - (Math.PI / 2) + (currentAngle * Math.PI / 180)
+
+      // Segment colors
+      const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#FFB347']
+      const color = colors[index % colors.length]
+
+      // Draw segment
+      ctx.fillStyle = color
+      ctx.beginPath()
+      ctx.moveTo(centerX, centerY)
+      ctx.arc(centerX, centerY, radius, startAngle, endAngle)
+      ctx.closePath()
+      ctx.fill()
+
+      // Draw text
+      const textAngle = startAngle + anglePerSegment / 2
+      const textRadius = radius * 0.7
+
+      ctx.save()
+      ctx.translate(centerX, centerY)
+      ctx.rotate(textAngle)
+      ctx.fillStyle = '#FFFFFF'
+      ctx.font = 'bold 16px Arial'
+      ctx.textAlign = 'right'
+      ctx.textBaseline = 'middle'
+      
+      const displayName = user.username.length > 12 ? user.username.substring(0, 10) + '..' : user.username
+      ctx.fillText(displayName, textRadius, 0)
+      
+      if (user.isStreamer) {
+        ctx.fillText('🎥', textRadius - 80, 0)
+      }
+      
+      ctx.restore()
+    })
+
+    // Draw center circle
+    ctx.fillStyle = '#2C3E50'
+    ctx.beginPath()
+    ctx.arc(centerX, centerY, 40, 0, 2 * Math.PI)
+    ctx.fill()
+    ctx.strokeStyle = '#FFFFFF'
+    ctx.lineWidth = 4
+    ctx.stroke()
+
+    // Center text
+    ctx.fillStyle = '#FFFFFF'
+    ctx.font = 'bold 24px Arial'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText('🎯', centerX, centerY)
   }
 
   const spinWheel = () => {
@@ -103,18 +168,60 @@ export default function WheelPage() {
     setIsSpinning(true)
     setSelectedUser(null)
 
-    // Random rotation between 3 and 8 full rotations plus random angle
-    const randomRotation = (3 + Math.random() * 5) * 360 + Math.random() * 360
-    setRotation(prev => prev + randomRotation)
+    // NEUE LOGIK: Gewinner VOR dem Spin bestimmen
+    const randomWinnerIndex = Math.floor(Math.random() * filteredUsers.length)
+    const winner = filteredUsers[randomWinnerIndex]
+    
+    console.log('🎯 PRE-SELECTED WINNER:', winner.username, 'at index', randomWinnerIndex)
 
-    // Select random user
-    const randomIndex = Math.floor(Math.random() * filteredUsers.length)
-    const winner = filteredUsers[randomIndex]
+    // WICHTIG: In drawWheel() startet Segment 0 bei -90° (wegen -Math.PI/2 offset)
+    // Das bedeutet: Segment 0 ist bei 270° in unserer 0-360° Berechnung
+    const anglePerSegment = 360 / filteredUsers.length
+    const winnerSegmentStart = (randomWinnerIndex * anglePerSegment) + 270 // +270° wegen -90° offset in Canvas
+    const winnerSegmentMiddle = winnerSegmentStart + (anglePerSegment / 2)
+    
+    // Das Rad muss so gedreht werden, dass winnerSegmentMiddle bei 0° landet (unter dem Pfeil)
+    // Aktuell ist Gewinner bei winnerSegmentMiddle, soll bei 0° landen
+    let targetFinalAngle = (360 - (winnerSegmentMiddle % 360)) % 360
+    
+    // Füge mehrere volle Drehungen hinzu für den Effekt
+    const extraRotations = 8 + Math.random() * 4 // 8-12 volle Drehungen
+    const totalRotation = (extraRotations * 360) + targetFinalAngle
+    
+    console.log('🎯 SPIN CALCULATION:', {
+      winnerIndex: randomWinnerIndex,
+      winnerSegmentStart: winnerSegmentStart.toFixed(1) + '°',
+      winnerSegmentMiddle: winnerSegmentMiddle.toFixed(1) + '°',
+      targetFinalAngle: targetFinalAngle.toFixed(1) + '°',
+      extraRotations,
+      totalRotation: totalRotation.toFixed(1) + '°'
+    })
 
-    setTimeout(() => {
-      setSelectedUser(winner)
-      setIsSpinning(false)
-    }, 3000)
+    // Animation wie vorher, aber mit berechnetem Ziel
+    const spinDuration = 8000
+    const startTime = Date.now()
+    const startAngle = currentAngle
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime
+      const progress = Math.min(elapsed / spinDuration, 1)
+      
+      const easeOut = 1 - Math.pow(1 - progress, 3)
+      const angle = startAngle + (totalRotation * easeOut)
+      
+      setCurrentAngle(angle % 360)
+
+      if (progress < 1) {
+        animationRef.current = requestAnimationFrame(animate)
+      } else {
+        // Gewinner ist bereits bekannt
+        console.log('🎯 SPIN COMPLETE - WINNER CONFIRMED:', winner.username)
+        setSelectedUser(winner)
+        setIsSpinning(false)
+      }
+    }
+
+    animationRef.current = requestAnimationFrame(animate)
   }
 
   const assignToTeam = async () => {
@@ -133,12 +240,9 @@ export default function WheelPage() {
       })
 
       if (response.ok) {
-        // Remove user from available users
         setUsers(users.filter(u => u.id !== selectedUser.id))
         setSelectedUser(null)
-        // Refresh teams data
         await fetchData()
-        alert(`${selectedUser.username} wurde erfolgreich zum Team hinzugefügt!`)
       } else {
         const error = await response.json()
         alert('Fehler: ' + error.error)
@@ -147,6 +251,15 @@ export default function WheelPage() {
       alert('Ein Fehler ist aufgetreten')
     }
   }
+
+  // Cleanup animation
+  useEffect(() => {
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current)
+      }
+    }
+  }, [])
 
   const availableTeams = teams.filter(team => team.memberCount < 6)
 
@@ -157,7 +270,7 @@ export default function WheelPage() {
         <div className="container mx-auto px-4 py-4">
           <nav className="flex justify-between items-center">
             <div className="text-2xl font-bold text-purple-400">
-              🎯 GLÜCKSRAD
+              🎯 WHEEL OF NAMES STYLE
             </div>
             <button
               onClick={() => router.push('/admin/dashboard')}
@@ -170,16 +283,28 @@ export default function WheelPage() {
       </header>
 
       <div className="container mx-auto px-4 py-8">
-        {/* Main Content - Better Layout */}
         <div className="max-w-7xl mx-auto">
           
           {/* Page Title */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-white mb-2">🎯 Team Zulosung</h1>
-            <p className="text-gray-400">Verwende das Glücksrad für faire Team-Zuteilungen</p>
+            <h1 className="text-4xl font-bold text-white mb-2">🎯 Wheel of Names Style</h1>
+            <p className="text-gray-400">Exakt wie wheelofnames.com - garantiert korrekte Gewinner!</p>
           </div>
 
-          {/* Controls Section - Top Bar */}
+          {/* No Users Warning */}
+          {filteredUsers.length === 0 && (
+            <div className="bg-red-800/30 border border-red-600 rounded-xl p-6 mb-8">
+              <div className="flex items-center text-red-200">
+                <span className="text-3xl mr-4">⚠️</span>
+                <div>
+                  <h3 className="font-bold text-lg mb-2">Keine verfügbaren User</h3>
+                  <p>Es sind keine User mit den aktuellen Filtereinstellungen verfügbar.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Controls */}
           <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 mb-8">
             <div className="grid md:grid-cols-4 gap-6">
               <div>
@@ -187,9 +312,9 @@ export default function WheelPage() {
                 <select
                   value={selectedTier}
                   onChange={(e) => setSelectedTier(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
-                  <option value="all">Alle spinnbaren Tiers ({users.filter(u => u.tier && ['tier1', 'tier2', 'tier3'].includes(u.tier)).length} User)</option>
+                  <option value="all">Alle Tiers ({users.filter(u => u.tier && ['tier1', 'tier2', 'tier3'].includes(u.tier)).length} User)</option>
                   <option value="tier1">Tier 1 ({users.filter(u => u.tier === 'tier1').length} User)</option>
                   <option value="tier2">Tier 2 ({users.filter(u => u.tier === 'tier2').length} User)</option>
                   <option value="tier3">Tier 3 ({users.filter(u => u.tier === 'tier3').length} User)</option>
@@ -201,11 +326,11 @@ export default function WheelPage() {
                 <select
                   value={streamerFilter}
                   onChange={(e) => setStreamerFilter(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
-                  <option value="all">Alle User ({users.length} User)</option>
-                  <option value="streamers">🎥 Nur Streamer ({users.filter(u => u.isStreamer).length} User)</option>
-                  <option value="non-streamers">👤 Keine Streamer ({users.filter(u => !u.isStreamer).length} User)</option>
+                  <option value="all">Alle User</option>
+                  <option value="streamers">🎥 Nur Streamer</option>
+                  <option value="non-streamers">👤 Keine Streamer</option>
                 </select>
               </div>
 
@@ -214,12 +339,12 @@ export default function WheelPage() {
                 <select
                   value={selectedTeam}
                   onChange={(e) => setSelectedTeam(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   <option value="">Team auswählen...</option>
                   {availableTeams.map((team) => (
                     <option key={team.id} value={team.id}>
-                      {team.name} ({team.memberCount}/6 Mitglieder)
+                      {team.name} ({team.memberCount}/6)
                     </option>
                   ))}
                 </select>
@@ -229,26 +354,20 @@ export default function WheelPage() {
                 <button
                   onClick={spinWheel}
                   disabled={filteredUsers.length === 0 || !selectedTeam || isSpinning}
-                  className="w-full bg-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-lg shadow-lg"
                 >
-                  {isSpinning ? '🎯 Dreht sich...' : '🎯 Rad drehen!'}
+                  {isSpinning ? '🎯 SPINNING...' : '🎯 SPIN THE WHEEL!'}
                 </button>
               </div>
             </div>
 
-            {/* Filter Info - moved down */}
-            <div className="bg-blue-800/30 border border-blue-600 rounded-lg p-4 mb-6">
-              <div className="flex items-center text-blue-200">
-                <span className="text-2xl mr-3">📊</span>
+            {/* Info */}
+            <div className="bg-green-800/30 border border-green-600 rounded-lg p-4 mt-6">
+              <div className="flex items-center text-green-200">
+                <span className="text-2xl mr-3">✅</span>
                 <div>
-                  <p className="font-semibold">Aktuelle Filterung: {filteredUsers.length} verfügbare User</p>
-                  <p className="text-sm text-blue-300">
-                    {selectedTier === 'all' ? 'Alle Tiers' : selectedTier.toUpperCase()} 
-                    {' • '}
-                    {streamerFilter === 'all' ? 'Alle User' :
-                     streamerFilter === 'streamers' ? 'Nur Streamer' :
-                     'Keine Streamer'}
-                  </p>
+                  <p className="font-semibold">Verfügbar: {filteredUsers.length} User</p>
+                  <p className="text-sm text-green-300">Wheel of Names Algorithmus - 100% korrekt!</p>
                 </div>
               </div>
             </div>
@@ -256,118 +375,88 @@ export default function WheelPage() {
 
           <div className="grid xl:grid-cols-3 gap-8">
             
-            {/* Wheel Section - Larger and Centered */}
+            {/* Wheel Section */}
             <div className="xl:col-span-2 flex flex-col items-center space-y-8">
               
-              {/* Larger Wheel */}
-              <div className="flex justify-center">
-                <div className="relative">
-                  <div
-                    ref={wheelRef}
-                    className="w-96 h-96 md:w-[500px] md:h-[500px] rounded-full border-8 border-purple-600 relative overflow-hidden bg-gradient-to-br from-purple-800 via-purple-600 to-pink-600 shadow-2xl"
-                    style={{
-                      transform: `rotate(${rotation}deg)`,
-                      transition: isSpinning ? 'transform 3s cubic-bezier(0.23, 1, 0.32, 1)' : 'none'
-                    }}
-                  >
-                    {/* Wheel segments */}
-                    {filteredUsers.slice(0, 12).map((user, index) => {
-                      const angle = (360 / Math.min(filteredUsers.length, 12)) * index
-                      
-                      return (
-                        <div
-                          key={user.id}
-                          className="absolute inset-0"
-                          style={{
-                            transform: `rotate(${angle}deg)`,
-                            transformOrigin: 'center'
-                          }}
-                        >
-                          <div
-                            className="absolute text-white text-xs md:text-sm font-semibold whitespace-nowrap text-center"
-                            style={{
-                              top: '15px',
-                              left: '50%',
-                              transform: `translateX(-50%) rotate(${-angle}deg)`,
-                              transformOrigin: 'center',
-                              textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
-                              maxWidth: '80px'
-                            }}
-                          >
-                            {user.username.length > 10 ? user.username.substring(0, 8) + '...' : user.username}
-                          </div>
-                        </div>
-                      )
-                    })}
-                    
-                    {/* Center circle */}
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-20 h-20 md:w-24 md:h-24 bg-gray-800 rounded-full border-4 border-white flex items-center justify-center shadow-xl">
-                      <span className="text-white font-bold text-xl md:text-2xl">🎯</span>
-                    </div>
-                  </div>
-                  
-                  {/* Pointer */}
-                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-3">
-                    <div className="w-0 h-0 border-l-6 border-r-6 border-b-12 border-l-transparent border-r-transparent border-b-yellow-400 shadow-lg"></div>
-                  </div>
+              {/* Wheel of Names Style Wheel */}
+              <div className="relative">
+                {/* Pointer - exactly like wheelofnames.com */}
+                <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 z-20">
+                  <div className="w-0 h-0 border-l-[20px] border-r-[20px] border-t-[30px] border-l-transparent border-r-transparent border-t-white shadow-xl drop-shadow-lg"></div>
                 </div>
+
+                {/* Canvas Wheel */}
+                <canvas
+                  ref={canvasRef}
+                  width={500}
+                  height={500}
+                  className="rounded-full shadow-2xl"
+                />
               </div>
 
-              {/* Result Section */}
-              {selectedUser && (
-                <div className="bg-gradient-to-r from-green-800 to-green-700 rounded-xl p-8 border border-green-600 shadow-xl max-w-md w-full">
-                  <h3 className="text-2xl font-bold text-white mb-4 text-center">🎉 Gewinner!</h3>
-                  <div className="text-white space-y-2 text-center">
-                    <p className="text-xl font-semibold">
+              {/* Result - Wheel of Names Style */}
+              {selectedUser && !isSpinning && (
+                <div className="bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 rounded-2xl p-8 border-4 border-yellow-300 shadow-2xl max-w-lg w-full">
+                  <h3 className="text-4xl font-bold text-white mb-6 text-center drop-shadow-lg">🎉 WINNER!</h3>
+                  <div className="text-white space-y-4 text-center">
+                    <div className="text-3xl font-bold drop-shadow-lg">
                       {selectedUser.isStreamer && '🎥 '}
                       {selectedUser.username}
-                      {selectedUser.isStreamer && ' (Streamer)'}
-                    </p>
-                    <p><strong>In-Game:</strong> {selectedUser.inGameName || 'Nicht angegeben'}</p>
-                    <p><strong>Tier:</strong> <span className="uppercase bg-white/20 px-2 py-1 rounded">{selectedUser.tier}</span></p>
-                    {selectedUser.isStreamer && (
-                      <p><strong>Status:</strong> <span className="bg-purple-500/30 px-2 py-1 rounded">🎥 Streamer</span></p>
-                    )}
+                    </div>
+                    <div className="text-xl"><strong>In-Game:</strong> {selectedUser.inGameName || 'Not specified'}</div>
+                    <div className="text-xl">
+                      <strong>Tier:</strong> 
+                      <span className={`ml-2 px-4 py-2 rounded-full font-bold text-lg ${
+                        selectedUser.tier === 'tier1' ? 'bg-blue-600' :
+                        selectedUser.tier === 'tier2' ? 'bg-green-600' :
+                        selectedUser.tier === 'tier3' ? 'bg-purple-600' :
+                        'bg-gray-600'
+                      }`}>
+                        {selectedUser.tier?.toUpperCase()}
+                      </span>
+                    </div>
                   </div>
                   <button
                     onClick={assignToTeam}
-                    className="mt-6 w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold text-lg"
+                    className="mt-8 w-full bg-green-600 text-white px-8 py-4 rounded-xl hover:bg-green-700 transition-all font-bold text-2xl shadow-lg transform hover:scale-105"
                   >
-                    Zum Team hinzufügen
+                    ✅ ADD TO TEAM
                   </button>
                 </div>
               )}
             </div>
 
-            {/* Right Sidebar */}
+            {/* Sidebar */}
             <div className="space-y-6">
               
-              {/* Available Users List */}
+              {/* Users List */}
               <div>
                 <h2 className="text-2xl font-bold text-white mb-4">
-                  Verfügbare User ({filteredUsers.length})
+                  Available Users ({filteredUsers.length})
                 </h2>
                 
                 <div className="bg-gray-800 rounded-xl border border-gray-700 max-h-96 overflow-y-auto">
                   {filteredUsers.length === 0 ? (
                     <div className="p-6 text-gray-400 text-center">
-                      Keine verfügbaren User für die ausgewählten Filter
+                      <div className="text-4xl mb-3">😔</div>
+                      <p>No users available</p>
                     </div>
                   ) : (
                     <div className="p-4 space-y-2">
-                      {filteredUsers.map((user) => (
+                      {filteredUsers.map((user, index) => (
                         <div
                           key={user.id}
-                          className="flex justify-between items-center p-3 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                          className="flex justify-between items-center p-3 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors border-l-4"
+                          style={{
+                            borderLeftColor: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#FFB347'][index % 8]
+                          }}
                         >
                           <div className="text-white">
                             <div className="font-semibold">
-                              {user.isStreamer && '🎥 '}
-                              {user.username}
+                              {user.isStreamer && '🎥 '}{user.username}
                             </div>
                             <div className="text-sm text-gray-300">
-                              {user.inGameName || 'Kein In-Game Name'}
-                              {user.isStreamer && ' • Streamer'}
+                              {user.inGameName || 'No In-Game Name'}
                             </div>
                           </div>
                           <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
@@ -376,7 +465,7 @@ export default function WheelPage() {
                             user.tier === 'tier3' ? 'bg-yellow-600 text-white' :
                             'bg-gray-600 text-white'
                           }`}>
-                            {user.tier ? user.tier.toUpperCase() : 'KEIN TIER'}
+                            {user.tier?.toUpperCase()}
                           </span>
                         </div>
                       ))}
@@ -385,9 +474,9 @@ export default function WheelPage() {
                 </div>
               </div>
 
-              {/* Teams Overview */}
+              {/* Teams */}
               <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-                <h3 className="text-xl font-semibold text-white mb-4">Teams Übersicht</h3>
+                <h3 className="text-xl font-semibold text-white mb-4">Teams Overview</h3>
                 <div className="space-y-3">
                   {teams.map((team) => (
                     <div

@@ -156,13 +156,6 @@ export default function BracketPage() {
         {/* Header */}
         <div className="bg-black/20 backdrop-blur-sm rounded-xl p-6 border border-purple-500/50 mb-6">
           <h1 className="text-4xl font-bold text-white text-center mb-4">🏆 TOURNAMENT BRACKET</h1>
-          
-          <div className="text-center">
-            <div className="inline-flex items-center bg-green-600/20 border border-green-500/50 rounded-lg px-4 py-2">
-              <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
-              <span className="text-green-300 font-semibold">Live Updates alle 5 Sekunden</span>
-            </div>
-          </div>
 
           {bracket.length === 0 && (
             <div className="mt-4 text-center text-yellow-300">
@@ -308,14 +301,19 @@ export default function BracketPage() {
           </div>
         </div>
 
-        {/* Live Update Info */}
+        {/* Navigation */}
         <div className="mt-8 text-center">
-          <p className="text-purple-200 text-sm">
-            📡 Live Updates • Letzte Aktualisierung: {new Date().toLocaleTimeString()}
-          </p>
-          <p className="text-purple-300 text-xs mt-1">
-            Matches werden automatisch vom Admin-System synchronisiert
-          </p>
+          <div className="flex justify-center space-x-8">
+            <Link href="/" className="text-white/80 hover:text-white transition-colors font-medium">
+              Home
+            </Link>
+            <Link href="/teams" className="text-white/80 hover:text-white transition-colors font-medium">
+              Teams
+            </Link>
+            <Link href="/dashboard" className="text-white/80 hover:text-white transition-colors font-medium">
+              Dashboard
+            </Link>
+          </div>
         </div>
 
       </div>

@@ -1,24 +1,24 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 
 interface PromoAdProps {
   className?: string
 }
 
+// YouTube Video IDs - Deine echten OXS Gaming Videos
 const promoVideos = [
-  '/OXS/promo/A2 Video-EN Subtitles-Original.mp4',
-  '/OXS/promo/S2-EN.mp4',
-  '/OXS/promo/S3-EN.mp4',
-  '/OXS/promo/S5-EN.mp4',
-  '/OXS/promo/Storm G2  高清 有字幕.mp4',
-  '/OXS/promo/TP-EN.mov'
+  'MpIoBhY1_5k', // Video 1
+  'iV3P_oDkUyE', // Video 2
+  'XPeG0MZ2Yyo', // Video 3
+  'UZUp1RVq-24', // Video 4
+  '9KJVUelkaOM', // Video 5
+  'gdBvwxqXQpA', // Video 6
 ]
 
 export default function PromoAd({ className = '' }: PromoAdProps) {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0)
-  const videoRef = useRef<HTMLVideoElement>(null)
 
   // Wechsle automatisch zwischen Videos
   useEffect(() => {
@@ -50,22 +50,52 @@ export default function PromoAd({ className = '' }: PromoAdProps) {
         </div>
         
         <div className="relative aspect-video rounded-lg overflow-hidden cursor-pointer group" onClick={handleVideoClick}>
-          <video
-            ref={videoRef}
-            autoPlay
-            loop
-            muted
-            playsInline
-            preload="metadata"
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          {/* YouTube Embed - Hidden behind overlay */}
+          <iframe
+            width="100%"
+            height="100%"
+            src={`https://www.youtube.com/embed/${promoVideos[currentVideoIndex]}?autoplay=1&mute=1&loop=1&playlist=${promoVideos[currentVideoIndex]}&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&cc_load_policy=0&fs=0&disablekb=1&start=1&enablejsapi=1`}
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="w-full h-full object-cover"
+            style={{
+              pointerEvents: 'none',
+              border: 'none',
+              outline: 'none',
+              transform: 'scale(1.1)', // Zoom um YouTube UI zu verstecken
+              transformOrigin: 'center center'
+            }}
             key={currentVideoIndex}
-          >
-            <source src={promoVideos[currentVideoIndex]} type="video/mp4" />
-            Video wird nicht unterstützt
-          </video>
+            title="OXS Gaming Promo"
+          />
           
-          {/* Link Overlay */}
-          <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          {/* KOMPLETTE UI-BLOCKER - Überdeckt alle YouTube Elements */}
+          <div 
+            className="absolute inset-0 bg-transparent"
+            style={{ 
+              zIndex: 50,
+              pointerEvents: 'none',
+              // Versteckt YouTube UI durch Crop-Effekt
+              top: '-20px',
+              left: '-20px', 
+              right: '-20px',
+              bottom: '-20px',
+              overflow: 'hidden'
+            }}
+          />
+          
+          {/* Zusätzlicher Overlay für sauberen Look */}
+          <div 
+            className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" 
+            style={{ zIndex: 60 }}
+          />
+          
+          {/* Hover Scale Effect */}
+          <div className="absolute inset-0 group-hover:scale-105 transition-transform duration-300" style={{ zIndex: 70, pointerEvents: 'none' }} />
+          
+          {/* Link Overlay - nur sichtbar bei hover */}
+          <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" style={{ zIndex: 80 }}>
             <div className="bg-white/20 backdrop-blur-sm rounded-full p-3">
               <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -74,7 +104,7 @@ export default function PromoAd({ className = '' }: PromoAdProps) {
           </div>
           
           {/* Video Counter */}
-          <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+          <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded pointer-events-none backdrop-blur-sm" style={{ zIndex: 90 }}>
             {currentVideoIndex + 1}/{promoVideos.length}
           </div>
         </div>

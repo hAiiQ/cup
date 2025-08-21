@@ -25,7 +25,7 @@ async function verifyAdmin(request: NextRequest) {
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const admin = await verifyAdmin(request)
