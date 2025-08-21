@@ -1,0 +1,79 @@
+// Production schema for PostgreSQL
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  username        String    @unique
+  password        String
+  inGameName      String?
+  inGameRank      String?
+  discordName     String?
+  twitchName      String?
+  instagramName   String?
+  tier            String?   // "tier1", "tier2", "tier3"
+  isStreamer      Boolean   @default(false)  // Separate streamer status
+  isVerified      Boolean   @default(false)
+  rulesAccepted   Boolean   @default(false)
+  
+  // Einzelne Social Media Verifikationen
+  twitchVerified    Boolean   @default(false)
+  instagramVerified Boolean   @default(false)
+  discordVerified   Boolean   @default(false)
+  
+  teamId          String?
+  team            Team?     @relation(fields: [teamId], references: [id])
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Team {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  members     User[]
+  isLive      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Match relationships
+  homeMatches Match[]   @relation("HomeTeam")
+  awayMatches Match[]   @relation("AwayTeam")
+  wonMatches  Match[]   @relation("WinnerTeam")
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Match {
+  id          String    @id @default(cuid())
+  round       String    
+  bracketType String    // "winner" or "loser"
+  
+  homeTeamId  String?
+  homeTeam    Team?     @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  
+  awayTeamId  String?
+  awayTeam    Team?     @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  
+  winnerId    String?
+  winner      Team?     @relation("WinnerTeam", fields: [winnerId], references: [id])
+  
+  isCompleted Boolean   @default(false)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@unique([round, bracketType])
+}
