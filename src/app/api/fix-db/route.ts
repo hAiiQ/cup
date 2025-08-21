@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
 
-export async function POST(request: NextRequest) {
-  const prisma = new PrismaClient()
-  
+export async function GET(request: NextRequest) {
   try {
     console.log('🔧 Starting database schema fix...');
     
@@ -42,7 +40,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ 
       success: true, 
-      message: 'Database schema fixed successfully!' 
+      message: 'Database schema fixed successfully! 🎉' 
     })
     
   } catch (error) {
@@ -51,7 +49,5 @@ export async function POST(request: NextRequest) {
       success: false, 
       error: error instanceof Error ? error.message : 'Unknown error' 
     }, { status: 500 });
-  } finally {
-    await prisma.$disconnect()
   }
 }
