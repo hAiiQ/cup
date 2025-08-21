@@ -10,12 +10,14 @@ export const verifyPassword = async (password: string, hashedPassword: string): 
 }
 
 export const generateToken = (userId: string): string => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET!, { expiresIn: '7d' })
+  const secret = process.env.JWT_SECRET || 'tournament-secret-key-2024-fallback'
+  return jwt.sign({ userId }, secret, { expiresIn: '7d' })
 }
 
 export const verifyToken = (token: string): { userId: string } | null => {
   try {
-    return jwt.verify(token, process.env.JWT_SECRET!) as { userId: string }
+    const secret = process.env.JWT_SECRET || 'tournament-secret-key-2024-fallback'
+    return jwt.verify(token, secret) as { userId: string }
   } catch {
     return null
   }
