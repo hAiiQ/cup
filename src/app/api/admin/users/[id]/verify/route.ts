@@ -37,7 +37,7 @@ export async function POST(
       )
     }
 
-    const { id } = await params
+    const { id } = params
     const { tier } = await request.json()
     
     if (!['tier1', 'tier2', 'tier3'].includes(tier)) {

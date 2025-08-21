@@ -6,7 +6,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params
+    const { id } = params
     const userId = id
 
     // Check if user exists
@@ -51,7 +51,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params
+    const { id } = params
     const userId = id
     const { isVerified } = await request.json()
 

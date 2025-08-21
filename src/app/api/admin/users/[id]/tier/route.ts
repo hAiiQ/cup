@@ -6,7 +6,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params
+    const { id } = params
     const userId = id
     const { tier } = await request.json()
 
