@@ -3,10 +3,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  experimental: {
-    // Enable better server-side rendering
-    serverActions: true,
-  },
+  // Server Actions are enabled by default in Next.js 14+
   // Explicitly mark all API routes as dynamic
   async headers() {
     return [
