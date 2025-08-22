@@ -86,10 +86,38 @@ export async function DELETE(
       message: `User ${user.username} wurde erfolgreich gelöscht.` 
     })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting user:', error)
+    
+    // Specific error handling for common issues
+    if (error?.code === 'P2025') {
+      return NextResponse.json({ 
+        error: 'User nicht gefunden oder bereits gelöscht' 
+      }, { status: 404 })
+    }
+    
+    if (error?.code === 'P2003') {
+      return NextResponse.json({ 
+        error: 'User kann nicht gelöscht werden - Foreign Key Constraint. Entferne User zuerst aus allen Teams.' 
+      }, { status: 400 })
+    }
+    
+    if (error?.code === 'P1001') {
+      return NextResponse.json({ 
+        error: 'Datenbankverbindung fehlgeschlagen. Bitte versuche es später erneut.' 
+      }, { status: 503 })
+    }
+    
+    // Log detailed error for debugging
+    console.error('Detailed error:', {
+      message: error?.message,
+      code: error?.code,
+      stack: error?.stack,
+      name: error?.name
+    })
+    
     return NextResponse.json({ 
-      error: 'Internal server error beim Löschen des Users' 
+      error: 'Internal server error beim Löschen des Users: ' + (error?.message || 'Unbekannter Fehler')
     }, { status: 500 })
   }
 }
