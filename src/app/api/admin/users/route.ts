@@ -50,26 +50,51 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('✅ Admin verified, fetching users...')
-    const users = await prisma.user.findMany({
-      include: {
-        teamMemberships: {
-          include: {
-            team: true
-          }
+    
+    // First try to get users without relations to see if the basic query works
+    try {
+      const basicUsers = await prisma.user.findMany({
+        orderBy: {
+          createdAt: 'desc'
         }
-      },
-      orderBy: {
-        createdAt: 'desc'
+      })
+      console.log(`📊 Found ${basicUsers.length} basic users`)
+      
+      // If basic query works, try with relations
+      if (basicUsers.length > 0) {
+        try {
+          const users = await prisma.user.findMany({
+            include: {
+              teamMemberships: {
+                include: {
+                  team: true
+                }
+              }
+            },
+            orderBy: {
+              createdAt: 'desc'
+            }
+          })
+          console.log(`📊 Found ${users.length} users with relations`)
+          return NextResponse.json({ users })
+        } catch (relationError) {
+          console.log('⚠️ Relations failed, returning basic users:', relationError)
+          return NextResponse.json({ users: basicUsers })
+        }
+      } else {
+        return NextResponse.json({ users: basicUsers })
       }
-    })
-
-    console.log(`📊 Found ${users.length} users`)
-    return NextResponse.json({ users })
+    } catch (basicError) {
+      console.error('❌ Even basic user query failed:', basicError)
+      return NextResponse.json({ users: [] })
+    }
 
   } catch (error) {
-    console.error('Admin users fetch error:', error)
+    console.error('❌ Admin users fetch error details:', error)
+    console.error('❌ Admin users fetch error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    console.error('❌ Admin users fetch error message:', error instanceof Error ? error.message : String(error))
     return NextResponse.json(
-      { error: 'Interner Serverfehler' },
+      { error: 'Interner Serverfehler: ' + (error instanceof Error ? error.message : String(error)) },
       { status: 500 }
     )
   }
