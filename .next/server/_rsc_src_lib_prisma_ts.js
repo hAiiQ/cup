@@ -1,0 +1,25 @@
+"use strict";
+/*
+ * ATTENTION: An "eval-source-map" devtool has been used.
+ * This devtool is neither made for production nor for readable output files.
+ * It uses "eval()" calls to create a separate source file with attached SourceMaps in the browser devtools.
+ * If you are trying to read the output file, select a different devtool (https://webpack.js.org/configuration/devtool/)
+ * or disable the default devtool with "devtool: false".
+ * If you are looking for production-ready output files, see mode: "production" (https://webpack.js.org/configuration/mode/).
+ */
+exports.id = "_rsc_src_lib_prisma_ts";
+exports.ids = ["_rsc_src_lib_prisma_ts"];
+exports.modules = {
+
+/***/ "(rsc)/./src/lib/prisma.ts":
+/*!***************************!*\
+  !*** ./src/lib/prisma.ts ***!
+  \***************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   prisma: () => (/* binding */ prisma)\n/* harmony export */ });\n/* harmony import */ var _prisma_client__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @prisma/client */ \"@prisma/client\");\n/* harmony import */ var _prisma_client__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_prisma_client__WEBPACK_IMPORTED_MODULE_0__);\n\nconst globalForPrisma = globalThis;\n// Check if DATABASE_URL is available\nif (!process.env.DATABASE_URL) {\n    console.error(\"❌ DATABASE_URL environment variable is not set!\");\n    console.log(\"\\uD83D\\uDD27 Please set DATABASE_URL in your Render environment variables\");\n}\nconst prisma = globalForPrisma.prisma ?? new _prisma_client__WEBPACK_IMPORTED_MODULE_0__.PrismaClient({\n    log:  false ? 0 : [\n        \"query\",\n        \"info\",\n        \"warn\",\n        \"error\"\n    ],\n    datasources: {\n        db: {\n            url: process.env.DATABASE_URL\n        }\n    }\n});\nif (true) globalForPrisma.prisma = prisma;\n// Test database connection on startup\nprisma.$connect().then(()=>{\n    console.log(\"✅ Database connected successfully\");\n}).catch((error)=>{\n    console.error(\"❌ Database connection failed:\", error);\n});\n//# sourceURL=[module]\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiKHJzYykvLi9zcmMvbGliL3ByaXNtYS50cyIsIm1hcHBpbmdzIjoiOzs7Ozs7QUFBNkM7QUFFN0MsTUFBTUMsa0JBQWtCQztBQUl4QixxQ0FBcUM7QUFDckMsSUFBSSxDQUFDQyxRQUFRQyxHQUFHLENBQUNDLFlBQVksRUFBRTtJQUM3QkMsUUFBUUMsS0FBSyxDQUFDO0lBQ2RELFFBQVFFLEdBQUcsQ0FBQztBQUNkO0FBRU8sTUFBTUMsU0FDWFIsZ0JBQWdCUSxNQUFNLElBQ3RCLElBQUlULHdEQUFZQSxDQUFDO0lBQ2ZRLEtBQUtMLE1BQXlCLEdBQWUsQ0FBUyxHQUFHO1FBQUM7UUFBUztRQUFRO1FBQVE7S0FBUTtJQUMzRk8sYUFBYTtRQUNYQyxJQUFJO1lBQ0ZDLEtBQUtULFFBQVFDLEdBQUcsQ0FBQ0MsWUFBWTtRQUMvQjtJQUNGO0FBQ0YsR0FBRTtBQUVKLElBQUlGLElBQXlCLEVBQWNGLGdCQUFnQlEsTUFBTSxHQUFHQTtBQUVwRSxzQ0FBc0M7QUFDdENBLE9BQU9JLFFBQVEsR0FDWkMsSUFBSSxDQUFDO0lBQ0pSLFFBQVFFLEdBQUcsQ0FBQztBQUNkLEdBQ0NPLEtBQUssQ0FBQyxDQUFDUjtJQUNORCxRQUFRQyxLQUFLLENBQUMsaUNBQWlDQTtBQUNqRCIsInNvdXJjZXMiOlsid2VicGFjazovL2N1cC8uL3NyYy9saWIvcHJpc21hLnRzPzAxZDciXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHsgUHJpc21hQ2xpZW50IH0gZnJvbSAnQHByaXNtYS9jbGllbnQnXHJcblxyXG5jb25zdCBnbG9iYWxGb3JQcmlzbWEgPSBnbG9iYWxUaGlzIGFzIHVua25vd24gYXMge1xyXG4gIHByaXNtYTogUHJpc21hQ2xpZW50IHwgdW5kZWZpbmVkXHJcbn1cclxuXHJcbi8vIENoZWNrIGlmIERBVEFCQVNFX1VSTCBpcyBhdmFpbGFibGVcclxuaWYgKCFwcm9jZXNzLmVudi5EQVRBQkFTRV9VUkwpIHtcclxuICBjb25zb2xlLmVycm9yKCfinYwgREFUQUJBU0VfVVJMIGVudmlyb25tZW50IHZhcmlhYmxlIGlzIG5vdCBzZXQhJylcclxuICBjb25zb2xlLmxvZygn8J+UpyBQbGVhc2Ugc2V0IERBVEFCQVNFX1VSTCBpbiB5b3VyIFJlbmRlciBlbnZpcm9ubWVudCB2YXJpYWJsZXMnKVxyXG59XHJcblxyXG5leHBvcnQgY29uc3QgcHJpc21hID1cclxuICBnbG9iYWxGb3JQcmlzbWEucHJpc21hID8/XHJcbiAgbmV3IFByaXNtYUNsaWVudCh7XHJcbiAgICBsb2c6IHByb2Nlc3MuZW52Lk5PREVfRU5WID09PSAncHJvZHVjdGlvbicgPyBbJ2Vycm9yJ10gOiBbJ3F1ZXJ5JywgJ2luZm8nLCAnd2FybicsICdlcnJvciddLFxyXG4gICAgZGF0YXNvdXJjZXM6IHtcclxuICAgICAgZGI6IHtcclxuICAgICAgICB1cmw6IHByb2Nlc3MuZW52LkRBVEFCQVNFX1VSTFxyXG4gICAgICB9XHJcbiAgICB9XHJcbiAgfSlcclxuXHJcbmlmIChwcm9jZXNzLmVudi5OT0RFX0VOViAhPT0gJ3Byb2R1Y3Rpb24nKSBnbG9iYWxGb3JQcmlzbWEucHJpc21hID0gcHJpc21hXHJcblxyXG4vLyBUZXN0IGRhdGFiYXNlIGNvbm5lY3Rpb24gb24gc3RhcnR1cFxyXG5wcmlzbWEuJGNvbm5lY3QoKVxyXG4gIC50aGVuKCgpID0+IHtcclxuICAgIGNvbnNvbGUubG9nKCfinIUgRGF0YWJhc2UgY29ubmVjdGVkIHN1Y2Nlc3NmdWxseScpXHJcbiAgfSlcclxuICAuY2F0Y2goKGVycm9yKSA9PiB7XHJcbiAgICBjb25zb2xlLmVycm9yKCfinYwgRGF0YWJhc2UgY29ubmVjdGlvbiBmYWlsZWQ6JywgZXJyb3IpXHJcbiAgfSlcclxuIl0sIm5hbWVzIjpbIlByaXNtYUNsaWVudCIsImdsb2JhbEZvclByaXNtYSIsImdsb2JhbFRoaXMiLCJwcm9jZXNzIiwiZW52IiwiREFUQUJBU0VfVVJMIiwiY29uc29sZSIsImVycm9yIiwibG9nIiwicHJpc21hIiwiZGF0YXNvdXJjZXMiLCJkYiIsInVybCIsIiRjb25uZWN0IiwidGhlbiIsImNhdGNoIl0sInNvdXJjZVJvb3QiOiIifQ==\n//# sourceURL=webpack-internal:///(rsc)/./src/lib/prisma.ts\n");
+
+/***/ })
+
+};
+;

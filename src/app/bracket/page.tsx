@@ -11,7 +11,7 @@ interface Team {
 
 interface Match {
   id: string
-  round: number
+  round: string  // Changed from number to string
   bracket: string
   team1?: Team
   team2?: Team
@@ -20,6 +20,7 @@ interface Match {
   winner?: Team
   isFinished: boolean
   isLive?: boolean
+  winnerId?: string  // Added this field
 }
 
 export default function BracketPage() {
@@ -37,34 +38,39 @@ export default function BracketPage() {
 
   const fetchData = async () => {
     try {
-      const [teamsRes, matchesRes] = await Promise.all([
-        fetch('/api/bracket/teams'),
-        fetch('/api/bracket/matches')
-      ])
+      console.log('🔄 Fetching bracket data...')
       
-      let currentTeams: Team[] = []
-      if (teamsRes.ok) {
-        const teamsData = await teamsRes.json()
-        const sortedTeams = teamsData.teams.sort((a: Team, b: Team) => a.position - b.position)
-        setTeams(sortedTeams)
-        currentTeams = sortedTeams
-      }
-
+      // Only fetch matches API - it contains both teams and matches
+      const matchesRes = await fetch('/api/bracket/matches')
+      
       if (matchesRes.ok) {
-        const matchesData = await matchesRes.json()
-        console.log('Database matches:', matchesData.matches)
-        setBracket(matchesData.matches || [])
+        const data = await matchesRes.json()
+        console.log('✅ Bracket data loaded:', data)
         
-        // RENDER FIX: Auto-start disabled due to schema mismatch
-        // Will be re-enabled after schema migration
-        console.log('⚠️ Auto-start disabled - schema migration needed')
+        // Set teams from the matches API response
+        if (data.teams && data.teams.length > 0) {
+          setTeams(data.teams)
+          console.log(`📋 Teams loaded: ${data.teams.map((t: Team) => t.name).join(', ')}`)
+        }
+        
+        // Set matches
+        if (data.matches && data.matches.length > 0) {
+          setBracket(data.matches)
+          console.log(`🏆 Matches loaded: ${data.matches.length} matches`)
+        } else {
+          console.log('⚠️ No matches in response')
+          setBracket([])
+        }
       } else {
+        console.error('❌ Failed to fetch bracket data:', matchesRes.status)
         setBracket([])
+        setTeams([])
       }
       
     } catch (error) {
-      console.error('Error fetching data:', error)
+      console.error('❌ Error fetching bracket data:', error)
       setBracket([])
+      setTeams([])
     } finally {
       setLoading(false)
     }
@@ -204,10 +210,10 @@ export default function BracketPage() {
                   RUNDE 1 - QUARTER FINALS
                 </div>
                 <div className="space-y-2">
-                  <MatchBox match={findMatchById('wb-qf-1')} />
-                  <MatchBox match={findMatchById('wb-qf-2')} />
-                  <MatchBox match={findMatchById('wb-qf-3')} />
-                  <MatchBox match={findMatchById('wb-qf-4')} />
+                  <MatchBox match={findMatchById('WB-Q1')} />
+                  <MatchBox match={findMatchById('WB-Q2')} />
+                  <MatchBox match={findMatchById('WB-Q3')} />
+                  <MatchBox match={findMatchById('WB-Q4')} />
                 </div>
               </div>
 
@@ -217,8 +223,8 @@ export default function BracketPage() {
                   RUNDE 2 - SEMI FINALS
                 </div>
                 <div className="space-y-3">
-                  <MatchBox match={findMatchById('wb-sf-1')} />
-                  <MatchBox match={findMatchById('wb-sf-2')} />
+                  <MatchBox match={findMatchById('WB-S1')} />
+                  <MatchBox match={findMatchById('WB-S2')} />
                 </div>
               </div>
 
@@ -228,7 +234,7 @@ export default function BracketPage() {
                   WINNER BRACKET FINAL
                 </div>
                 <div>
-                  <MatchBox match={findMatchById('wb-final')} />
+                  <MatchBox match={findMatchById('WB-F')} />
                 </div>
               </div>
 
@@ -238,8 +244,8 @@ export default function BracketPage() {
                   LOSER BRACKET R1
                 </div>
                 <div className="space-y-3">
-                  <MatchBox match={findMatchById('lb-r1-1')} />
-                  <MatchBox match={findMatchById('lb-r1-2')} />
+                  <MatchBox match={findMatchById('LB-1-1')} />
+                  <MatchBox match={findMatchById('LB-1-2')} />
                 </div>
               </div>
 
@@ -249,8 +255,8 @@ export default function BracketPage() {
                   LOSER BRACKET R2
                 </div>
                 <div className="space-y-3">
-                  <MatchBox match={findMatchById('lb-r2-1')} />
-                  <MatchBox match={findMatchById('lb-r2-2')} />
+                  <MatchBox match={findMatchById('LB-2-1')} />
+                  <MatchBox match={findMatchById('LB-2-2')} />
                 </div>
               </div>
 
@@ -260,7 +266,7 @@ export default function BracketPage() {
                   LOSER BRACKET R3
                 </div>
                 <div>
-                  <MatchBox match={findMatchById('lb-r3')} />
+                  <MatchBox match={findMatchById('LB-S')} />
                 </div>
               </div>
 
@@ -270,7 +276,7 @@ export default function BracketPage() {
                   LOSER BRACKET FINAL
                 </div>
                 <div>
-                  <MatchBox match={findMatchById('lb-final')} />
+                  <MatchBox match={findMatchById('LB-F')} />
                 </div>
               </div>
 
@@ -280,7 +286,7 @@ export default function BracketPage() {
                   🏆 GRAND FINAL
                 </div>
                 <div>
-                  <MatchBox match={findMatchById('grand-final')} />
+                  <MatchBox match={findMatchById('GF')} />
                 </div>
               </div>
 
