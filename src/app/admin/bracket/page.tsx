@@ -113,7 +113,7 @@ export default function AdminBracketPage() {
 
     quarterFinals.forEach((match, index) => {
       matches.push({
-        id: `wb-qf-${index + 1}`,
+        id: `WB-Q${index + 1}`,
         round: 1,
         matchNumber: index + 1,
         team1: match.team1,
@@ -128,7 +128,7 @@ export default function AdminBracketPage() {
     // Winner Bracket Semi Finals (Round 2) - 2 Matches
     for (let i = 0; i < 2; i++) {
       matches.push({
-        id: `wb-sf-${i + 1}`,
+        id: `WB-S${i + 1}`,
         round: 2,
         matchNumber: i + 1,
         team1Score: 0,
@@ -140,7 +140,7 @@ export default function AdminBracketPage() {
 
     // Winner Bracket Final (Round 3) - 1 Match
     matches.push({
-      id: 'wb-final',
+      id: 'WB-F',
       round: 3,
       matchNumber: 1,
       team1Score: 0,
@@ -153,7 +153,7 @@ export default function AdminBracketPage() {
     // Loser Bracket Round 1 - 2 Matches
     for (let i = 0; i < 2; i++) {
       matches.push({
-        id: `lb-r1-${i + 1}`,
+        id: `LB-1-${i + 1}`,
         round: 1,
         matchNumber: i + 1,
         team1Score: 0,
@@ -166,7 +166,7 @@ export default function AdminBracketPage() {
     // Loser Bracket Round 2 - 2 Matches
     for (let i = 0; i < 2; i++) {
       matches.push({
-        id: `lb-r2-${i + 1}`,
+        id: `LB-2-${i + 1}`,
         round: 2,
         matchNumber: i + 1,
         team1Score: 0,
@@ -178,7 +178,7 @@ export default function AdminBracketPage() {
 
     // Loser Bracket Round 3 - 1 Match
     matches.push({
-      id: 'lb-r3',
+      id: 'LB-3',
       round: 3,
       matchNumber: 1,
       team1Score: 0,
@@ -189,7 +189,7 @@ export default function AdminBracketPage() {
 
     // Loser Bracket Final - 1 Match
     matches.push({
-      id: 'lb-final',
+      id: 'LB-F',
       round: 4,
       matchNumber: 1,
       team1Score: 0,
@@ -200,7 +200,7 @@ export default function AdminBracketPage() {
 
     // GRAND FINAL - 1 Match
     matches.push({
-      id: 'grand-final',
+      id: 'GF',
       round: 4,
       matchNumber: 1,
       team1Score: 0,
@@ -241,7 +241,7 @@ export default function AdminBracketPage() {
 
     quarterFinals.forEach((match, index) => {
       matches.push({
-        id: `wb-qf-${index + 1}`,
+        id: `WB-Q${index + 1}`,
         round: 1,
         matchNumber: index + 1,
         team1: match.team1,
@@ -256,7 +256,7 @@ export default function AdminBracketPage() {
     // Winner Bracket Semi Finals (Round 2) - 2 Matches
     for (let i = 0; i < 2; i++) {
       matches.push({
-        id: `wb-sf-${i + 1}`,
+        id: `WB-S${i + 1}`,
         round: 2,
         matchNumber: i + 1,
         team1Score: 0,
@@ -268,7 +268,7 @@ export default function AdminBracketPage() {
 
     // Winner Bracket Final (Round 3) - 1 Match
     matches.push({
-      id: 'wb-final',
+      id: 'WB-F',
       round: 3,
       matchNumber: 1,
       team1Score: 0,
@@ -281,7 +281,7 @@ export default function AdminBracketPage() {
     // Loser Bracket Round 1 - 2 Matches (losers from WB QF 1&2 vs losers from WB QF 3&4)
     for (let i = 0; i < 2; i++) {
       matches.push({
-        id: `lb-r1-${i + 1}`,
+        id: `LB-1-${i + 1}`,
         round: 1,
         matchNumber: i + 1,
         team1Score: 0,
@@ -294,7 +294,7 @@ export default function AdminBracketPage() {
     // Loser Bracket Round 2 - 2 Matches (winners from LB R1 vs losers from WB SF)
     for (let i = 0; i < 2; i++) {
       matches.push({
-        id: `lb-r2-${i + 1}`,
+        id: `LB-2-${i + 1}`,
         round: 2,
         matchNumber: i + 1,
         team1Score: 0,
@@ -306,7 +306,7 @@ export default function AdminBracketPage() {
 
     // Loser Bracket Round 3 - 1 Match (LB R2 winners)
     matches.push({
-      id: 'lb-r3',
+      id: 'LB-3',
       round: 3,
       matchNumber: 1,
       team1Score: 0,
@@ -317,7 +317,7 @@ export default function AdminBracketPage() {
 
     // Loser Bracket Final - 1 Match (LB R3 winner vs loser from WB Final)
     matches.push({
-      id: 'lb-final',
+      id: 'LB-F',
       round: 4,
       matchNumber: 1,
       team1Score: 0,
@@ -328,7 +328,7 @@ export default function AdminBracketPage() {
 
     // GRAND FINAL - 1 Match (WB Final winner vs LB Final winner)
     matches.push({
-      id: 'grand-final',
+      id: 'GF',
       round: 4,
       matchNumber: 1,
       team1Score: 0,
