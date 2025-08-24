@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
+import { setMatchLive } from '@/lib/matchState'
 
 // Helper function to verify admin
 async function verifyAdmin(request: NextRequest) {
@@ -48,14 +49,15 @@ export async function POST(request: NextRequest) {
 
     console.log(`🔴 Setting match ${matchId} live status: ${isLive}`)
 
-    // RENDER FIX: Schema mismatch - return success without actual update
-    // Live status functionality disabled due to schema differences
-    console.log('⚠️ Live status update disabled due to schema mismatch')
+    // Update in-memory state for immediate response
+    const updatedState = setMatchLive(matchId, isLive)
     
     return NextResponse.json({ 
       success: true, 
       message: `Match ${isLive ? 'gestartet' : 'gestoppt'}`,
-      note: 'Live status temporarily disabled'
+      matchId,
+      isLive,
+      state: updatedState
     })
 
   } catch (error) {

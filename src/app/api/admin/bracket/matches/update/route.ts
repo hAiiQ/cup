@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
+import { setMatchScore } from '@/lib/matchState'
 
 // Helper function to verify admin
 async function verifyAdmin(request: NextRequest) {
@@ -48,11 +49,10 @@ export async function POST(request: NextRequest) {
 
     console.log(`🏆 Updating match ${matchId}: ${team1Score} - ${team2Score}`)
 
-    // RENDER FIX: Simple approach - just log and return success
-    // The actual database schema doesn't support the fields we need
-    console.log(`📝 Match ${matchId} score logged: Team1: ${team1Score}, Team2: ${team2Score}`)
+    // Update in-memory state for immediate response
+    const updatedState = setMatchScore(matchId, parseInt(team1Score), parseInt(team2Score))
     
-    // Determine winner for logging
+    // Determine winner
     const winner = parseInt(team1Score) > parseInt(team2Score) ? 'Team 1' : 
                    parseInt(team2Score) > parseInt(team1Score) ? 'Team 2' : 'Tie'
     console.log(`🏆 Winner: ${winner}`)
@@ -61,7 +61,8 @@ export async function POST(request: NextRequest) {
       success: true, 
       message: `Match-Ergebnis gespeichert: ${team1Score} - ${team2Score}`,
       winner: winner,
-      matchId: matchId
+      matchId: matchId,
+      state: updatedState
     })
 
   } catch (error) {
