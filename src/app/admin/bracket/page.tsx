@@ -37,9 +37,11 @@ export default function AdminBracketPage() {
 
   const fetchData = async () => {
     try {
+      console.log('🔄 Admin fetchData started')
+      
       const [teamsRes, matchesRes] = await Promise.all([
         fetch('/api/admin/teams'),
-        fetch('/api/bracket/matches')
+        fetch('/api/bracket/matches')  // Use the SAME API as public bracket
       ])
       
       let teamsData = { teams: [] }
@@ -47,35 +49,31 @@ export default function AdminBracketPage() {
         teamsData = await teamsRes.json()
         const sortedTeams = teamsData.teams.sort((a: Team, b: Team) => a.position - b.position)
         setTeams(sortedTeams)
+        console.log('✅ Admin teams loaded:', sortedTeams.length)
       }
 
-      // Always generate the full bracket structure first
-      const fullBracket = generateFullBracket(teamsData.teams || [])
-      
+      // CRITICAL FIX: Use bracket API data directly instead of local generation
       if (matchesRes.ok) {
         const matchesData = await matchesRes.json()
-        console.log('Database matches:', matchesData.matches)
+        console.log('✅ Admin using bracket API matches:', matchesData.matches?.length || 0)
         
-        // Update bracket with database matches if they exist
         if (matchesData.matches && matchesData.matches.length > 0) {
-          matchesData.matches.forEach((dbMatch: any) => {
-            const matchIndex = fullBracket.findIndex((m: Match) => m.id === dbMatch.id)
-            if (matchIndex !== -1) {
-              fullBracket[matchIndex] = {
-                ...fullBracket[matchIndex],
-                ...dbMatch,
-                team1Score: dbMatch.team1Score || 0,
-                team2Score: dbMatch.team2Score || 0,
-                isFinished: dbMatch.isFinished || false
-              }
-            }
-          })
+          setBracket(matchesData.matches)
+          console.log('🎯 Admin Bracket set from API:', matchesData.matches.length, 'matches')
+          console.log('🎯 Winner Round 1 matches from API:', matchesData.matches.filter((m: any) => m.bracket === 'winner' && m.round === 1).length)
+        } else {
+          // Only use fallback if API has no matches at all
+          const fallbackBracket = generateFullBracket(teamsData.teams || [])
+          setBracket(fallbackBracket)
+          console.log('🔥 Admin Fallback Bracket set:', fallbackBracket.length, 'matches')
         }
+      } else {
+        // API failed, use fallback
+        const fallbackBracket = generateFullBracket(teamsData.teams || [])
+        setBracket(fallbackBracket)
+        console.log('🔥 Admin Fallback Bracket set (API failed):', fallbackBracket.length, 'matches')
       }
       
-      setBracket(fullBracket)
-      console.log('🎯 Admin Bracket set:', fullBracket.length, 'matches')
-      console.log('🎯 Winner Round 1 matches:', fullBracket.filter(m => m.bracket === 'winner' && m.round === 1).length)
     } catch (error) {
       console.error('Error fetching data:', error)
       // Fallback to local bracket generation
