@@ -29,14 +29,20 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🏆 Score update request received')
+    console.log('🔑 Checking admin authentication...')
+    
     const admin = await verifyAdmin(request)
     
     if (!admin) {
+      console.log('❌ Admin verification failed - not authorized')
       return NextResponse.json(
         { error: 'Nicht autorisiert' },
         { status: 401 }
       )
     }
+
+    console.log('✅ Admin verified successfully:', admin.username)
 
     const { matchId, team1Score, team2Score } = await request.json()
     
@@ -51,6 +57,7 @@ export async function POST(request: NextRequest) {
 
     // Update in-memory state for immediate response
     const updatedState = setMatchScore(matchId, parseInt(team1Score), parseInt(team2Score))
+    console.log('📝 Updated match state:', updatedState)
     
     // Determine winner
     const winner = parseInt(team1Score) > parseInt(team2Score) ? 'Team 1' : 
