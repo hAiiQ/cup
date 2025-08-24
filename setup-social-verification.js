@@ -73,10 +73,10 @@ async function setupSocialVerification() {
   if (discordServerId) config.DISCORD_SERVER_ID = discordServerId
 
   // Ensure required fields exist
-  if (!config.DATABASE_URL) config.DATABASE_URL = '"file:./prisma/dev.db"'
+  if (!config.DATABASE_URL) config.DATABASE_URL = '"postgresql://user:password@localhost:5432/tournament_db"'
   if (!config.JWT_SECRET) config.JWT_SECRET = '"your-super-secret-jwt-key-here"'
   if (!config.ADMIN_USERNAME) config.ADMIN_USERNAME = '"admin"'
-  if (!config.ADMIN_PASSWORD) config.ADMIN_PASSWORD = '"admin123"'
+  if (!config.ADMIN_PASSWORD) config.ADMIN_PASSWORD = '"rootmr"'
 
   // Write .env file
   const envContent = Object.entries(config)

@@ -86,7 +86,7 @@ Das Tournament Portal ist **produktionsbereit** und enthält alle gewünschten F
 ## 🔑 Standard Admin-Zugangsdaten
 
 - **Username:** admin
-- **Passwort:** admin123
+- **Passwort:** rootmr
 
 ## 📊 Tournament System
 

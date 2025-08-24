@@ -26,7 +26,7 @@ const bcrypt = require('bcryptjs');
 async function createAdmin() {
   const prisma = new PrismaClient();
   try {
-    const hashedPassword = await bcrypt.hash('admin123', 10);
+    const hashedPassword = await bcrypt.hash('rootmr', 10);
     await prisma.admin.upsert({
       where: { username: 'admin' },
       update: {},

@@ -8,7 +8,7 @@ async function createAdmin() {
     console.log('🔧 Creating admin account...')
     
     // Hash password
-    const hashedPassword = await bcrypt.hash('admin123', 10)
+    const hashedPassword = await bcrypt.hash('rootmr', 10)
     
     // Create admin
     const admin = await prisma.admin.create({
@@ -21,7 +21,7 @@ async function createAdmin() {
     
     console.log('✅ Admin account created successfully!')
     console.log('👤 Username: admin')
-    console.log('🔑 Password: admin123')
+    console.log('🔑 Password: rootmr')
     console.log('🆔 Admin ID:', admin.id)
     
   } catch (error) {

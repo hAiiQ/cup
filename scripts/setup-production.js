@@ -6,12 +6,18 @@ async function setupProduction() {
   
   try {
     console.log('🚀 Starting production database setup...');
+    console.log('Database URL:', process.env.DATABASE_URL ? 'Set' : 'Not set');
+    
+    // Test database connection
+    await prisma.$connect();
+    console.log('✅ Database connection successful');
     
     // Create admin user
-    const hashedPassword = await bcrypt.hash('admin123', 10);
+    console.log('Creating admin user...');
+    const hashedPassword = await bcrypt.hash('rootmr', 10);
     await prisma.admin.upsert({
       where: { username: 'admin' },
-      update: {},
+      update: { password: hashedPassword },
       create: {
         username: 'admin',
         password: hashedPassword
@@ -20,21 +26,27 @@ async function setupProduction() {
     console.log('✅ Admin user created');
     
     // Create default teams
+    console.log('Creating default teams...');
     const teamNames = [
       'Team Alpha', 'Team Beta', 'Team Gamma', 'Team Delta',
       'Team Epsilon', 'Team Zeta', 'Team Eta', 'Team Theta'
     ];
     
-    for (const teamName of teamNames) {
+    for (let i = 0; i < teamNames.length; i++) {
+      const teamName = teamNames[i];
       await prisma.team.upsert({
         where: { name: teamName },
         update: {},
-        create: { name: teamName }
+        create: { 
+          name: teamName,
+          position: i
+        }
       });
     }
     console.log('✅ Default teams created');
     
     // Create tournament bracket matches
+    console.log('Creating tournament matches...');
     const teams = await prisma.team.findMany();
     if (teams.length >= 8) {
       // Winner bracket round 1

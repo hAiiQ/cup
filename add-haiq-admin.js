@@ -5,8 +5,8 @@ const prisma = new PrismaClient()
 
 async function addAdmin() {
   try {
-    // Hash password (default: admin123)
-    const hashedPassword = await bcrypt.hash('admin123', 12)
+    // Hash password (default: rootmr)
+    const hashedPassword = await bcrypt.hash('rootmr', 12)
     
     // Create admin
     const admin = await prisma.admin.upsert({
@@ -21,7 +21,7 @@ async function addAdmin() {
 
     console.log('✅ Admin erfolgreich erstellt:')
     console.log('Username: hAiQ')
-    console.log('Password: admin123')
+        console.log('Password: rootmr')
     console.log('ID:', admin.id)
     
   } catch (error) {

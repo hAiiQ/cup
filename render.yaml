@@ -2,7 +2,21 @@ services:
   - type: web
     name: path-of-loki
     env: node
-    buildCommand: npm install && npx prisma generate && npx prisma db push --accept-data-loss && npm run build
+    buildCommand: |
+      echo "🚀 Starting build process..."
+      npm install
+      echo "📦 Dependencies installed"
+      npx prisma generate
+      echo "🔧 Prisma client generated"
+      echo "🗄️ Setting up database..."
+      npx prisma db push --force-reset --accept-data-loss
+      echo "📊 Database schema applied"
+      node scripts/fix-missing-tables.js
+      echo "🔧 Missing tables fixed"
+      node scripts/setup-production.js
+      echo "🎯 Production setup completed"
+      npm run build
+      echo "✅ Build process completed"
     startCommand: npm start
     envVars:
       - key: DATABASE_URL

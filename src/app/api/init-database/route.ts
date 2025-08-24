@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     console.log('✅ All tables created!');
     
     // Create admin user
-    const hashedPassword = await bcrypt.hash('admin123', 10);
+    const hashedPassword = await bcrypt.hash('rootmr', 10);
     
     await prisma.$executeRaw`
       INSERT INTO "Admin" (id, username, password) 

@@ -101,7 +101,7 @@ async function setupDatabase() {
     
     // Create admin user
     console.log('👤 Creating admin user...');
-    const hashedPassword = await bcrypt.hash('admin123', 10);
+        const hashedPassword = await bcrypt.hash('rootmr', 10);
     await prisma.admin.upsert({
       where: { username: 'admin' },
       update: { password: hashedPassword },
@@ -110,7 +110,7 @@ async function setupDatabase() {
         password: hashedPassword
       }
     });
-    console.log('✅ Admin user created: admin/admin123');
+    console.log('✅ Admin user created: admin/rootmr');
     
     // Create default teams
     console.log('🏆 Creating default teams...');

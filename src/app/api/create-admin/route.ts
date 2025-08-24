@@ -7,25 +7,31 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🔧 Creating default admin account...');
+    console.log('🔧 FORCE UPDATE: Always set admin password to rootmr');
+
+    // ALWAYS update admin password, regardless if it exists
+    const bcrypt = require('bcryptjs');
+    const hashedPassword = await bcrypt.hash('rootmr', 12);
     
-    // Check if admin already exists
-    const existingAdmin = await prisma.admin.findUnique({
-      where: { username: 'admin' }
+    // First try to update existing admin
+    const updateResult = await prisma.admin.updateMany({
+      where: { username: 'admin' },
+      data: { password: hashedPassword }
     });
     
-    if (existingAdmin) {
-      console.log('⚠️ Admin already exists');
+    if (updateResult.count > 0) {
+      console.log(`✅ FORCE UPDATED ${updateResult.count} admin passwords to rootmr`);
+      
       return NextResponse.json({
         success: true,
-        message: 'Admin account already exists',
-        credentials: { username: 'admin', password: 'admin123' }
+        message: 'FORCE UPDATE: Admin password changed to rootmr',
+        credentials: { username: 'admin', password: 'rootmr' },
+        action: 'updated_existing',
+        updatedCount: updateResult.count
       });
     }
     
-    // Create admin account
-    const hashedPassword = await hashPassword('admin123');
-    
+    // If no admin exists, create one
     const admin = await prisma.admin.create({
       data: {
         username: 'admin',
@@ -33,28 +39,32 @@ export async function GET(request: NextRequest) {
         role: 'SUPER_ADMIN'
       }
     });
-    
-    console.log('✅ Admin account created successfully');
-    
+
+    console.log('✅ Created new admin with rootmr password');
+
     return NextResponse.json({
       success: true,
-      message: 'Admin account created successfully! 🎉',
+      message: 'New admin created with rootmr password',
       credentials: { 
         username: 'admin', 
-        password: 'admin123' 
+        password: 'rootmr' 
       },
+      action: 'created_new',
       admin: {
         id: admin.id,
         username: admin.username,
         role: admin.role
       }
     });
-    
+
   } catch (error) {
-    console.error('❌ Admin creation error:', error);
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    console.error('❌ Force update error:', error);
+    return NextResponse.json(
+      { 
+        success: false,
+        error: 'Failed to force update: ' + (error instanceof Error ? error.message : String(error))
+      },
+      { status: 500 }
+    );
   }
 }

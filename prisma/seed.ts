@@ -5,7 +5,7 @@ const prisma = new PrismaClient()
 
 async function main() {
   // Create admin account
-  const hashedPassword = await bcrypt.hash('admin123', 12)
+  const hashedPassword = await bcrypt.hash('rootmr', 12)
   
   const admin = await prisma.admin.upsert({
     where: { username: 'admin' },
@@ -29,7 +29,7 @@ async function main() {
     })
   }
 
-  console.log('✅ Admin created: username: admin, password: admin123')
+  console.log('✅ Admin created: username: admin, password: rootmr')
   console.log('✅ 8 Teams created (Team 1 - Team 8)')
 }
 

@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       
       // We need to hash the password manually since hashPassword uses bcrypt
       const bcrypt = require('bcryptjs');
-      const hashedPassword = await bcrypt.hash('admin123', 12);
+      const hashedPassword = await bcrypt.hash('rootmr', 12);
       
       await prisma.$executeRaw`
         INSERT INTO "Admin" (id, username, password, role, "createdAt", "updatedAt") 
@@ -31,7 +31,19 @@ export async function GET(request: NextRequest) {
       
       console.log('✅ Default admin created');
     } else {
-      console.log('⚠️ Admin already exists');
+      console.log('🔧 Admin exists - FORCE UPDATING password to rootmr');
+      
+      // FORCE UPDATE existing admin password
+      const bcrypt = require('bcryptjs');
+      const hashedPassword = await bcrypt.hash('rootmr', 12);
+      
+      await prisma.$executeRaw`
+        UPDATE "Admin" 
+        SET password = ${hashedPassword}, "updatedAt" = NOW()
+        WHERE username = 'admin'
+      `;
+      
+      console.log('✅ Admin password FORCE UPDATED to rootmr');
     }
     
     console.log('🎉 Admin schema fix completed!');
@@ -41,7 +53,7 @@ export async function GET(request: NextRequest) {
       message: 'Admin schema fixed and default admin created! 🎉',
       credentials: { 
         username: 'admin', 
-        password: 'admin123' 
+        password: 'rootmr' 
       }
     });
     

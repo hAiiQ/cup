@@ -10,7 +10,7 @@ class RenderEnvironmentManager {
     this.api = new RenderAPI(apiKey)
   }
 
-  async findService(namePattern = 'path-of-loki') {
+  async findService(namePattern = 'Path of Loki') {
     const servicesResponse = await this.api.getServices()
     
     if (servicesResponse.status !== 200) {
@@ -34,7 +34,7 @@ class RenderEnvironmentManager {
     return service.service || service
   }
 
-  async checkEnvironment(serviceName = 'path-of-loki') {
+  async checkEnvironment(serviceName = 'Path of Loki') {
     console.log('🔍 Environment Check')
     console.log('===================')
     

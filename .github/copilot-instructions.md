@@ -31,7 +31,7 @@
 
 **Status:** Produktionsbereit und funktionsfähig  
 **URL:** http://localhost:3000  
-**Admin:** http://localhost:3000/admin (admin/admin123)
+**Admin:** http://localhost:3000/admin (admin/rootmr)
 
 ### 🚀 Implementierte Features:
 

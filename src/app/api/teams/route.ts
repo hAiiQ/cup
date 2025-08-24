@@ -8,14 +8,35 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   try {
     console.log('🔄 Fetching teams from database...')
+    console.log('Database URL configured:', !!process.env.DATABASE_URL)
+    
+    // Test database connection first
+    await prisma.$connect()
+    console.log('✅ Database connection successful')
     
     // Erst prüfen ob Teams existieren
     const teamsCount = await prisma.team.count()
     console.log(`📊 Found ${teamsCount} teams in database`)
     
     if (teamsCount === 0) {
-      console.log('⚠️ No teams found, returning empty array')
-      return NextResponse.json({ teams: [] })
+      console.log('⚠️ No teams found, creating default teams...')
+      
+      // Create default teams if none exist
+      const defaultTeams = [
+        'Team Alpha', 'Team Beta', 'Team Gamma', 'Team Delta',
+        'Team Epsilon', 'Team Zeta', 'Team Eta', 'Team Theta'
+      ]
+      
+      for (let i = 0; i < defaultTeams.length; i++) {
+        await prisma.team.create({
+          data: {
+            name: defaultTeams[i],
+            position: i
+          }
+        })
+      }
+      
+      console.log('✅ Default teams created')
     }
     
     const teams = await prisma.team.findMany({

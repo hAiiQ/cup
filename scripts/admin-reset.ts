@@ -17,7 +17,7 @@ async function forceAdminReset() {
   console.log('\n📋 To fix admin authentication:')
   console.log('1. Clear browser cache/cookies completely')
   console.log('2. Go to http://localhost:3000/admin')
-  console.log('3. Login with: admin / admin123')
+    console.log('3. Login with: admin / rootmr')
   console.log('4. New token will be created with correct admin ID')
   
   await prisma.$disconnect()

@@ -78,7 +78,7 @@ async function createTables() {
     
     // Create admin user
     const bcrypt = require('bcryptjs');
-    const hashedPassword = await bcrypt.hash('admin123', 10);
+        const hashedPassword = await bcrypt.hash('rootmr', 10);
     
     await prisma.$executeRaw`
       INSERT INTO "Admin" (id, username, password) 

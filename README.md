@@ -98,7 +98,7 @@ node create-admin-quick.js
 - **Frontend:** Next.js 15, React 19, TypeScript
 - **Styling:** Tailwind CSS
 - **Backend:** Next.js API Routes
-- **Database:** SQLite (Dev) / PostgreSQL (Prod)
+- **Database:** PostgreSQL mit Prisma ORM
 - **ORM:** Prisma
 - **Authentication:** JWT
 - **Deployment:** Render.com / Docker
@@ -138,16 +138,47 @@ tournament-portal/
 ## 🔧 Environment Variables
 
 ```bash
-# Database
-DATABASE_URL="file:./prisma/dev.db"
+# Database - Choose one option:
+# Option 1: Cloud Database (Recommended for development)
+DATABASE_URL="postgresql://postgres:[PASSWORD]@db.[PROJECT].supabase.co:5432/postgres"
+# Option 2: Local PostgreSQL
+# DATABASE_URL="postgresql://postgres:password@localhost:5432/tournament_db"
 
 # Authentication
 JWT_SECRET="your-super-secret-jwt-key"
+
+# Admin Credentials
+ADMIN_USERNAME="admin"
+ADMIN_PASSWORD="rootmr"
 
 # Social Media APIs (Optional)
 TWITCH_CLIENT_ID="your-twitch-client-id"
 TWITCH_ACCESS_TOKEN="your-twitch-access-token"
 ```
+
+## 🐘 PostgreSQL Setup
+
+### Schnellstart mit Cloud-Datenbank (Empfohlen):
+
+1. **Erstellen Sie eine kostenlose PostgreSQL-Datenbank bei [Supabase](https://supabase.com)**
+2. **Kopieren Sie die Database URL** aus den Projekteinstellungen
+3. **Fügen Sie sie in die .env Datei ein**
+4. **Führen Sie das Setup aus:**
+
+```bash
+# Datenbank Schema erstellen
+npx prisma db push
+
+# Datenbank mit Daten füllen (inkl. Admin-Account)
+npx prisma db seed
+
+# Anwendung starten
+npm run dev
+```
+
+### Lokale PostgreSQL Installation:
+
+Siehe [POSTGRESQL_SETUP.md](./POSTGRESQL_SETUP.md) für detaillierte Anweisungen.
 
 ## 📈 Features Roadmap
 
