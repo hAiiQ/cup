@@ -358,13 +358,16 @@ export default function AdminBracketPage() {
       if (updateResponse.ok) {
         const result = await updateResponse.json()
         
+        // Show success message
+        alert(`✅ ${result.message || 'Match-Score gespeichert!'}`)
+        
         // Close modal
         setSelectedMatch(null)
         
         // Refresh data from server to get auto-advanced teams
         await fetchData()
         
-        // Success - no alert needed, just close modal
+        // Success - modal closed with visible feedback
       } else {
         alert('Fehler beim Speichern des Ergebnisses')
       }
@@ -566,6 +569,11 @@ export default function AdminBracketPage() {
         })
 
         if (response.ok) {
+          const result = await response.json()
+          
+          // Show success message
+          alert(`✅ ${result.message || (isLive ? 'Match gestoppt' : 'Match gestartet')}`)
+          
           await fetchData() // Refresh data
         } else {
           alert('Fehler beim Ändern des Live-Status')
