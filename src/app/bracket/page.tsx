@@ -162,27 +162,19 @@ export default function BracketPage() {
         {/* Header */}
         <div className="bg-black/20 backdrop-blur-sm rounded-xl p-6 border border-purple-500/50 mb-6">
           <h1 className="text-4xl font-bold text-white text-center mb-4">🏆 TOURNAMENT BRACKET</h1>
-
-          {bracket.length === 0 && (
-            <div className="mt-4 text-center">
-              <div className="bg-yellow-500/20 border border-yellow-400 rounded-lg p-6 max-w-2xl mx-auto">
-                <div className="text-6xl mb-4">⚠️</div>
-                <h3 className="text-yellow-300 font-bold text-xl mb-3">Tournament Bracket wird vorbereitet</h3>
-                <p className="text-yellow-200 mb-4">
-                  Das Tournament System wird gerade aktualisiert. Der Bracket wird bald verfügbar sein.
-                </p>
-                <div className="text-yellow-300 text-sm">
-                  <p>📅 Teams: {teams.length > 0 ? `${teams.length} Teams registriert` : 'Teams werden geladen'}</p>
-                  <p>🔧 Status: System-Update läuft</p>
-                </div>
-              </div>
+          
+          <div className="text-center">
+            <p className="text-purple-200 mb-2">
+              {teams.length > 0 ? `${teams.length} Teams • Double Elimination Format` : 'Teams werden geladen...'}
+            </p>
+            <div className="text-sm text-purple-300">
+              � Live Updates alle 3 Sekunden
             </div>
-          )}
+          </div>
         </div>
 
-        {/* Tournament Bracket - Same layout as admin but read-only */}
-        {bracket.length > 0 && (
-          <div className="relative bg-black/20 backdrop-blur-sm rounded-xl p-6 border border-purple-500/50 w-full">
+        {/* Tournament Bracket - Always show bracket structure */}
+        <div className="relative bg-black/20 backdrop-blur-sm rounded-xl p-6 border border-purple-500/50 w-full">{/* Always show bracket, remove condition */}
             
             {/* Lines Background Image - Absolute positioned overlay */}
             <div className="absolute" style={{top: '175px', left: '365px', zIndex: 1}}>
@@ -294,7 +286,6 @@ export default function BracketPage() {
 
             </div>
           </div>
-        )}
 
         {/* Teams Overview */}
         <div className="mt-8">
