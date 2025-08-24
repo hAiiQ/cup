@@ -38,27 +38,9 @@ export async function GET() {
       
       console.log('✅ Default teams created')
     }
-    
+
+    // Fetch teams WITHOUT relations first - to avoid TeamMember table errors
     const teams = await prisma.team.findMany({
-      include: {
-        members: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-                inGameName: true,
-                tier: true,
-                isStreamer: true,
-                isVerified: true,
-                discordName: true,
-                twitchName: true,
-                inGameRank: true
-              }
-            }
-          }
-        }
-      },
       orderBy: {
         position: 'asc'
       }
@@ -66,29 +48,16 @@ export async function GET() {
 
     console.log(`✅ Successfully fetched ${teams.length} teams`)
     
-    // Transform data for frontend
+    // Transform data for frontend - with empty members for now
     const transformedTeams = teams.map((team: any) => ({
       id: team.id,
       name: team.name,
       position: team.position,
       imageUrl: team.imageUrl,
-      members: team.members.map((member: any) => ({
-        id: member.user.id,
-        username: member.user.username,
-        inGameName: member.user.inGameName,
-        rank: member.user.inGameRank,
-        tier: member.user.tier === 'tier1' ? 1 : member.user.tier === 'tier2' ? 2 : member.user.tier === 'tier3' ? 3 : null,
-        isVerified: member.user.isVerified,
-        discord: member.user.discordName,
-        twitch: member.user.twitchName,
-        isStreamer: member.user.isStreamer,
-        role: member.role
-      }))
+      members: [] // Empty members array until TeamMember table is fixed
     }))
     
-    return NextResponse.json({ teams: transformedTeams })
-
-  } catch (error) {
+    return NextResponse.json({ teams: transformedTeams })  } catch (error) {
     console.error('❌ Teams fetch error:', error)
     console.error('Error details:', {
       message: error instanceof Error ? error.message : 'Unknown error',
