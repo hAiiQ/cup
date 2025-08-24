@@ -74,11 +74,14 @@ export default function AdminBracketPage() {
       }
       
       setBracket(fullBracket)
+      console.log('🎯 Admin Bracket set:', fullBracket.length, 'matches')
+      console.log('🎯 Winner Round 1 matches:', fullBracket.filter(m => m.bracket === 'winner' && m.round === 1).length)
     } catch (error) {
       console.error('Error fetching data:', error)
       // Fallback to local bracket generation
       const fallbackBracket = generateFullBracket([])
       setBracket(fallbackBracket)
+      console.log('🔥 Admin Fallback Bracket set:', fallbackBracket.length, 'matches')
     } finally {
       setLoading(false)
     }
@@ -512,7 +515,9 @@ export default function AdminBracketPage() {
   }
 
   const getMatchesByBracketAndRound = (bracketType: string, round: number) => {
-    return bracket.filter(match => match.bracket === bracketType && match.round === round)
+    const filtered = bracket.filter(match => match.bracket === bracketType && match.round === round)
+    console.log(`🔍 Admin Bracket Filter: ${bracketType} round ${round} → ${filtered.length} matches`, filtered.map(m => m.id))
+    return filtered
   }
 
   const getWinnerMatches = () => {
