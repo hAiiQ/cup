@@ -365,8 +365,15 @@ export default function AdminBracketPage() {
         // Close modal
         setSelectedMatch(null)
         
-        // Refresh data from server to get auto-advanced teams
-        await fetchData()
+        // FIXED: Update local state instead of fetchData() to prevent matches disappearing
+        setBracket(prevBracket => 
+          prevBracket.map(m => 
+            m.id === matchId 
+              ? { ...m, team1Score, team2Score, isFinished: (team1Score > 0 || team2Score > 0) }
+              : m
+          )
+        )
+        console.log(`🔄 Admin: Updated local match ${matchId} scores: ${team1Score}-${team2Score}`)
         
         // Success - modal closed with visible feedback
       } else {
@@ -577,7 +584,15 @@ export default function AdminBracketPage() {
           // Show success message
           alert(`✅ ${result.message || (isLive ? 'Match gestoppt' : 'Match gestartet')}`)
           
-          await fetchData() // Refresh data
+          // FIXED: Update local state instead of fetchData() to prevent matches disappearing
+          setBracket(prevBracket => 
+            prevBracket.map(m => 
+              m.id === match.id 
+                ? { ...m, isLive: !isLive }
+                : m
+            )
+          )
+          console.log(`🔄 Admin: Updated local match ${match.id} isLive to ${!isLive}`)
         } else {
           alert('Fehler beim Ändern des Live-Status')
         }
