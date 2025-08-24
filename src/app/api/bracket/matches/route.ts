@@ -9,8 +9,8 @@ export async function GET() {
   try {
     console.log('🔄 Fetching matches for bracket...')
     
-    // RENDER FIX: Generate static bracket view with teams
-    console.log('💡 Using static bracket generation (schema optimized)')
+    // RENDER FIX: Generate static bracket view with teams and mock live data
+    console.log('💡 Using static bracket generation with simulated live data')
     
     // Get teams for bracket display
     let teams = []
@@ -44,6 +44,10 @@ export async function GET() {
     const matches = []
     const paddedTeams = teams.slice(0, 8)
 
+    // Add some mock live data and scores for demonstration
+    const currentTime = Date.now()
+    const mockLiveMatch = Math.floor(currentTime / 60000) % 4 + 1 // Rotate live match every minute
+    
     // WINNER BRACKET - Quarter Finals (Round 1)
     const quarterFinals = [
       { team1: paddedTeams[0], team2: paddedTeams[1] }, 
@@ -53,16 +57,32 @@ export async function GET() {
     ]
 
     quarterFinals.forEach((match, index) => {
+      const matchId = `wb-qf-${index + 1}`
+      const isLive = index + 1 === mockLiveMatch
+      
+      // Add some sample scores for demo
+      let team1Score = 0, team2Score = 0, isFinished = false
+      if (index === 0) { // First match has sample score
+        team1Score = 2
+        team2Score = 1
+        isFinished = true
+      } else if (isLive) { // Live match has ongoing score
+        team1Score = 1
+        team2Score = 1
+      }
+      
       matches.push({
-        id: `wb-qf-${index + 1}`,
+        id: matchId,
         round: 1,
         bracket: 'winner',
         team1: match.team1,
         team2: match.team2,
-        team1Score: 0,
-        team2Score: 0,
-        isFinished: false,
-        isLive: false
+        team1Score,
+        team2Score,
+        isFinished,
+        isLive,
+        winner: isFinished && team1Score > team2Score ? match.team1 : 
+                isFinished && team2Score > team1Score ? match.team2 : null
       })
     })
 
