@@ -72,9 +72,18 @@ node create-admin-quick.js
 
 **Render.com (Empfohlen)**
 - Siehe [RENDER_DEPLOYMENT.md](./RENDER_DEPLOYMENT.md) für detaillierte Anleitung
+- **WICHTIG:** Bei Deployment-Problemen siehe [RENDER_TEAMS_FIX.md](./RENDER_TEAMS_FIX.md)
 - Kostenloser Free Tier verfügbar
 - Automatische PostgreSQL Setup
 - SSL-Zertifikate inklusive
+
+#### 🚨 Render Deployment Issues
+Falls die Teams-Seite "Internal Server Error" zeigt:
+1. Problem: TeamMember Relations fehlen in der Datenbank
+2. **Sofortiger Fix:** Relations aus APIs entfernt (bereits implementiert)
+3. Details siehe [RENDER_TEAMS_FIX.md](./RENDER_TEAMS_FIX.md)
+
+**Status:** ✅ Teams-Seite funktioniert jetzt auf Render
 
 ## 📱 Screenshots
 

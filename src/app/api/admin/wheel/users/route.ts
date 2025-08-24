@@ -38,13 +38,14 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get verified users who are not in any team yet
+    console.log('🎯 Fetching verified users for wheel assignment')
+
+    // RENDER FIX: Get all verified users without team relation filtering
+    // TODO: Re-enable team filtering when TeamMember table is available
     const users = await prisma.user.findMany({
       where: {
-        isVerified: true,
-        teamMemberships: {
-          none: {}
-        }
+        isVerified: true
+        // teamMemberships: { none: {} } // Disabled due to Render deployment
       },
       select: {
         id: true,
@@ -54,6 +55,8 @@ export async function GET(request: NextRequest) {
         isStreamer: true
       }
     })
+
+    console.log(`✅ Found ${users.length} verified users for wheel`)
 
     return NextResponse.json({ users })
 

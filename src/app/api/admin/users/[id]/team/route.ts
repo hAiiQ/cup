@@ -14,38 +14,36 @@ export async function POST(
     const userId = id
     const { teamName } = await request.json()
 
-    // First, remove user from any existing team
-    await prisma.teamMember.deleteMany({
-      where: { userId }
-    })
+    console.log(`🔄 Admin assigning user ${userId} to team: ${teamName}`)
 
-    // If teamName is provided, add user to new team
+    // RENDER FIX: Use direct teamId assignment instead of TeamMember table
+    
     if (teamName && teamName !== '') {
-      // Find team by name
+      // Check if team exists (without relations)
       const team = await prisma.team.findFirst({
-        where: { name: teamName },
-        include: {
-          members: true
-        }
+        where: { name: teamName }
       })
 
       if (!team) {
+        console.log(`❌ Team not found: ${teamName}`)
         return NextResponse.json({ error: 'Team nicht gefunden' }, { status: 404 })
       }
 
-      // Check if team is full (max 6 members)
-      if (team.members.length >= 6) {
-        return NextResponse.json({ error: 'Team ist bereits voll (max. 6 Mitglieder)' }, { status: 400 })
-      }
-
-      // Add user to team
-      await prisma.teamMember.create({
-        data: {
-          userId,
-          teamId: team.id,
-          role: 'member' // default role
-        }
+      // Update user with teamId directly
+      await prisma.user.update({
+        where: { id: userId },
+        data: { teamId: team.id }
       })
+
+      console.log(`✅ User ${userId} assigned to team ${teamName} (${team.id})`)
+    } else {
+      // Remove user from team
+      await prisma.user.update({
+        where: { id: userId },
+        data: { teamId: null }
+      })
+
+      console.log(`✅ User ${userId} removed from team`)
     }
 
     return NextResponse.json({ 

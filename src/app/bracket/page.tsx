@@ -42,16 +42,37 @@ export default function BracketPage() {
         fetch('/api/bracket/matches')
       ])
       
+      let currentTeams: Team[] = []
       if (teamsRes.ok) {
         const teamsData = await teamsRes.json()
         const sortedTeams = teamsData.teams.sort((a: Team, b: Team) => a.position - b.position)
         setTeams(sortedTeams)
+        currentTeams = sortedTeams
       }
 
       if (matchesRes.ok) {
         const matchesData = await matchesRes.json()
         console.log('Database matches:', matchesData.matches)
         setBracket(matchesData.matches || [])
+        
+        // Auto-start tournament if we have teams but no matches
+        if ((!matchesData.matches || matchesData.matches.length === 0) && currentTeams.length >= 8) {
+          console.log('🚀 Auto-starting tournament with', currentTeams.length, 'teams')
+          try {
+            const startRes = await fetch('/api/bracket/start', { method: 'POST' })
+            if (startRes.ok) {
+              console.log('✅ Tournament auto-started')
+              // Fetch matches again
+              const newMatchesRes = await fetch('/api/bracket/matches')
+              if (newMatchesRes.ok) {
+                const newMatchesData = await newMatchesRes.json()
+                setBracket(newMatchesData.matches || [])
+              }
+            }
+          } catch (error) {
+            console.error('Failed to auto-start tournament:', error)
+          }
+        }
       } else {
         setBracket([])
       }

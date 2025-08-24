@@ -47,12 +47,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if user exists and is verified
+    console.log(`🎯 Assigning user ${userId} to team ${teamId}`)
+
+    // Check if user exists without relations first
     const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        teamMemberships: true
-      }
+      where: { id: userId }
     })
 
     if (!user) {
@@ -69,19 +68,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (user.teamMemberships.length > 0) {
+    // RENDER FIX: Check if user already has a team via teamId
+    if (user.teamId) {
       return NextResponse.json(
         { error: 'User ist bereits in einem Team' },
         { status: 400 }
       )
     }
 
-    // Check if team exists and has space
+    // Check if team exists (without relations)
     const team = await prisma.team.findUnique({
-      where: { id: teamId },
-      include: {
-        members: true
-      }
+      where: { id: teamId }
     })
 
     if (!team) {
@@ -91,25 +88,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (team.members.length >= 6) {
+    // Check team capacity (count users with this teamId)
+    const teamMemberCount = await prisma.user.count({
+      where: { teamId: teamId }
+    })
+
+    if (teamMemberCount >= 6) {
       return NextResponse.json(
         { error: 'Team ist bereits voll (6/6 Mitglieder)' },
         { status: 400 }
       )
     }
 
-    // Add user to team
-    const teamMember = await prisma.teamMember.create({
-      data: {
-        userId,
-        teamId,
-        role: team.members.length === 0 ? 'captain' : 'member'
-      }
+    // Assign user to team using direct teamId
+    await prisma.user.update({
+      where: { id: userId },
+      data: { teamId: teamId }
     })
 
+    console.log(`✅ User ${userId} assigned to team ${teamId} (${team.name})`)
+    
     return NextResponse.json({
       message: 'User erfolgreich zum Team hinzugefügt',
-      teamMember
+      assignment: {
+        userId,
+        teamId,
+        teamName: team.name
+      }
     })
 
   } catch (error) {
