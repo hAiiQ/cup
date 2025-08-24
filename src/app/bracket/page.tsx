@@ -46,6 +46,7 @@ export default function BracketPage() {
       if (matchesRes.ok) {
         const data = await matchesRes.json()
         console.log('✅ Bracket data loaded:', data)
+        console.log(`🎮 Admin controlled matches: ${data.adminControlled ? 'YES' : 'NO'}`)
         
         // Set teams from the matches API response
         if (data.teams && data.teams.length > 0) {
@@ -57,6 +58,14 @@ export default function BracketPage() {
         if (data.matches && data.matches.length > 0) {
           setBracket(data.matches)
           console.log(`🏆 Matches loaded: ${data.matches.length} matches`)
+          
+          // Debug: Show live matches
+          const liveMatches = data.matches.filter((m: any) => m.isLive)
+          if (liveMatches.length > 0) {
+            console.log(`🔴 LIVE MATCHES FOUND:`, liveMatches.map((m: any) => `${m.id} (${m.team1?.name} vs ${m.team2?.name})`))
+          } else {
+            console.log('⚪ No live matches currently')
+          }
         } else {
           console.log('⚠️ No matches in response')
           setBracket([])
@@ -173,8 +182,14 @@ export default function BracketPage() {
             <p className="text-purple-200 mb-2">
               {teams.length > 0 ? `${teams.length} Teams • Double Elimination Format` : 'Teams werden geladen...'}
             </p>
-            <div className="text-sm text-purple-300">
-              � Live Updates alle 3 Sekunden
+            <div className="text-sm text-purple-300 flex items-center justify-center gap-4">
+              🔄 Live Updates alle 3 Sekunden
+              <button 
+                onClick={fetchData}
+                className="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-white text-xs font-medium transition-colors"
+              >
+                🔄 Jetzt Aktualisieren
+              </button>
             </div>
           </div>
         </div>
