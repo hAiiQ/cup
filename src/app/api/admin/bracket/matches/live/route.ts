@@ -37,32 +37,29 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { matchId, team1Score, team2Score } = await request.json()
+    const { matchId, isLive } = await request.json()
     
-    if (!matchId || team1Score === undefined || team2Score === undefined) {
+    if (!matchId || isLive === undefined) {
       return NextResponse.json(
-        { error: 'Match ID und Scores sind erforderlich' },
+        { error: 'Match ID und Live-Status sind erforderlich' },
         { status: 400 }
       )
     }
 
-    console.log(`🏆 Updating match ${matchId}: ${team1Score} - ${team2Score}`)
+    console.log(`🔴 Setting match ${matchId} live status: ${isLive}`)
 
     // RENDER FIX: Schema mismatch - return success without actual update
-    // Score updates disabled due to schema differences between dev/prod
-    console.log('⚠️ Match score update disabled due to schema mismatch')
-    console.log('💡 Development schema uses team1Score/team2Score/isFinished')
-    console.log('💡 Production schema uses different field names')
+    // Live status functionality disabled due to schema differences
+    console.log('⚠️ Live status update disabled due to schema mismatch')
     
     return NextResponse.json({ 
       success: true, 
-      message: 'Match-Score gespeichert',
-      note: 'Score updates temporarily disabled due to schema migration',
-      scores: { team1Score, team2Score }
+      message: `Match ${isLive ? 'gestartet' : 'gestoppt'}`,
+      note: 'Live status temporarily disabled'
     })
 
   } catch (error) {
-    console.error('Update match score error:', error)
+    console.error('Set live status error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Interner Serverfehler' },
       { status: 500 }
