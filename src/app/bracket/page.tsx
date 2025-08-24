@@ -55,24 +55,9 @@ export default function BracketPage() {
         console.log('Database matches:', matchesData.matches)
         setBracket(matchesData.matches || [])
         
-        // Auto-start tournament if we have teams but no matches
-        if ((!matchesData.matches || matchesData.matches.length === 0) && currentTeams.length >= 8) {
-          console.log('🚀 Auto-starting tournament with', currentTeams.length, 'teams')
-          try {
-            const startRes = await fetch('/api/bracket/start', { method: 'POST' })
-            if (startRes.ok) {
-              console.log('✅ Tournament auto-started')
-              // Fetch matches again
-              const newMatchesRes = await fetch('/api/bracket/matches')
-              if (newMatchesRes.ok) {
-                const newMatchesData = await newMatchesRes.json()
-                setBracket(newMatchesData.matches || [])
-              }
-            }
-          } catch (error) {
-            console.error('Failed to auto-start tournament:', error)
-          }
-        }
+        // RENDER FIX: Auto-start disabled due to schema mismatch
+        // Will be re-enabled after schema migration
+        console.log('⚠️ Auto-start disabled - schema migration needed')
       } else {
         setBracket([])
       }
@@ -179,8 +164,18 @@ export default function BracketPage() {
           <h1 className="text-4xl font-bold text-white text-center mb-4">🏆 TOURNAMENT BRACKET</h1>
 
           {bracket.length === 0 && (
-            <div className="mt-4 text-center text-yellow-300">
-              ⚠️ Das Turnier wurde noch nicht gestartet. Bitte warte auf den Admin.
+            <div className="mt-4 text-center">
+              <div className="bg-yellow-500/20 border border-yellow-400 rounded-lg p-6 max-w-2xl mx-auto">
+                <div className="text-6xl mb-4">⚠️</div>
+                <h3 className="text-yellow-300 font-bold text-xl mb-3">Tournament Bracket wird vorbereitet</h3>
+                <p className="text-yellow-200 mb-4">
+                  Das Tournament System wird gerade aktualisiert. Der Bracket wird bald verfügbar sein.
+                </p>
+                <div className="text-yellow-300 text-sm">
+                  <p>📅 Teams: {teams.length > 0 ? `${teams.length} Teams registriert` : 'Teams werden geladen'}</p>
+                  <p>🔧 Status: System-Update läuft</p>
+                </div>
+              </div>
             </div>
           )}
         </div>
