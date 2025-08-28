@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       include: {
         _count: {
           select: {
-            members: true
+            users: true
           }
         }
       },
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
       id: team.id,
       name: team.name,
       position: team.position,
-      memberCount: team._count.members
+      memberCount: team._count.users
     }))
 
     return NextResponse.json({ teams: formattedTeams })

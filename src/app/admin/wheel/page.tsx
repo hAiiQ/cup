@@ -355,7 +355,7 @@ export default function WheelPage() {
                   disabled={filteredUsers.length === 0 || !selectedTeam || isSpinning}
                   className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-lg shadow-lg"
                 >
-                  {isSpinning ? '🎯 SPINNING...' : '🎯 SPIN THE WHEEL!'}
+                  {isSpinning ? '� DREHT...' : '� RAD DREHEN!'}
                 </button>
               </div>
             </div>
@@ -430,7 +430,7 @@ export default function WheelPage() {
               {/* Users List */}
               <div>
                 <h2 className="text-2xl font-bold text-white mb-4">
-                  Available Users ({filteredUsers.length})
+                  Verfügbare Spieler ({filteredUsers.length})
                 </h2>
                 
                 <div className="bg-gray-800 rounded-xl border border-gray-700 max-h-96 overflow-y-auto">
