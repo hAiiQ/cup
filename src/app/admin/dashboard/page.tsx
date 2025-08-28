@@ -488,18 +488,16 @@ export default function AdminDashboard() {
                         <td className="p-4">
                           <div className="space-y-1">
                             <p className="text-gray-300 text-sm">{user.twitchName || '-'}</p>
-                            {user.twitchName && (
-                              <button
-                                onClick={() => toggleSocialVerification(user.id, 'twitch', user.twitchVerified)}
-                                className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                                  user.twitchVerified 
-                                    ? 'bg-green-600 text-white hover:bg-green-700'
-                                    : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                                }`}
-                              >
-                                {user.twitchVerified ? '✅ Verifiziert' : '⏳ Ausstehend'}
-                              </button>
-                            )}
+                            <button
+                              onClick={() => toggleSocialVerification(user.id, 'twitch', user.twitchVerified)}
+                              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                user.twitchVerified 
+                                  ? 'bg-green-600 text-white hover:bg-green-700'
+                                  : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                              }`}
+                            >
+                              {user.twitchVerified ? '✅ Verifiziert' : '⏳ Als verifiziert markieren'}
+                            </button>
                           </div>
                         </td>
 
@@ -507,18 +505,16 @@ export default function AdminDashboard() {
                         <td className="p-4">
                           <div className="space-y-1">
                             <p className="text-gray-300 text-sm">{user.instagramName || '-'}</p>
-                            {user.instagramName && (
-                              <button
-                                onClick={() => toggleSocialVerification(user.id, 'instagram', user.instagramVerified)}
-                                className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                                  user.instagramVerified 
-                                    ? 'bg-green-600 text-white hover:bg-green-700'
-                                    : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                                }`}
-                              >
-                                {user.instagramVerified ? '✅ Verifiziert' : '⏳ Ausstehend'}
-                              </button>
-                            )}
+                            <button
+                              onClick={() => toggleSocialVerification(user.id, 'instagram', user.instagramVerified)}
+                              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                user.instagramVerified 
+                                  ? 'bg-green-600 text-white hover:bg-green-700'
+                                  : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                              }`}
+                            >
+                              {user.instagramVerified ? '✅ Verifiziert' : '⏳ Als verifiziert markieren'}
+                            </button>
                           </div>
                         </td>
 
@@ -526,18 +522,16 @@ export default function AdminDashboard() {
                         <td className="p-4">
                           <div className="space-y-1">
                             <p className="text-gray-300 text-sm">{user.discordName || '-'}</p>
-                            {user.discordName && (
-                              <button
-                                onClick={() => toggleSocialVerification(user.id, 'discord', user.discordVerified)}
-                                className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                                  user.discordVerified 
-                                    ? 'bg-green-600 text-white hover:bg-green-700'
-                                    : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                                }`}
-                              >
-                                {user.discordVerified ? '✅ Verifiziert' : '⏳ Ausstehend'}
-                              </button>
-                            )}
+                            <button
+                              onClick={() => toggleSocialVerification(user.id, 'discord', user.discordVerified)}
+                              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                user.discordVerified 
+                                  ? 'bg-green-600 text-white hover:bg-green-700'
+                                  : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                              }`}
+                            >
+                              {user.discordVerified ? '✅ Verifiziert' : '⏳ Als verifiziert markieren'}
+                            </button>
                           </div>
                         </td>
 
