@@ -60,25 +60,21 @@ export async function GET(request: NextRequest) {
       })
       console.log(`📊 Found ${basicUsers.length} basic users`)
       
-      // If basic query works, try with relations
+      // If basic query works, try with team relation using teamId
       if (basicUsers.length > 0) {
         try {
           const users = await prisma.user.findMany({
             include: {
-              teamMemberships: {
-                include: {
-                  team: true
-                }
-              }
+              team: true
             },
             orderBy: {
               createdAt: 'desc'
             }
           })
-          console.log(`📊 Found ${users.length} users with relations`)
+          console.log(`📊 Found ${users.length} users with team relations`)
           return NextResponse.json({ users })
         } catch (relationError) {
-          console.log('⚠️ Relations failed, returning basic users:', relationError)
+          console.log('⚠️ Team relations failed, returning basic users:', relationError)
           return NextResponse.json({ users: basicUsers })
         }
       } else {

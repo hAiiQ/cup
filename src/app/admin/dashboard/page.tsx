@@ -22,12 +22,10 @@ interface User {
   inGameNameVerified: boolean
   inGameRankVerified: boolean
   createdAt: string
-  teamMemberships?: {
-    team: {
-      id: string
-      name: string
-    }
-  }[]
+  team?: {
+    id: string
+    name: string
+  } | null
 }
 
 export default function AdminDashboard() {
@@ -463,13 +461,13 @@ export default function AdminDashboard() {
                         <td className="p-4">
                           <div className="space-y-1">
                             <p className="text-gray-300 text-sm">
-                              {user.teamMemberships && user.teamMemberships.length > 0 
-                                ? user.teamMemberships[0].team.name 
+                              {user.team 
+                                ? user.team.name 
                                 : 'Kein Team'
                               }
                             </p>
                             <select
-                              value={user.teamMemberships && user.teamMemberships.length > 0 ? user.teamMemberships[0].team.name : ''}
+                              value={user.team ? user.team.name : ''}
                               onChange={(e) => updateTeamAssignment(user.id, e.target.value)}
                               className="bg-gray-700 border border-gray-600 rounded text-xs text-white px-2 py-1 focus:outline-none focus:border-blue-500"
                             >
