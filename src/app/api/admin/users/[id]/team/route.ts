@@ -19,10 +19,17 @@ export async function POST(
     // RENDER FIX: Use direct teamId assignment instead of TeamMember table
     
     if (teamName && teamName !== '') {
-      // Check if team exists (without relations)
-      const team = await prisma.team.findFirst({
+      // Check if team exists (try both formats: "Alpha" and "Team Alpha")
+      let team = await prisma.team.findFirst({
         where: { name: teamName }
       })
+
+      // If not found, try with "Team " prefix
+      if (!team && !teamName.startsWith('Team ')) {
+        team = await prisma.team.findFirst({
+          where: { name: `Team ${teamName}` }
+        })
+      }
 
       if (!team) {
         console.log(`❌ Team not found: ${teamName}`)

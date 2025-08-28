@@ -474,14 +474,14 @@ export default function AdminDashboard() {
                               className="bg-gray-700 border border-gray-600 rounded text-xs text-white px-2 py-1 focus:outline-none focus:border-blue-500"
                             >
                               <option value="">Kein Team</option>
-                              <option value="Alpha">Alpha</option>
-                              <option value="Beta">Beta</option>
-                              <option value="Gamma">Gamma</option>
-                              <option value="Delta">Delta</option>
-                              <option value="Echo">Echo</option>
-                              <option value="Foxtrot">Foxtrot</option>
-                              <option value="Golf">Golf</option>
-                              <option value="Hotel">Hotel</option>
+                              <option value="Team Alpha">Team Alpha</option>
+                              <option value="Team Beta">Team Beta</option>
+                              <option value="Team Gamma">Team Gamma</option>
+                              <option value="Team Delta">Team Delta</option>
+                              <option value="Team Epsilon">Team Epsilon</option>
+                              <option value="Team Zeta">Team Zeta</option>
+                              <option value="Team Eta">Team Eta</option>
+                              <option value="Team Theta">Team Theta</option>
                             </select>
                           </div>
                         </td>
