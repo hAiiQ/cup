@@ -173,11 +173,6 @@ export default function TeamsPage() {
                         <span className="mr-3 text-3xl">🛡️</span>
                         {team.name}
                       </h2>
-                      <div className="bg-purple-600/30 border border-purple-400 rounded-lg px-3 py-1">
-                        <span className="text-purple-200 font-medium text-sm">
-                          #{team.position}
-                        </span>
-                      </div>
                     </div>
                     
                     {/* Team Progress Bar */}
@@ -272,7 +267,7 @@ export default function TeamsPage() {
                                   </div>
                                   
                                   {/* Tier Badge */}
-                                  {member.tier && (
+                                  {member.tier && member.tier >= 1 && member.tier <= 3 && (
                                     <div className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center ${getTierColor(member.tier)}`}>
                                       <span className="mr-1">{getTierIcon(member.tier)}</span>
                                       {getTierName(member.tier)}
