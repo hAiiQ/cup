@@ -9,7 +9,7 @@ services:
       npx prisma generate
       echo "🔧 Prisma client generated"
       echo "🗄️ Setting up database..."
-      npx prisma db push --force-reset --accept-data-loss
+      npx prisma db push
       echo "📊 Database schema applied"
       node scripts/fix-missing-tables.js
       echo "🔧 Missing tables fixed"

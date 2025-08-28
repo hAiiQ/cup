@@ -332,8 +332,8 @@ export default function TeamsPage() {
                 >
                   <span style={{
                     position: 'absolute',
-                    left: '2px',
-                    top: '2px',
+                    left: '0px',
+                    top: '0px',
                     color: 'rgba(0, 0, 0, 0.6)',
                     zIndex: -1
                   }}>
