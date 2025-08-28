@@ -270,7 +270,7 @@ export default function WheelPage() {
         <div className="container mx-auto px-4 py-4">
           <nav className="flex justify-between items-center">
             <div className="text-2xl font-bold text-purple-400">
-              🎯 WHEEL OF NAMES STYLE
+              � GLÜCKSRAD
             </div>
             <button
               onClick={() => router.push('/admin/dashboard')}
@@ -287,8 +287,7 @@ export default function WheelPage() {
           
           {/* Page Title */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-white mb-2">🎯 Wheel of Names Style</h1>
-            <p className="text-gray-400">Exakt wie wheelofnames.com - garantiert korrekte Gewinner!</p>
+            <h1 className="text-4xl font-bold text-white mb-2">� Glücksrad</h1>
           </div>
 
           {/* No Users Warning */}
@@ -367,7 +366,6 @@ export default function WheelPage() {
                 <span className="text-2xl mr-3">✅</span>
                 <div>
                   <p className="font-semibold">Verfügbar: {filteredUsers.length} User</p>
-                  <p className="text-sm text-green-300">Wheel of Names Algorithmus - 100% korrekt!</p>
                 </div>
               </div>
             </div>
