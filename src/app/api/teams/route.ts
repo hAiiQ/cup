@@ -39,22 +39,48 @@ export async function GET() {
       console.log('✅ Default teams created')
     }
 
-    // Fetch teams WITHOUT relations first - to avoid TeamMember table errors
+    // Fetch teams with their members using the new teamId structure
     const teams = await prisma.team.findMany({
+      include: {
+        users: {
+          select: {
+            id: true,
+            username: true,
+            inGameName: true,
+            inGameRank: true,
+            tier: true,
+            isVerified: true,
+            discordName: true,
+            twitchName: true,
+            isStreamer: true
+          }
+        }
+      },
       orderBy: {
         position: 'asc'
       }
     })
 
-    console.log(`✅ Successfully fetched ${teams.length} teams`)
+    console.log(`✅ Successfully fetched ${teams.length} teams with members`)
     
-    // Transform data for frontend - with empty members for now
+    // Transform data to match frontend interface
     const transformedTeams = teams.map((team: any) => ({
       id: team.id,
       name: team.name,
       position: team.position,
       imageUrl: team.imageUrl,
-      members: [] // Empty members array until TeamMember table is fixed
+      members: team.users.map((user: any) => ({
+        id: user.id,
+        username: user.username,
+        inGameName: user.inGameName,
+        rank: user.inGameRank,
+        tier: user.tier,
+        isVerified: user.isVerified,
+        discord: user.discordName,
+        twitch: user.twitchName,
+        isStreamer: user.isStreamer,
+        role: 'member' // Default role
+      }))
     }))
     
     return NextResponse.json({ teams: transformedTeams })  } catch (error) {
