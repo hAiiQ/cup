@@ -27,19 +27,27 @@ export async function POST(
       data: updateData
     })
 
-    // Check if all platforms are verified to update overall status
-    const allPlatformsVerified = updatedUser.twitchVerified && 
-                                updatedUser.instagramVerified && 
-                                updatedUser.discordVerified
+    // Check if all provided platforms are verified to update overall status
+    const hasAnySocialMedia = updatedUser.twitchName || updatedUser.instagramName || updatedUser.discordName
+    
+    // Only require verification for platforms where user provided information
+    const allProvidedPlatformsVerified = 
+      (!updatedUser.twitchName || updatedUser.twitchVerified) && 
+      (!updatedUser.instagramName || updatedUser.instagramVerified) && 
+      (!updatedUser.discordName || updatedUser.discordVerified)
 
-    // Update overall verification status if all platforms are verified
-    if (allPlatformsVerified && !updatedUser.isVerified) {
+    // Update overall verification status if all provided platforms are verified
+    // OR if user has no social media but has inGameName and inGameRank
+    const shouldBeVerified = allProvidedPlatformsVerified && 
+                            (hasAnySocialMedia || (updatedUser.inGameName && updatedUser.inGameRank))
+
+    if (shouldBeVerified && !updatedUser.isVerified) {
       await prisma.user.update({
         where: { id: userId },
         data: { isVerified: true }
       })
-    } else if (!allPlatformsVerified && updatedUser.isVerified) {
-      // Remove overall verification if any platform is unverified
+    } else if (!shouldBeVerified && updatedUser.isVerified) {
+      // Remove overall verification if any provided platform is unverified
       await prisma.user.update({
         where: { id: userId },
         data: { isVerified: false }
