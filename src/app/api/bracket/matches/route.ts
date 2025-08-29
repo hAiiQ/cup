@@ -1,16 +1,69 @@
 import { NextResponse } from 'next/server'
 import { getAllMatchStates } from '@/lib/matchState'
+import { prisma } from '@/lib/prisma'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    console.log('🔄 Fetching matches for bracket with admin states...')
+    console.log('🔄 Fetching matches for bracket with persistent live states...')
     
-    // Get current match states from admin controls
-    const matchStates = getAllMatchStates()
-    console.log(`📊 Found ${matchStates.size} admin-controlled match states`)
+    // Try to get persistent match states from database
+    let dbMatches: any[] = []
+    let dbError = null
+    
+    try {
+      dbMatches = await prisma.match.findMany({
+        select: {
+          id: true,
+          isLive: true,
+          team1Score: true,
+          team2Score: true,
+          isFinished: true,
+          winnerId: true,
+          updatedAt: true
+        }
+      })
+      console.log(`✅ Database connected: ${dbMatches.length} persistent matches found`)
+    } catch (error) {
+      dbError = error
+      console.log('⚠️ Database not available, falling back to in-memory states')
+      console.log('Database error:', error instanceof Error ? error.message : String(error))
+    }
+    
+    // Get in-memory states (always available as fallback)
+    const memoryStates = getAllMatchStates()
+    console.log(`📊 In-memory states: ${memoryStates.size} matches`)
+    
+    // Create combined match states map
+    const combinedStates = new Map()
+    
+    // Add database states first (higher priority) if available
+    if (dbMatches.length > 0) {
+      for (const dbMatch of dbMatches) {
+        combinedStates.set(dbMatch.id, {
+          isLive: dbMatch.isLive,
+          team1Score: dbMatch.team1Score || 0,
+          team2Score: dbMatch.team2Score || 0,
+          isFinished: dbMatch.isFinished || false,
+          winnerId: dbMatch.winnerId,
+          source: 'database'
+        })
+      }
+    }
+    
+    // Add in-memory states for matches not in database
+    Array.from(memoryStates.entries()).forEach(([matchId, memoryState]) => {
+      if (!combinedStates.has(matchId)) {
+        combinedStates.set(matchId, {
+          ...memoryState,
+          source: 'memory'
+        })
+      }
+    })
+    
+    console.log(`📊 Combined states: ${combinedStates.size} total matches (${dbMatches.length} from DB, ${memoryStates.size} from memory)`)
     
     // Get teams for bracket display - DIRECT PRISMA CALL
     let teams: any[] = []
@@ -66,7 +119,7 @@ export async function GET() {
 
     // Helper function to get match state
     const getMatchData = (matchId: string, defaultTeam1: any, defaultTeam2: any) => {
-      const state = matchStates.get(matchId)
+      const state = combinedStates.get(matchId)
       return {
         id: matchId,
         team1: defaultTeam1,
@@ -177,13 +230,15 @@ export async function GET() {
       bracket: 'final'
     })
 
-    console.log(`✅ Generated ${matches.length} matches with admin control states`)
+    console.log(`✅ Generated ${matches.length} matches with persistent control states`)
     
     return NextResponse.json({
       matches,
       teams: paddedTeams,
       lastUpdated: new Date().toISOString(),
-      adminControlled: matchStates.size > 0
+      adminControlled: combinedStates.size > 0,
+      persistentMatches: dbMatches.length,
+      memoryMatches: memoryStates.size
     })
 
   } catch (error) {

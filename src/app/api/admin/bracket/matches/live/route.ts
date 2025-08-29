@@ -55,16 +55,55 @@ export async function POST(request: NextRequest) {
 
     console.log(`🔴 Setting match ${matchId} live status: ${isLive}`)
 
-    // Update in-memory state for immediate response
+    // PERSISTENT DATABASE UPDATE with fallback
+    let dbSuccess = false
+    try {
+      // First try to update existing match
+      let match = await prisma.match.findUnique({
+        where: { id: matchId }
+      })
+
+      if (match) {
+        // Update existing match in database
+        match = await prisma.match.update({
+          where: { id: matchId },
+          data: { 
+            isLive,
+            updatedAt: new Date()
+          }
+        })
+        console.log('✅ Updated existing match in database:', matchId, 'isLive:', isLive)
+      } else {
+        // Create new match record if it doesn't exist
+        match = await prisma.match.create({
+          data: {
+            id: matchId,
+            round: 1, // Default values, will be updated later
+            bracket: 'winner',
+            isLive,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+        })
+        console.log('✅ Created new match in database:', matchId, 'isLive:', isLive)
+      }
+      dbSuccess = true
+    } catch (dbError) {
+      console.log('⚠️ Database update failed, using in-memory only:', dbError instanceof Error ? dbError.message : String(dbError))
+    }
+
+    // Also update in-memory state for immediate response
     const updatedState = setMatchLive(matchId, isLive)
-    console.log('📝 Updated match state:', updatedState)
+    console.log('📝 Updated in-memory state:', updatedState)
     
     return NextResponse.json({ 
       success: true, 
       message: `Match ${isLive ? 'gestartet' : 'gestoppt'}`,
       matchId,
       isLive,
-      state: updatedState
+      state: updatedState,
+      persistent: dbSuccess,
+      dbStatus: dbSuccess ? 'saved' : 'memory-only'
     })
 
   } catch (error) {
