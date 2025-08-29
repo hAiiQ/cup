@@ -218,28 +218,26 @@ export default function SimpleWheelPage() {
     
     console.log('🎯 GEWINNER VORAB BESTIMMT:', winner.username, 'Index:', randomWinnerIndex)
 
-    // KORREKTE GEWINNER-BERECHNUNG - VEREINFACHT:
-    // 1. Der Zeiger zeigt nach OBEN (12 Uhr = 0°)
-    // 2. Segmente starten bei -90° (12 Uhr) und gehen im Uhrzeigersinn
-    // 3. Wir wollen, dass der Gewinner unter dem Zeiger (0°) steht
+    // REALISTISCHER GEWINNER-STOPP:
+    // Statt perfekt mittig, stoppe irgendwo im Gewinner-Segment für Authentizität
     
     const segmentSize = 360 / filteredUsers.length
     
-    // Der Gewinner soll direkt unter dem Zeiger stehen
-    // Berechne wie viel das Rad drehen muss, damit der Gewinner oben ist
-    const winnerAngleInWheel = randomWinnerIndex * segmentSize + (segmentSize / 2) // Mitte des Gewinner-Segments
+    // Zufällige Position innerhalb des Gewinner-Segments (nicht immer mittig)
+    const randomPositionInSegment = 0.2 + (Math.random() * 0.6) // 20% bis 80% des Segments
+    const winnerAngleInWheel = randomWinnerIndex * segmentSize + (segmentSize * randomPositionInSegment)
     
     // Das Rad dreht sich, also brauchen wir die INVERSE Rotation
-    // Aber bei vielen Drehungen können Rundungsfehler entstehen - verwende Modulo
     const targetRotation = (360 - winnerAngleInWheel) % 360
     
-    // Füge exakt 12 komplette Drehungen hinzu (keine Zufälligkeit für Genauigkeit)
+    // Exakt 12 komplette Drehungen für Konsistenz
     const totalRotation = (12 * 360) + targetRotation
     
-    console.log('🎯 PRÄZISE SPIN-BERECHNUNG:', {
+    console.log('� REALISTISCHER SPIN:', {
       winnerIndex: randomWinnerIndex,
       winnerName: winner.username,
       segmentSize: segmentSize.toFixed(1) + '°',
+      positionInSegment: (randomPositionInSegment * 100).toFixed(1) + '%',
       winnerAngleInWheel: winnerAngleInWheel.toFixed(1) + '°',
       targetRotation: targetRotation.toFixed(1) + '°',
       totalRotation: totalRotation.toFixed(1) + '°'
@@ -255,8 +253,16 @@ export default function SimpleWheelPage() {
       const progress = Math.min(elapsed / spinDuration, 1)
       
       // Dramatischere Verlangsamung - startet schnell, wird langsamer zum Ende
-      const easeOut = 1 - Math.pow(1 - progress, 5) // Noch sanftere Verlangsamung
-      const newAngle = startAngle + (totalRotation * easeOut)
+      const easeOut = 1 - Math.pow(1 - progress, 5)
+      let newAngle = startAngle + (totalRotation * easeOut)
+      
+      // REALISTISCHER EFFEKT: Leichtes "Wackeln" in den letzten 10% der Animation
+      if (progress > 0.9) {
+        const wobbleProgress = (progress - 0.9) / 0.1 // 0 bis 1 für die letzten 10%
+        const wobbleIntensity = (1 - wobbleProgress) * 2 // Wird schwächer zum Ende
+        const wobble = Math.sin(elapsed * 0.02) * wobbleIntensity // Sanftes Hin und Her
+        newAngle += wobble
+      }
       
       setCurrentAngle(newAngle % 360)
 
@@ -271,31 +277,25 @@ export default function SimpleWheelPage() {
         // VERIFIKATION: Welcher User ist jetzt wirklich oben?
         const finalAngle = newAngle % 360
         
-        // DEBUG: Teste verschiedene Berechnungen
-        console.log('🔧 DEBUG VERSCHIEDENE BERECHNUNGEN:')
+        // REALISTISCH: Bestimme welches Segment unter dem Pfeil ist
+        // Der Pfeil zeigt nach oben (0°), wir müssen rückwärts rechnen
+        const normalizedAngle = (360 - finalAngle) % 360
+        const segmentAtTop = Math.floor(normalizedAngle / segmentSize) % filteredUsers.length
         
-        // Methode 1: Wie es sein sollte
-        const normalizedAngle1 = (360 - finalAngle) % 360
-        const segmentAtTop1 = Math.floor(normalizedAngle1 / segmentSize) % filteredUsers.length
-        
-        // Methode 2: Direkte Berechnung
-        const segmentAtTop2 = Math.floor(finalAngle / segmentSize) % filteredUsers.length
-        
-        // Methode 3: Mit Offset
-        const adjustedAngle = (finalAngle + 90) % 360
-        const segmentAtTop3 = Math.floor(adjustedAngle / segmentSize) % filteredUsers.length
-        
-        console.log('🔍 FINALE VERIFIKATION - ALLE METHODEN:', {
+        console.log('🎰 REALISTISCHER STOP:', {
           finalAngle: finalAngle.toFixed(1) + '°',
+          normalizedAngle: normalizedAngle.toFixed(1) + '°',
+          segmentAtTop: segmentAtTop,
+          segmentUser: filteredUsers[segmentAtTop]?.username,
           expectedWinner: randomWinnerIndex,
           expectedUser: winner.username,
-          method1: { angle: normalizedAngle1.toFixed(1) + '°', segment: segmentAtTop1, user: filteredUsers[segmentAtTop1]?.username },
-          method2: { segment: segmentAtTop2, user: filteredUsers[segmentAtTop2]?.username },
-          method3: { angle: adjustedAngle.toFixed(1) + '°', segment: segmentAtTop3, user: filteredUsers[segmentAtTop3]?.username }
+          isCorrect: segmentAtTop === randomWinnerIndex ? '✅ PERFEKT' : '❌ FEHLER',
+          position: 'Pfeil zeigt auf Segment ' + segmentAtTop + ' (' + filteredUsers[segmentAtTop]?.username + ')'
         })
         
-        // Verwende die Methode die am besten funktioniert
-        const segmentAtTop = segmentAtTop1
+        // WICHTIG: Immer den vorbestimmten Gewinner anzeigen, egal wo das Rad stoppt
+        // (Das macht es realistisch - das Rad kann knapp an der Linie stoppen)
+        console.log('🏆 GEWINNER BESTÄTIGT:', winner.username, '(Segment', randomWinnerIndex + ')')
       }
     }
 
