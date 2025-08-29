@@ -209,11 +209,11 @@ export default function SimpleWheelPage() {
   const spinWheel = () => {
     if (filteredUsers.length === 0 || !selectedTeam || isSpinning) return
 
+    // WICHTIG: Reset das Rad auf 0° SOFORT vor allem anderen
+    setCurrentAngle(0)
+    
     setIsSpinning(true)
     setSelectedUser(null)
-    
-    // WICHTIG: Reset das Rad auf 0° vor jedem neuen Spin
-    setCurrentAngle(0)
 
     // Wähle einen zufälligen Gewinner
     const randomWinnerIndex = Math.floor(Math.random() * filteredUsers.length)
@@ -249,7 +249,7 @@ export default function SimpleWheelPage() {
     // 12 Sekunden Animation mit sanfter Verlangsamung für dramatischeren Effekt
     const spinDuration = 12000
     const startTime = Date.now()
-    const startAngle = currentAngle
+    const startAngle = 0  // IMMER von 0° starten nach Reset
 
     const animate = () => {
       const elapsed = Date.now() - startTime
