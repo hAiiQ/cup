@@ -49,10 +49,12 @@ export default function AdminBracketPage() {
         fetchData()
       } else {
         console.log('❌ Admin not authenticated, redirecting to login with redirect parameter')
+        setLoading(false)  // WICHTIG: Loading beenden auch bei Auth-Fehler
         router.push('/admin?redirect=' + encodeURIComponent('/admin/bracket'))
       }
     } catch (error) {
       console.error('Auth check failed:', error)
+      setLoading(false)  // WICHTIG: Loading beenden auch bei Auth-Fehler  
       router.push('/admin?redirect=' + encodeURIComponent('/admin/bracket'))
     } finally {
       setIsAuthLoading(false)
@@ -64,6 +66,7 @@ export default function AdminBracketPage() {
     
     try {
       console.log('🔄 Admin fetchData started')
+      setLoading(true)  // WICHTIG: Loading state setzen
       
       const [teamsRes, matchesRes] = await Promise.all([
         fetch('/api/admin/teams'),

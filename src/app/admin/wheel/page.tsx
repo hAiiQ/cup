@@ -241,12 +241,12 @@ export default function WheelPage() {
     ctx.textBaseline = 'middle'
     ctx.fillText('⚡', centerX, centerY)
 
-    // ZEIGER - lila, nach unten zeigend, kleiner und höher positioniert
+    // ZEIGER - lila, nach unten zeigend, kleiner und höher positioniert  
     ctx.fillStyle = '#a855f7'  // Lila Farbe
     ctx.beginPath()
-    ctx.moveTo(centerX, 65)           // Spitze unten (gespiegelt)
-    ctx.lineTo(centerX - 15, 25)      // Links oben - kleiner (15px statt 20px)
-    ctx.lineTo(centerX + 15, 25)      // Rechts oben - kleiner (15px statt 20px)
+    ctx.moveTo(centerX, 32)           // Spitze unten - 33px höher (65-33=32)
+    ctx.lineTo(centerX - 15, -8)      // Links oben - 33px höher (25-33=-8)
+    ctx.lineTo(centerX + 15, -8)      // Rechts oben - 33px höher (25-33=-8)
     ctx.closePath()
     ctx.fill()
     
