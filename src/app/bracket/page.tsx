@@ -125,9 +125,13 @@ export default function BracketPage() {
     const hasScore = (match.team1Score > 0 || match.team2Score > 0) // Zeige Scores auch bei laufenden Matches
     const isLive = match.isLive || false // Live Status kommt jetzt aus der Datenbank
     
-    // Determine winner and styling
-    const team1IsWinner = match.isFinished && match.team1Score > match.team2Score
-    const team2IsWinner = match.isFinished && match.team2Score > match.team1Score
+    // Determine winner and styling based on scoring rules
+    // Grand Final: First to 3 points wins, All other matches: First to 2 points wins
+    const isGrandFinal = match.id === 'GF'
+    const winningScore = isGrandFinal ? 3 : 2
+    
+    const team1IsWinner = match.isFinished && match.team1Score >= winningScore
+    const team2IsWinner = match.isFinished && match.team2Score >= winningScore
     
     const team1Style = team1IsWinner ? "text-green-400 font-bold" : 
                       team2IsWinner ? "text-gray-400" : "text-white"
@@ -281,7 +285,7 @@ export default function BracketPage() {
                   LOSER BRACKET R3
                 </div>
                 <div>
-                  <MatchBox match={findMatchById('LB-S')} />
+                  <MatchBox match={findMatchById('LB-3')} />
                 </div>
               </div>
 

@@ -609,9 +609,13 @@ export default function AdminBracketPage() {
     const team2Score = match?.team2Score || 0
     const isLive = match?.isLive || false
     
-    // Determine winner and styling
-    const team1IsWinner = hasScore && team1Score > team2Score
-    const team2IsWinner = hasScore && team2Score > team1Score
+    // Determine winner and styling based on scoring rules
+    // Grand Final: First to 3 points wins, All other matches: First to 2 points wins
+    const isGrandFinal = match?.id === 'GF'
+    const winningScore = isGrandFinal ? 3 : 2
+    
+    const team1IsWinner = hasScore && team1Score >= winningScore
+    const team2IsWinner = hasScore && team2Score >= winningScore
     
     const team1Style = team1IsWinner ? "text-green-400 font-bold" : 
                       team2IsWinner ? "text-gray-500" : "text-white"
