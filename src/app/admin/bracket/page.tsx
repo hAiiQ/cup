@@ -584,9 +584,10 @@ export default function AdminBracketPage() {
     setScoreInput({ team1: match.team1Score, team2: match.team2Score })
   }
 
-  const MatchBox = ({ match, className = "" }: {
+  const MatchBox = ({ match, className = "", onClick }: {
     match?: Match
     className?: string
+    onClick?: (match: Match) => void
   }) => {
     const displayTeam1 = match?.team1?.name || 'TBD'
     const displayTeam2 = match?.team2?.name || 'TBD'
@@ -603,6 +604,12 @@ export default function AdminBracketPage() {
                       team2IsWinner ? "text-gray-500" : "text-white"
     const team2Style = team2IsWinner ? "text-green-400 font-bold" : 
                       team1IsWinner ? "text-gray-500" : "text-white"
+
+    const handleMatchClick = () => {
+      if (match && onClick) {
+        onClick(match)
+      }
+    }
 
     const toggleLiveStatus = async (e: React.MouseEvent) => {
       e.stopPropagation()
@@ -672,8 +679,8 @@ export default function AdminBracketPage() {
         
         {/* Match content */}
         <div 
-          className="text-center text-sm font-medium flex-1 flex items-center justify-center"
-          onClick={() => match && openScoreModal(match)}
+          className="text-center text-sm font-medium flex-1 flex items-center justify-center cursor-pointer hover:bg-gray-600/50 transition-colors p-2 rounded"
+          onClick={handleMatchClick}
         >
           {hasScore ? (
             <div className="flex items-center justify-center space-x-2">
@@ -816,12 +823,12 @@ export default function AdminBracketPage() {
                   }
                   
                   return (
-                    <div key={match.id} onClick={() => openScoreModal(match)}>
-                      <MatchBox
-                        match={enhancedMatch}
-                        className="w-full h-auto"
-                      />
-                    </div>
+                    <MatchBox
+                      key={match.id}
+                      match={enhancedMatch}
+                      className="w-full h-auto"
+                      onClick={(m) => openScoreModal(m)}
+                    />
                   )
                 })}
               </div>
@@ -834,7 +841,11 @@ export default function AdminBracketPage() {
               </div>
               <div className="space-y-3">
                 {getMatchesByBracketAndRound('winner', 2).map((match, index) => (
-                  <MatchBox key={match.id} match={match} />
+                  <MatchBox 
+                    key={match.id} 
+                    match={match} 
+                    onClick={(m) => openScoreModal(m)}
+                  />
                 ))}
               </div>
             </div>
@@ -846,7 +857,11 @@ export default function AdminBracketPage() {
               </div>
               <div>
                 {getMatchesByBracketAndRound('winner', 3).map(match => (
-                  <MatchBox key={match.id} match={match} />
+                  <MatchBox 
+                    key={match.id} 
+                    match={match} 
+                    onClick={(m) => openScoreModal(m)}
+                  />
                 ))}
               </div>
             </div>
@@ -858,7 +873,11 @@ export default function AdminBracketPage() {
               </div>
               <div className="space-y-3">
                 {getMatchesByBracketAndRound('loser', 1).map(match => (
-                  <MatchBox key={match.id} match={match} />
+                  <MatchBox 
+                    key={match.id} 
+                    match={match} 
+                    onClick={(m) => openScoreModal(m)}
+                  />
                 ))}
               </div>
             </div>
@@ -870,7 +889,11 @@ export default function AdminBracketPage() {
               </div>
               <div className="space-y-3">
                 {getMatchesByBracketAndRound('loser', 2).map(match => (
-                  <MatchBox key={match.id} match={match} />
+                  <MatchBox 
+                    key={match.id} 
+                    match={match} 
+                    onClick={(m) => openScoreModal(m)}
+                  />
                 ))}
               </div>
             </div>
@@ -882,7 +905,11 @@ export default function AdminBracketPage() {
               </div>
               <div>
                 {getMatchesByBracketAndRound('loser', 3).map(match => (
-                  <MatchBox key={match.id} match={match} />
+                  <MatchBox 
+                    key={match.id} 
+                    match={match} 
+                    onClick={(m) => openScoreModal(m)}
+                  />
                 ))}
               </div>
             </div>
@@ -894,7 +921,11 @@ export default function AdminBracketPage() {
               </div>
               <div>
                 {getMatchesByBracketAndRound('loser', 5).map(match => (
-                  <MatchBox key={match.id} match={match} />
+                  <MatchBox 
+                    key={match.id} 
+                    match={match} 
+                    onClick={(m) => openScoreModal(m)}
+                  />
                 ))}
               </div>
             </div>
@@ -906,7 +937,10 @@ export default function AdminBracketPage() {
               </div>
               <div>
                 {getGrandFinal() && (
-                  <MatchBox match={getGrandFinal()!} />
+                  <MatchBox 
+                    match={getGrandFinal()!} 
+                    onClick={(m) => openScoreModal(m)}
+                  />
                 )}
               </div>
             </div>
