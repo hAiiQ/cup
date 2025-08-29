@@ -221,8 +221,8 @@ export async function GET() {
         if (state.winnerId === 'team2') return team2
       }
       
-      // For other matches, return placeholder winner
-      return { id: `${matchId}-winner`, name: `${matchId} Winner` }
+      // For all other matches, recursively find the actual team
+      return getActualTeamFromMatch(matchId, state.winnerId)
     }
     
     // Helper function to get loser from a finished match
@@ -240,8 +240,58 @@ export async function GET() {
         if (state.winnerId === 'team2') return team1
       }
       
-      // For other matches, return placeholder loser
-      return { id: `${matchId}-loser`, name: `${matchId} Loser` }
+      // For all other matches, recursively find the actual team (opposite of winner)
+      const loserPosition = state.winnerId === 'team1' ? 'team2' : 'team1'
+      return getActualTeamFromMatch(matchId, loserPosition)
+    }
+    
+    // Helper function to recursively find the actual team name
+    const getActualTeamFromMatch = (matchId: string, position: string): any => {
+      // Base case: Quarter finals have real teams
+      if (matchId.startsWith('WB-Q')) {
+        const matchNum = parseInt(matchId.split('WB-Q')[1])
+        const team1 = paddedTeams[(matchNum - 1) * 2] || { id: `team-${(matchNum - 1) * 2 + 1}`, name: `Team ${(matchNum - 1) * 2 + 1}` }
+        const team2 = paddedTeams[(matchNum - 1) * 2 + 1] || { id: `team-${(matchNum - 1) * 2 + 2}`, name: `Team ${(matchNum - 1) * 2 + 2}` }
+        
+        if (position === 'team1') return team1
+        if (position === 'team2') return team2
+      }
+      
+      // For non-quarter final matches, trace back to the source
+      if (matchId === 'WB-S1') {
+        if (position === 'team1') return getWinnerFromMatch('WB-Q1')
+        if (position === 'team2') return getWinnerFromMatch('WB-Q2')
+      } else if (matchId === 'WB-S2') {
+        if (position === 'team1') return getWinnerFromMatch('WB-Q3')
+        if (position === 'team2') return getWinnerFromMatch('WB-Q4')
+      } else if (matchId === 'WB-F') {
+        if (position === 'team1') return getWinnerFromMatch('WB-S1')
+        if (position === 'team2') return getWinnerFromMatch('WB-S2')
+      } else if (matchId === 'LB-1-1') {
+        if (position === 'team1') return getLoserFromMatch('WB-Q1')
+        if (position === 'team2') return getLoserFromMatch('WB-Q2')
+      } else if (matchId === 'LB-1-2') {
+        if (position === 'team1') return getLoserFromMatch('WB-Q3')
+        if (position === 'team2') return getLoserFromMatch('WB-Q4')
+      } else if (matchId === 'LB-2-1') {
+        if (position === 'team1') return getWinnerFromMatch('LB-1-1')
+        if (position === 'team2') return getLoserFromMatch('WB-S1')
+      } else if (matchId === 'LB-2-2') {
+        if (position === 'team1') return getWinnerFromMatch('LB-1-2')
+        if (position === 'team2') return getLoserFromMatch('WB-S2')
+      } else if (matchId === 'LB-3') {
+        if (position === 'team1') return getWinnerFromMatch('LB-2-1')
+        if (position === 'team2') return getWinnerFromMatch('LB-2-2')
+      } else if (matchId === 'LB-F') {
+        if (position === 'team1') return getWinnerFromMatch('LB-3')
+        if (position === 'team2') return getLoserFromMatch('WB-F')
+      } else if (matchId === 'GF') {
+        if (position === 'team1') return getWinnerFromMatch('WB-F')
+        if (position === 'team2') return getWinnerFromMatch('LB-F')
+      }
+      
+      // Fallback
+      return { id: `${matchId}-${position}`, name: 'TBD' }
     }
 
     // WINNER BRACKET - Quarterfinals (REAL TEAMS)
