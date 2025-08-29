@@ -78,6 +78,11 @@ export default function AdminBracketPage() {
     console.log('🔄 Admin fetchData started')
     setLoading(true)  // WICHTIG: Loading state setzen
     
+    // ALWAYS generate fallback bracket with teams to ensure teams are always visible
+    const fallbackBracket = generateFullBracket([])
+    setBracket(fallbackBracket)
+    console.log('✅ Admin Fallback Bracket set with teams always visible:', fallbackBracket.length, 'matches')
+    
     try {
       const [teamsRes, matchesRes] = await Promise.all([
         fetch('/api/admin/teams'),
@@ -92,39 +97,32 @@ export default function AdminBracketPage() {
         console.log('✅ Admin teams loaded:', sortedTeams.length)
       }
 
-      // CRITICAL FIX: Use bracket API data directly instead of local generation
+      // Update bracket with API data if available, but keep fallback teams
       if (matchesRes.ok) {
         const matchesData = await matchesRes.json()
         console.log('✅ Admin using bracket API matches:', matchesData.matches?.length || 0)
         
         if (matchesData.matches && matchesData.matches.length > 0) {
-          setBracket(matchesData.matches)
-          console.log('🎯 Admin Bracket set from API:', matchesData.matches.length, 'matches')
-          console.log('🎯 Winner Round 1 matches from API:', matchesData.matches.filter((m: any) => m.bracket === 'winner' && m.round === 1).length)
-        } else {
-          // Only use fallback if API has no matches at all
-          const fallbackBracket = generateFullBracket(teamsData.teams || [])
-          setBracket(fallbackBracket)
-          console.log('🔥 Admin Fallback Bracket set:', fallbackBracket.length, 'matches')
+          // Merge API matches with fallback bracket to preserve team names
+          const mergedBracket = fallbackBracket.map(fallbackMatch => {
+            const apiMatch = matchesData.matches.find((m: any) => m.id === fallbackMatch.id)
+            return apiMatch ? { ...fallbackMatch, ...apiMatch } : fallbackMatch
+          })
+          setBracket(mergedBracket)
+          console.log('🎯 Admin Bracket updated with API data while preserving teams:', mergedBracket.length, 'matches')
         }
-      } else {
-        // API failed, use fallback
-        const fallbackBracket = generateFullBracket(teamsData.teams || [])
-        setBracket(fallbackBracket)
-        console.log('🔥 Admin Fallback Bracket set (API failed):', fallbackBracket.length, 'matches')
       }
       
     } catch (error) {
       console.error('Error fetching data:', error)
       console.error('Error details:', error instanceof Error ? error.message : String(error))
-      // Fallback to local bracket generation
-      const fallbackBracket = generateFullBracket([])
-      setBracket(fallbackBracket)
-      console.log('🔥 Admin Fallback Bracket set:', fallbackBracket.length, 'matches')
+      // Fallback is already set above
+      console.log('🔥 Admin using fallback bracket due to error')
     } finally {
       console.log('🏁 Admin fetchData finished - setting loading to false')
       setLoading(false)
     }
+  }
   }
 
   const generateFullBracket = (teams: Team[]): Match[] => {
@@ -920,7 +918,7 @@ export default function AdminBracketPage() {
                 RUNDE 7 - LOWER BRACKET FINALS
               </div>
               <div>
-                {getMatchesByBracketAndRound('loser', 5).map(match => (
+                {getMatchesByBracketAndRound('loser', 4).map(match => (
                   <MatchBox 
                     key={match.id} 
                     match={match} 
