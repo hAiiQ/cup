@@ -89,17 +89,17 @@ export async function GET() {
       console.log('💡 Database fetch error, using fallback teams:', error)
     }
 
-    // Use sample teams if none available BUT KEEP REAL TEAM NAMES
+    // Use sample teams if none available BUT KEEP REAL TEAM NAMES - FIXED: Match admin panel
     if (teams.length === 0) {
       teams = [
         { id: 'alpha', name: 'Team Alpha', position: 1 },
         { id: 'beta', name: 'Team Beta', position: 2 },
         { id: 'gamma', name: 'Team Gamma', position: 3 },
         { id: 'delta', name: 'Team Delta', position: 4 },
-        { id: 'echo', name: 'Team Echo', position: 5 },
-        { id: 'foxtrot', name: 'Team Foxtrot', position: 6 },
-        { id: 'golf', name: 'Team Golf', position: 7 },
-        { id: 'hotel', name: 'Team Hotel', position: 8 }
+        { id: 'epsilon', name: 'Team Epsilon', position: 5 },
+        { id: 'zeta', name: 'Team Zeta', position: 6 },
+        { id: 'eta', name: 'Team Eta', position: 7 },
+        { id: 'theta', name: 'Team Theta', position: 8 }
       ]
       console.log('🎯 Using sample teams for consistent bracket display')
     }

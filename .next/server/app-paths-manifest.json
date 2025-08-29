@@ -1,1 +1,5 @@
-{}
+{
+  "/admin/bracket/page": "app/admin/bracket/page.js",
+  "/api/admin/auth/check/route": "app/api/admin/auth/check/route.js",
+  "/admin/page": "app/admin/page.js"
+}
