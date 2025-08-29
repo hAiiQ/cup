@@ -130,33 +130,33 @@ export async function GET() {
         // Winner Bracket Semifinals - get winners from quarters
         const matchNum = parseInt(matchId.split('WB-S')[1])
         if (matchNum === 1) {
-          const winner1 = getWinnerFromMatch('WB-Q1')
-          const winner2 = getWinnerFromMatch('WB-Q2')
+          const winner1 = getWinnerFromMatch('WB-Q1', new Set())
+          const winner2 = getWinnerFromMatch('WB-Q2', new Set())
           team1 = winner1 || { id: 'wb-q1-winner', name: 'TBD' }
           team2 = winner2 || { id: 'wb-q2-winner', name: 'TBD' }
         } else if (matchNum === 2) {
-          const winner1 = getWinnerFromMatch('WB-Q3')
-          const winner2 = getWinnerFromMatch('WB-Q4')
+          const winner1 = getWinnerFromMatch('WB-Q3', new Set())
+          const winner2 = getWinnerFromMatch('WB-Q4', new Set())
           team1 = winner1 || { id: 'wb-q3-winner', name: 'TBD' }
           team2 = winner2 || { id: 'wb-q4-winner', name: 'TBD' }
         }
       } else if (matchId === 'WB-F') {
         // Winner Bracket Final - get winners from semis
-        const winner1 = getWinnerFromMatch('WB-S1')
-        const winner2 = getWinnerFromMatch('WB-S2')
+        const winner1 = getWinnerFromMatch('WB-S1', new Set())
+        const winner2 = getWinnerFromMatch('WB-S2', new Set())
         team1 = winner1 || { id: 'wb-s1-winner', name: 'TBD' }
         team2 = winner2 || { id: 'wb-s2-winner', name: 'TBD' }
       } else if (matchId.startsWith('LB-1-')) {
         // Loser Bracket Round 1 - get losers from quarters
         const matchNum = parseInt(matchId.split('LB-1-')[1])
         if (matchNum === 1) {
-          const loser1 = getLoserFromMatch('WB-Q1')
-          const loser2 = getLoserFromMatch('WB-Q2')
+          const loser1 = getLoserFromMatch('WB-Q1', new Set())
+          const loser2 = getLoserFromMatch('WB-Q2', new Set())
           team1 = loser1 || { id: 'wb-q1-loser', name: 'TBD' }
           team2 = loser2 || { id: 'wb-q2-loser', name: 'TBD' }
         } else if (matchNum === 2) {
-          const loser1 = getLoserFromMatch('WB-Q3')
-          const loser2 = getLoserFromMatch('WB-Q4')
+          const loser1 = getLoserFromMatch('WB-Q3', new Set())
+          const loser2 = getLoserFromMatch('WB-Q4', new Set())
           team1 = loser1 || { id: 'wb-q3-loser', name: 'TBD' }
           team2 = loser2 || { id: 'wb-q4-loser', name: 'TBD' }
         }
@@ -164,32 +164,32 @@ export async function GET() {
         // Loser Bracket Round 2 - winners from LB-1 vs losers from WB Semis
         const matchNum = parseInt(matchId.split('LB-2-')[1])
         if (matchNum === 1) {
-          const winner = getWinnerFromMatch('LB-1-1')
-          const loser = getLoserFromMatch('WB-S1')
+          const winner = getWinnerFromMatch('LB-1-1', new Set())
+          const loser = getLoserFromMatch('WB-S1', new Set())
           team1 = winner || { id: 'lb-1-1-winner', name: 'TBD' }
           team2 = loser || { id: 'wb-s1-loser', name: 'TBD' }
         } else if (matchNum === 2) {
-          const winner = getWinnerFromMatch('LB-1-2')
-          const loser = getLoserFromMatch('WB-S2')
+          const winner = getWinnerFromMatch('LB-1-2', new Set())
+          const loser = getLoserFromMatch('WB-S2', new Set())
           team1 = winner || { id: 'lb-1-2-winner', name: 'TBD' }
           team2 = loser || { id: 'wb-s2-loser', name: 'TBD' }
         }
       } else if (matchId === 'LB-3') {
         // Loser Bracket Round 3 (Semifinal) - winners from LB-2
-        const winner1 = getWinnerFromMatch('LB-2-1')
-        const winner2 = getWinnerFromMatch('LB-2-2')
+        const winner1 = getWinnerFromMatch('LB-2-1', new Set())
+        const winner2 = getWinnerFromMatch('LB-2-2', new Set())
         team1 = winner1 || { id: 'lb-2-1-winner', name: 'TBD' }
         team2 = winner2 || { id: 'lb-2-2-winner', name: 'TBD' }
       } else if (matchId === 'LB-F') {
         // Loser Bracket Final - winner from LB-3 vs loser from WB Final
-        const winner = getWinnerFromMatch('LB-3')
-        const loser = getLoserFromMatch('WB-F')
+        const winner = getWinnerFromMatch('LB-3', new Set())
+        const loser = getLoserFromMatch('WB-F', new Set())
         team1 = winner || { id: 'lb-3-winner', name: 'TBD' }
         team2 = loser || { id: 'wb-f-loser', name: 'TBD' }
       } else if (matchId === 'GF') {
         // Grand Final - winner from WB Final vs winner from LB Final
-        const wbWinner = getWinnerFromMatch('WB-F')
-        const lbWinner = getWinnerFromMatch('LB-F')
+        const wbWinner = getWinnerFromMatch('WB-F', new Set())
+        const lbWinner = getWinnerFromMatch('LB-F', new Set())
         team1 = wbWinner || { id: 'wb-f-winner', name: 'TBD' }
         team2 = lbWinner || { id: 'lb-f-winner', name: 'TBD' }
       }
@@ -207,11 +207,18 @@ export async function GET() {
     }
     
     // Helper function to get winner from a finished match
-    const getWinnerFromMatch = (matchId: string) => {
+    const getWinnerFromMatch = (matchId: string, visited = new Set()): any => {
+      // Prevent infinite recursion
+      if (visited.has(matchId)) {
+        console.log(`⚠️ Recursion detected for match ${matchId}`)
+        return { id: `${matchId}-winner`, name: 'TBD' }
+      }
+      visited.add(matchId)
+      
       const state = combinedStates.get(matchId)
       if (!state || !state.isFinished || !state.winnerId) return null
       
-      // For quarter finals, get actual team data
+      // For quarter finals, get actual team data (base case)
       if (matchId.startsWith('WB-Q')) {
         const matchNum = parseInt(matchId.split('WB-Q')[1])
         const team1 = paddedTeams[(matchNum - 1) * 2] || { id: `team-${(matchNum - 1) * 2 + 1}`, name: `Team ${(matchNum - 1) * 2 + 1}` }
@@ -222,15 +229,22 @@ export async function GET() {
       }
       
       // For all other matches, recursively find the actual team
-      return getActualTeamFromMatch(matchId, state.winnerId)
+      return getActualTeamFromMatch(matchId, state.winnerId, visited)
     }
     
     // Helper function to get loser from a finished match
-    const getLoserFromMatch = (matchId: string) => {
+    const getLoserFromMatch = (matchId: string, visited = new Set()): any => {
+      // Prevent infinite recursion
+      if (visited.has(matchId)) {
+        console.log(`⚠️ Recursion detected for match ${matchId}`)
+        return { id: `${matchId}-loser`, name: 'TBD' }
+      }
+      visited.add(matchId)
+      
       const state = combinedStates.get(matchId)
       if (!state || !state.isFinished || !state.winnerId) return null
       
-      // For quarter finals, get actual team data
+      // For quarter finals, get actual team data (base case)
       if (matchId.startsWith('WB-Q')) {
         const matchNum = parseInt(matchId.split('WB-Q')[1])
         const team1 = paddedTeams[(matchNum - 1) * 2] || { id: `team-${(matchNum - 1) * 2 + 1}`, name: `Team ${(matchNum - 1) * 2 + 1}` }
@@ -242,11 +256,18 @@ export async function GET() {
       
       // For all other matches, recursively find the actual team (opposite of winner)
       const loserPosition = state.winnerId === 'team1' ? 'team2' : 'team1'
-      return getActualTeamFromMatch(matchId, loserPosition)
+      return getActualTeamFromMatch(matchId, loserPosition, visited)
     }
     
     // Helper function to recursively find the actual team name
-    const getActualTeamFromMatch = (matchId: string, position: string): any => {
+    const getActualTeamFromMatch = (matchId: string, position: string, visited = new Set()): any => {
+      // Prevent infinite recursion
+      if (visited.has(`${matchId}-${position}`)) {
+        console.log(`⚠️ Recursion detected for ${matchId}-${position}`)
+        return { id: `${matchId}-${position}`, name: 'TBD' }
+      }
+      visited.add(`${matchId}-${position}`)
+      
       // Base case: Quarter finals have real teams
       if (matchId.startsWith('WB-Q')) {
         const matchNum = parseInt(matchId.split('WB-Q')[1])
@@ -258,36 +279,41 @@ export async function GET() {
       }
       
       // For non-quarter final matches, trace back to the source
-      if (matchId === 'WB-S1') {
-        if (position === 'team1') return getWinnerFromMatch('WB-Q1')
-        if (position === 'team2') return getWinnerFromMatch('WB-Q2')
-      } else if (matchId === 'WB-S2') {
-        if (position === 'team1') return getWinnerFromMatch('WB-Q3')
-        if (position === 'team2') return getWinnerFromMatch('WB-Q4')
-      } else if (matchId === 'WB-F') {
-        if (position === 'team1') return getWinnerFromMatch('WB-S1')
-        if (position === 'team2') return getWinnerFromMatch('WB-S2')
-      } else if (matchId === 'LB-1-1') {
-        if (position === 'team1') return getLoserFromMatch('WB-Q1')
-        if (position === 'team2') return getLoserFromMatch('WB-Q2')
-      } else if (matchId === 'LB-1-2') {
-        if (position === 'team1') return getLoserFromMatch('WB-Q3')
-        if (position === 'team2') return getLoserFromMatch('WB-Q4')
-      } else if (matchId === 'LB-2-1') {
-        if (position === 'team1') return getWinnerFromMatch('LB-1-1')
-        if (position === 'team2') return getLoserFromMatch('WB-S1')
-      } else if (matchId === 'LB-2-2') {
-        if (position === 'team1') return getWinnerFromMatch('LB-1-2')
-        if (position === 'team2') return getLoserFromMatch('WB-S2')
-      } else if (matchId === 'LB-3') {
-        if (position === 'team1') return getWinnerFromMatch('LB-2-1')
-        if (position === 'team2') return getWinnerFromMatch('LB-2-2')
-      } else if (matchId === 'LB-F') {
-        if (position === 'team1') return getWinnerFromMatch('LB-3')
-        if (position === 'team2') return getLoserFromMatch('WB-F')
-      } else if (matchId === 'GF') {
-        if (position === 'team1') return getWinnerFromMatch('WB-F')
-        if (position === 'team2') return getWinnerFromMatch('LB-F')
+      try {
+        if (matchId === 'WB-S1') {
+          if (position === 'team1') return getWinnerFromMatch('WB-Q1', new Set(visited))
+          if (position === 'team2') return getWinnerFromMatch('WB-Q2', new Set(visited))
+        } else if (matchId === 'WB-S2') {
+          if (position === 'team1') return getWinnerFromMatch('WB-Q3', new Set(visited))
+          if (position === 'team2') return getWinnerFromMatch('WB-Q4', new Set(visited))
+        } else if (matchId === 'WB-F') {
+          if (position === 'team1') return getWinnerFromMatch('WB-S1', new Set(visited))
+          if (position === 'team2') return getWinnerFromMatch('WB-S2', new Set(visited))
+        } else if (matchId === 'LB-1-1') {
+          if (position === 'team1') return getLoserFromMatch('WB-Q1', new Set(visited))
+          if (position === 'team2') return getLoserFromMatch('WB-Q2', new Set(visited))
+        } else if (matchId === 'LB-1-2') {
+          if (position === 'team1') return getLoserFromMatch('WB-Q3', new Set(visited))
+          if (position === 'team2') return getLoserFromMatch('WB-Q4', new Set(visited))
+        } else if (matchId === 'LB-2-1') {
+          if (position === 'team1') return getWinnerFromMatch('LB-1-1', new Set(visited))
+          if (position === 'team2') return getLoserFromMatch('WB-S1', new Set(visited))
+        } else if (matchId === 'LB-2-2') {
+          if (position === 'team1') return getWinnerFromMatch('LB-1-2', new Set(visited))
+          if (position === 'team2') return getLoserFromMatch('WB-S2', new Set(visited))
+        } else if (matchId === 'LB-3') {
+          if (position === 'team1') return getWinnerFromMatch('LB-2-1', new Set(visited))
+          if (position === 'team2') return getWinnerFromMatch('LB-2-2', new Set(visited))
+        } else if (matchId === 'LB-F') {
+          if (position === 'team1') return getWinnerFromMatch('LB-3', new Set(visited))
+          if (position === 'team2') return getLoserFromMatch('WB-F', new Set(visited))
+        } else if (matchId === 'GF') {
+          if (position === 'team1') return getWinnerFromMatch('WB-F', new Set(visited))
+          if (position === 'team2') return getWinnerFromMatch('LB-F', new Set(visited))
+        }
+      } catch (error) {
+        console.log(`⚠️ Error in getActualTeamFromMatch for ${matchId}-${position}:`, error)
+        return { id: `${matchId}-${position}`, name: 'TBD' }
       }
       
       // Fallback
