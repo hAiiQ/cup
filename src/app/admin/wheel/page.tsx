@@ -102,20 +102,21 @@ export default function WheelPage() {
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-    // NEU: Einfache Ausrichtung - 0° ist oben
+    // Berechne Winkel pro Segment
     const anglePerSegment = (2 * Math.PI) / filteredUsers.length
 
-    // Draw segments - starte bei 0° (oben) und gehe im Uhrzeigersinn
+    // Zeichne Segmente - 0° zeigt nach rechts, -Math.PI/2 dreht es nach oben
     filteredUsers.forEach((user, index) => {
-      // 0° ist oben, currentAngle dreht das ganze Rad
+      // Berechne Start- und Endwinkel für jedes Segment
+      // Segment 0 startet bei -90° (12 Uhr Position) nach der Rotation
       const startAngle = (index * anglePerSegment) - (Math.PI / 2) + (currentAngle * Math.PI / 180)
       const endAngle = ((index + 1) * anglePerSegment) - (Math.PI / 2) + (currentAngle * Math.PI / 180)
 
-      // Segment colors
+      // Segment-Farben
       const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#FFB347']
       const color = colors[index % colors.length]
 
-      // Draw segment
+      // Zeichne Segment
       ctx.fillStyle = color
       ctx.beginPath()
       ctx.moveTo(centerX, centerY)
@@ -123,7 +124,12 @@ export default function WheelPage() {
       ctx.closePath()
       ctx.fill()
 
-      // Draw text
+      // Segment-Umrandung
+      ctx.strokeStyle = '#FFFFFF'
+      ctx.lineWidth = 2
+      ctx.stroke()
+
+      // Text zeichnen
       const textAngle = startAngle + anglePerSegment / 2
       const textRadius = radius * 0.7
 
@@ -131,7 +137,7 @@ export default function WheelPage() {
       ctx.translate(centerX, centerY)
       ctx.rotate(textAngle)
       ctx.fillStyle = '#FFFFFF'
-      ctx.font = 'bold 16px Arial'
+      ctx.font = 'bold 14px Arial'
       ctx.textAlign = 'right'
       ctx.textBaseline = 'middle'
       
@@ -139,13 +145,13 @@ export default function WheelPage() {
       ctx.fillText(displayName, textRadius, 0)
       
       if (user.isStreamer) {
-        ctx.fillText('🎥', textRadius - 80, 0)
+        ctx.fillText('🎥', textRadius - 70, 0)
       }
       
       ctx.restore()
     })
 
-    // Draw center circle
+    // Zeichne Mittelkreis
     ctx.fillStyle = '#2C3E50'
     ctx.beginPath()
     ctx.arc(centerX, centerY, 40, 0, 2 * Math.PI)
@@ -154,12 +160,24 @@ export default function WheelPage() {
     ctx.lineWidth = 4
     ctx.stroke()
 
-    // Center text
+    // Mittelpunkt-Symbol
     ctx.fillStyle = '#FFFFFF'
     ctx.font = 'bold 24px Arial'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillText('🎯', centerX, centerY)
+    ctx.fillText('�', centerX, centerY)
+
+    // WICHTIG: Zeiger/Pfeil der nach oben zeigt (12 Uhr Position)
+    ctx.fillStyle = '#FF0000'
+    ctx.beginPath()
+    ctx.moveTo(centerX, 20) // Spitze des Pfeils
+    ctx.lineTo(centerX - 15, 50) // Links unten
+    ctx.lineTo(centerX + 15, 50) // Rechts unten
+    ctx.closePath()
+    ctx.fill()
+    ctx.strokeStyle = '#FFFFFF'
+    ctx.lineWidth = 2
+    ctx.stroke()
   }
 
   const spinWheel = () => {
@@ -168,37 +186,39 @@ export default function WheelPage() {
     setIsSpinning(true)
     setSelectedUser(null)
 
-    // NEUE LOGIK: Gewinner VOR dem Spin bestimmen
+    // Wähle einen zufälligen Gewinner
     const randomWinnerIndex = Math.floor(Math.random() * filteredUsers.length)
     const winner = filteredUsers[randomWinnerIndex]
     
-    console.log('🎯 PRE-SELECTED WINNER:', winner.username, 'at index', randomWinnerIndex)
+    console.log('� GEWINNER VORAB BESTIMMT:', winner.username, 'Index:', randomWinnerIndex)
 
-    // WICHTIG: In drawWheel() startet Segment 0 bei -90° (wegen -Math.PI/2 offset)
-    // Das bedeutet: Segment 0 ist bei 270° in unserer 0-360° Berechnung
+    // Berechne den Winkel pro Segment in Grad
     const anglePerSegment = 360 / filteredUsers.length
-    const winnerSegmentStart = (randomWinnerIndex * anglePerSegment) + 270 // +270° wegen -90° offset in Canvas
-    const winnerSegmentMiddle = winnerSegmentStart + (anglePerSegment / 2)
     
-    // Das Rad muss so gedreht werden, dass winnerSegmentMiddle bei 0° landet (unter dem Pfeil)
-    // Aktuell ist Gewinner bei winnerSegmentMiddle, soll bei 0° landen
-    let targetFinalAngle = (360 - (winnerSegmentMiddle % 360)) % 360
+    // Berechne wo sich das Gewinner-Segment befindet
+    // Segment 0 startet bei 270° (wegen -90° offset), dann im Uhrzeigersinn
+    const winnerSegmentStartAngle = randomWinnerIndex * anglePerSegment + 270
+    const winnerSegmentMiddleAngle = winnerSegmentStartAngle + (anglePerSegment / 2)
     
-    // Füge mehrere volle Drehungen hinzu für den Effekt
+    // Der Pfeil zeigt nach oben (0°). Das Gewinner-Segment soll unter dem Pfeil landen.
+    // Wir müssen das Rad so drehen, dass der Mittelpunkt des Gewinner-Segments bei 0° steht
+    let targetAngle = (360 - (winnerSegmentMiddleAngle % 360)) % 360
+    
+    // Füge mehrere volle Drehungen für den visuellen Effekt hinzu
     const extraRotations = 8 + Math.random() * 4 // 8-12 volle Drehungen
-    const totalRotation = (extraRotations * 360) + targetFinalAngle
+    const totalRotation = extraRotations * 360 + targetAngle
     
-    console.log('🎯 SPIN CALCULATION:', {
+    console.log('� SPIN-BERECHNUNG:', {
       winnerIndex: randomWinnerIndex,
-      winnerSegmentStart: winnerSegmentStart.toFixed(1) + '°',
-      winnerSegmentMiddle: winnerSegmentMiddle.toFixed(1) + '°',
-      targetFinalAngle: targetFinalAngle.toFixed(1) + '°',
-      extraRotations,
+      anglePerSegment: anglePerSegment.toFixed(1) + '°',
+      winnerSegmentStart: winnerSegmentStartAngle.toFixed(1) + '°',
+      winnerSegmentMiddle: winnerSegmentMiddleAngle.toFixed(1) + '°',
+      targetAngle: targetAngle.toFixed(1) + '°',
       totalRotation: totalRotation.toFixed(1) + '°'
     })
 
-    // Animation wie vorher, aber mit berechnetem Ziel
-    const spinDuration = 8000
+    // Smooth animation
+    const spinDuration = 6000 // 6 Sekunden
     const startTime = Date.now()
     const startAngle = currentAngle
 
@@ -206,16 +226,17 @@ export default function WheelPage() {
       const elapsed = Date.now() - startTime
       const progress = Math.min(elapsed / spinDuration, 1)
       
+      // Easing-Funktion für realistischen Spin-Effekt
       const easeOut = 1 - Math.pow(1 - progress, 3)
-      const angle = startAngle + (totalRotation * easeOut)
+      const newAngle = startAngle + (totalRotation * easeOut)
       
-      setCurrentAngle(angle % 360)
+      setCurrentAngle(newAngle % 360)
 
       if (progress < 1) {
         animationRef.current = requestAnimationFrame(animate)
       } else {
-        // Gewinner ist bereits bekannt
-        console.log('🎯 SPIN COMPLETE - WINNER CONFIRMED:', winner.username)
+        // Animation beendet - zeige Gewinner
+        console.log('� SPIN BEENDET - GEWINNER:', winner.username)
         setSelectedUser(winner)
         setIsSpinning(false)
       }
