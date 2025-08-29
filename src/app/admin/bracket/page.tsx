@@ -50,7 +50,11 @@ export default function AdminBracketPage() {
       if (response.ok) {
         console.log('✅ Admin authenticated successfully')
         setIsAuthenticated(true)
-        fetchData()
+        // Add a small delay to ensure state is set before calling fetchData
+        setTimeout(() => {
+          console.log('🚀 Calling fetchData after auth success')
+          fetchData()
+        }, 100)
       } else {
         console.log('❌ Admin not authenticated, redirecting to login with redirect parameter')
         setLoading(false)  // WICHTIG: Loading beenden auch bei Auth-Fehler
@@ -70,12 +74,11 @@ export default function AdminBracketPage() {
   }
 
   const fetchData = async () => {
-    if (!isAuthenticated) return
+    // Remove the authentication check - this is already verified before calling
+    console.log('🔄 Admin fetchData started')
+    setLoading(true)  // WICHTIG: Loading state setzen
     
     try {
-      console.log('🔄 Admin fetchData started')
-      setLoading(true)  // WICHTIG: Loading state setzen
-      
       const [teamsRes, matchesRes] = await Promise.all([
         fetch('/api/admin/teams'),
         fetch('/api/bracket/matches')  // Use the SAME API as public bracket
@@ -113,11 +116,13 @@ export default function AdminBracketPage() {
       
     } catch (error) {
       console.error('Error fetching data:', error)
+      console.error('Error details:', error instanceof Error ? error.message : String(error))
       // Fallback to local bracket generation
       const fallbackBracket = generateFullBracket([])
       setBracket(fallbackBracket)
       console.log('🔥 Admin Fallback Bracket set:', fallbackBracket.length, 'matches')
     } finally {
+      console.log('🏁 Admin fetchData finished - setting loading to false')
       setLoading(false)
     }
   }
