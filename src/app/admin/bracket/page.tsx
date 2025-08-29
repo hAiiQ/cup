@@ -54,12 +54,16 @@ export default function AdminBracketPage() {
       } else {
         console.log('❌ Admin not authenticated, redirecting to login with redirect parameter')
         setLoading(false)  // WICHTIG: Loading beenden auch bei Auth-Fehler
-        router.push('/admin?redirect=' + encodeURIComponent('/admin/bracket'))
+        setIsAuthenticated(false)  // Explizit auf false setzen
+        // Force immediate redirect
+        window.location.href = '/admin?redirect=' + encodeURIComponent('/admin/bracket')
       }
     } catch (error) {
       console.error('❌ Auth check failed:', error)
       setLoading(false)  // WICHTIG: Loading beenden auch bei Auth-Fehler  
-      router.push('/admin?redirect=' + encodeURIComponent('/admin/bracket'))
+      setIsAuthenticated(false)  // Explizit auf false setzen
+      // Force immediate redirect
+      window.location.href = '/admin?redirect=' + encodeURIComponent('/admin/bracket')
     } finally {
       setIsAuthLoading(false)
     }
@@ -706,8 +710,16 @@ export default function AdminBracketPage() {
 
   // Don't render content if not authenticated (will redirect)
   if (!isAuthenticated) {
-    console.log('🔍 Admin not authenticated yet, isAuthLoading:', isAuthLoading, 'loading:', loading)
-    return null
+    console.log('🔍 Admin not authenticated, forcing redirect immediately')
+    // Force immediate redirect without waiting
+    if (typeof window !== 'undefined') {
+      window.location.href = '/admin?redirect=' + encodeURIComponent('/admin/bracket')
+    }
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-white text-xl">Weiterleitung zum Admin-Login...</div>
+      </div>
+    )
   }
 
   if (loading) {
