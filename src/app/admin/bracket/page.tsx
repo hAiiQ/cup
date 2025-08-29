@@ -79,7 +79,10 @@ export default function AdminBracketPage() {
     setLoading(true)  // WICHTIG: Loading state setzen
     
     try {
-      const teamsRes = await fetch('/api/admin/teams')
+      const [teamsRes, liveStatesRes] = await Promise.all([
+        fetch('/api/admin/teams'),
+        fetch('/api/admin/bracket/matches/live-states') // Get live states only
+      ])
       
       let teamsData = { teams: [] }
       if (teamsRes.ok) {
@@ -89,10 +92,39 @@ export default function AdminBracketPage() {
         console.log('✅ Admin teams loaded:', sortedTeams.length)
       }
 
-      // ALWAYS generate fallback bracket - don't merge with API
+      // Generate complete bracket with real teams
       const fallbackBracket = generateFullBracket(teamsData.teams || [])
-      setBracket(fallbackBracket)
-      console.log('✅ Admin Fallback Bracket set with all matches visible:', fallbackBracket.length, 'matches')
+      
+      // Apply live states if available
+      if (liveStatesRes.ok) {
+        const liveStatesData = await liveStatesRes.json()
+        console.log('✅ Admin live states loaded:', liveStatesData.states?.length || 0)
+        
+        if (liveStatesData.states && liveStatesData.states.length > 0) {
+          // Apply live states to fallback bracket
+          const updatedBracket = fallbackBracket.map(match => {
+            const liveState = liveStatesData.states.find((state: any) => state.matchId === match.id)
+            if (liveState) {
+              return {
+                ...match,
+                isLive: liveState.isLive,
+                team1Score: liveState.team1Score || 0,
+                team2Score: liveState.team2Score || 0,
+                isFinished: liveState.isFinished || false
+              }
+            }
+            return match
+          })
+          setBracket(updatedBracket)
+          console.log('🎯 Admin Bracket updated with live states')
+        } else {
+          setBracket(fallbackBracket)
+          console.log('📦 Admin using fallback bracket (no live states)')
+        }
+      } else {
+        setBracket(fallbackBracket)
+        console.log('⚠️ Admin live states API failed, using fallback bracket')
+      }
       
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -422,9 +454,10 @@ export default function AdminBracketPage() {
       })
 
       if (response.ok) {
-        // Reset local state
+        // Reset local state with fresh bracket
         const freshBracket = generateFullBracket(teams)
         setBracket(freshBracket)
+        console.log('✅ Tournament reset - generated fresh bracket with', freshBracket.length, 'matches')
         alert('Tournament erfolgreich zurückgesetzt!')
       } else {
         alert('Fehler beim Zurücksetzen des Tournaments')
