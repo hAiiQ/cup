@@ -20,7 +20,7 @@ interface Team {
   memberCount: number
 }
 
-export default function SimpleWheelPage() {
+export default function WheelPage() {
   const router = useRouter()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animationRef = useRef<number>()
@@ -120,7 +120,7 @@ export default function SimpleWheelPage() {
 
     const centerX = canvas.width / 2
     const centerY = canvas.height / 2
-    const radius = Math.min(centerX, centerY) - 10
+    const radius = Math.min(centerX, centerY) - 20  // Größerer Abstand für modernes Design
 
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -161,48 +161,49 @@ export default function SimpleWheelPage() {
       ctx.rotate(textAngle + Math.PI / 2)
       
       ctx.fillStyle = '#FFFFFF'
-      ctx.font = 'bold 12px Arial'
+      ctx.font = 'bold 16px Arial'  // Größere Schrift für größeres Rad
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       
-      const displayName = user.username.length > 10 ? user.username.substring(0, 8) + '..' : user.username
-      ctx.fillText(displayName, 0, -5)
+      const displayName = user.username.length > 12 ? user.username.substring(0, 10) + '..' : user.username
+      ctx.fillText(displayName, 0, -8)
       
       if (user.isStreamer) {
-        ctx.fillText('🎥', 0, 10)
+        ctx.font = 'bold 20px Arial'  // Größeres Emoji
+        ctx.fillText('🎥', 0, 12)
       }
       
       ctx.restore()
     })
 
-    // Mittelkreis
+    // Mittelkreis - größer für modernes Design
     ctx.fillStyle = '#2C3E50'
     ctx.beginPath()
-    ctx.arc(centerX, centerY, 30, 0, 2 * Math.PI)
+    ctx.arc(centerX, centerY, 50, 0, 2 * Math.PI)  // Größerer Mittelkreis
     ctx.fill()
     ctx.strokeStyle = '#FFFFFF'
-    ctx.lineWidth = 3
+    ctx.lineWidth = 4
     ctx.stroke()
 
-    // Logo im Zentrum
+    // Logo im Zentrum - größer
     ctx.fillStyle = '#FFFFFF'
-    ctx.font = 'bold 20px Arial'
+    ctx.font = 'bold 32px Arial'  // Größeres Logo
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillText('⚡', centerX, centerY)
 
-    // ZEIGER - zeigt nach OBEN (12 Uhr Position)
+    // ZEIGER - größer und moderner
     ctx.fillStyle = '#FF0000'
     ctx.beginPath()
-    ctx.moveTo(centerX, 15)           // Spitze oben
-    ctx.lineTo(centerX - 12, 45)      // Links unten
-    ctx.lineTo(centerX + 12, 45)      // Rechts unten
+    ctx.moveTo(centerX, 20)           // Spitze oben
+    ctx.lineTo(centerX - 18, 60)      // Links unten - breiter
+    ctx.lineTo(centerX + 18, 60)      // Rechts unten - breiter
     ctx.closePath()
     ctx.fill()
     
-    // Zeiger Umrandung
+    // Zeiger Umrandung - dicker
     ctx.strokeStyle = '#FFFFFF'
-    ctx.lineWidth = 2
+    ctx.lineWidth = 3
     ctx.stroke()
   }
 
@@ -357,7 +358,7 @@ export default function SimpleWheelPage() {
         <div className="container mx-auto px-4 py-4">
           <nav className="flex justify-between items-center">
             <div className="text-2xl font-bold text-purple-400">
-              ⚡ VEREINFACHTES GLÜCKSRAD
+              ⚡ GLÜCKSRAD
             </div>
             <button
               onClick={() => router.push('/admin/dashboard')}
@@ -371,88 +372,10 @@ export default function SimpleWheelPage() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="flex flex-col lg:flex-row gap-8">
           
-          {/* Wheel Section */}
-          <div className="bg-gray-800 rounded-lg p-6">
-            <h2 className="text-xl font-bold text-white mb-4">
-              🎰 Glücksrad ({filteredUsers.length} Teilnehmer)
-            </h2>
-            
-            {filteredUsers.length === 0 ? (
-              <div className="text-center text-gray-400 py-12">
-                <p>Keine verfügbaren Benutzer für das Rad</p>
-              </div>
-            ) : (
-              <div className="text-center">
-                <canvas
-                  ref={canvasRef}
-                  width={400}
-                  height={400}
-                  className="border border-gray-600 rounded-lg mx-auto mb-4"
-                />
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Team auswählen:
-                    </label>
-                    <select
-                      value={selectedTeam}
-                      onChange={(e) => setSelectedTeam(e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
-                      disabled={isSpinning}
-                    >
-                      <option value="">-- Team wählen --</option>
-                      {availableTeams.map(team => (
-                        <option key={team.id} value={team.id}>
-                          {team.name} ({team.memberCount}/6 Mitglieder)
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <button
-                    onClick={spinWheel}
-                    disabled={!selectedTeam || isSpinning || filteredUsers.length === 0}
-                    className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors font-bold"
-                  >
-                    {isSpinning ? '🌀 Dreht sich... (12s)' : '🎯 RAD DREHEN (12s)'}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Results & Controls */}
-          <div className="space-y-6">
-            
-            {/* Winner Display */}
-            {selectedUser && (
-              <div className="bg-green-800 rounded-lg p-6">
-                <h3 className="text-xl font-bold text-white mb-4">🏆 GEWINNER!</h3>
-                <div className="bg-green-700 rounded-lg p-4">
-                  <p className="text-white font-bold text-lg">{selectedUser.username}</p>
-                  <p className="text-green-200">
-                    {selectedUser.isStreamer ? '🎥 Streamer' : '👤 Teilnehmer'}
-                    {selectedUser.tier && ` • ${selectedUser.tier === 'tier1' ? '🥇 Tier 1' : selectedUser.tier === 'tier2' ? '🥈 Tier 2' : selectedUser.tier === 'tier3' ? '🥉 Tier 3' : selectedUser.tier}`}
-                  </p>
-                  <div className="mt-2 text-sm text-green-200">
-                    {selectedUser.discordName && <p>Discord: {selectedUser.discordName}</p>}
-                    {selectedUser.twitchName && <p>Twitch: {selectedUser.twitchName}</p>}
-                    {selectedUser.instagramName && <p>Instagram: @{selectedUser.instagramName}</p>}
-                  </div>
-                </div>
-                <button
-                  onClick={assignToTeam}
-                  disabled={!selectedTeam}
-                  className="w-full mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-600 transition-colors"
-                >
-                  Zu Team hinzufügen
-                </button>
-              </div>
-            )}
-
+          {/* Left Sidebar - Filters */}
+          <div className="lg:w-80 space-y-6">
             {/* Filters */}
             <div className="bg-gray-800 rounded-lg p-6">
               <h3 className="text-lg font-bold text-white mb-4">🔍 Filter</h3>
@@ -484,13 +407,13 @@ export default function SimpleWheelPage() {
                   >
                     <option value="all">Alle</option>
                     <option value="streamers">Nur Streamer</option>
-                    <option value="non-streamers">Nur Nicht-Streamer</option>
+                    <option value="participants">Nur Teilnehmer</option>
                   </select>
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Tier-Filter:
+                    Tier-Level:
                   </label>
                   <select
                     value={tierFilter}
@@ -501,24 +424,88 @@ export default function SimpleWheelPage() {
                     <option value="tier1">🥇 Tier 1</option>
                     <option value="tier2">🥈 Tier 2</option>
                     <option value="tier3">🥉 Tier 3</option>
+                    <option value="none">Kein Tier</option>
                   </select>
                 </div>
               </div>
+              
+              <div className="mt-4 text-sm text-gray-400">
+                Gefilterte Benutzer: {filteredUsers.length}
+              </div>
             </div>
 
-            {/* Statistics */}
-            <div className="bg-gray-800 rounded-lg p-6">
-              <h3 className="text-lg font-bold text-white mb-4">📊 Statistiken</h3>
-              <div className="grid grid-cols-2 gap-4 text-center">
-                <div className="bg-gray-700 rounded-lg p-3">
-                  <p className="text-2xl font-bold text-purple-400">{filteredUsers.length}</p>
-                  <p className="text-sm text-gray-300">Im Rad</p>
+            {/* Winner Display */}
+            {selectedUser && (
+              <div className="bg-green-800 rounded-lg p-6">
+                <h3 className="text-xl font-bold text-white mb-4">🏆 GEWINNER!</h3>
+                <div className="bg-green-700 rounded-lg p-4">
+                  <p className="text-white font-bold text-lg">{selectedUser.username}</p>
+                  <p className="text-green-200">
+                    {selectedUser.isStreamer ? '🎥 Streamer' : '👤 Teilnehmer'}
+                    {selectedUser.tier && ` • ${selectedUser.tier === 'tier1' ? '🥇 Tier 1' : selectedUser.tier === 'tier2' ? '🥈 Tier 2' : selectedUser.tier === 'tier3' ? '🥉 Tier 3' : selectedUser.tier}`}
+                  </p>
                 </div>
-                <div className="bg-gray-700 rounded-lg p-3">
-                  <p className="text-2xl font-bold text-green-400">{availableTeams.length}</p>
-                  <p className="text-sm text-gray-300">Verfügbare Teams</p>
-                </div>
+                <button
+                  onClick={assignToTeam}
+                  disabled={!selectedTeam}
+                  className="w-full mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-600 transition-colors"
+                >
+                  Zu Team hinzufügen
+                </button>
               </div>
+            )}
+          </div>
+          
+          {/* Center - Main Wheel */}
+          <div className="flex-1 flex flex-col items-center justify-center">
+            <div className="bg-gray-800 rounded-lg p-8 w-full max-w-2xl">
+              <h2 className="text-2xl font-bold text-white mb-6 text-center">
+                🎰 Glücksrad ({filteredUsers.length} Teilnehmer)
+              </h2>
+              
+              {filteredUsers.length === 0 ? (
+                <div className="text-center text-gray-400 py-12">
+                  <p>Keine verfügbaren Benutzer für das Rad</p>
+                </div>
+              ) : (
+                <div className="text-center space-y-6">
+                  <canvas
+                    ref={canvasRef}
+                    width={600}
+                    height={600}
+                    className="border-2 border-purple-500 rounded-full mx-auto shadow-2xl shadow-purple-500/30"
+                  />
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Team auswählen:
+                      </label>
+                      <select
+                        value={selectedTeam}
+                        onChange={(e) => setSelectedTeam(e.target.value)}
+                        className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white text-lg"
+                        disabled={isSpinning}
+                      >
+                        <option value="">-- Team wählen --</option>
+                        {availableTeams.map(team => (
+                          <option key={team.id} value={team.id}>
+                            {team.name} ({team.memberCount}/6 Mitglieder)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <button
+                      onClick={spinWheel}
+                      disabled={!selectedTeam || isSpinning || filteredUsers.length === 0}
+                      className="w-full px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xl font-bold rounded-lg hover:from-purple-700 hover:to-pink-700 disabled:bg-gray-600 disabled:cursor-not-allowed transition-all duration-300 shadow-lg"
+                    >
+                      {isSpinning ? '🌀 Dreht sich... (12s)' : '🎯 RAD DREHEN (12s)'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
