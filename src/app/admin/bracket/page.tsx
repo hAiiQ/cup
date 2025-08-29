@@ -48,11 +48,12 @@ export default function AdminBracketPage() {
         setIsAuthenticated(true)
         fetchData()
       } else {
-        router.push('/admin')
+        console.log('❌ Admin not authenticated, redirecting to login with redirect parameter')
+        router.push('/admin?redirect=' + encodeURIComponent('/admin/bracket'))
       }
     } catch (error) {
       console.error('Auth check failed:', error)
-      router.push('/admin')
+      router.push('/admin?redirect=' + encodeURIComponent('/admin/bracket'))
     } finally {
       setIsAuthLoading(false)
     }

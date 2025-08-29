@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 export default function AdminLoginPage() {
   const [formData, setFormData] = useState({
@@ -11,6 +11,10 @@ export default function AdminLoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // Get redirect URL from query params
+  const redirectTo = searchParams?.get('redirect') || '/admin/dashboard'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -24,6 +28,7 @@ export default function AdminLoginPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
+        credentials: 'include', // Important for cookies!
       })
 
       const data = await response.json()
@@ -31,7 +36,8 @@ export default function AdminLoginPage() {
       if (response.ok) {
         // Clear form data for security
         setFormData({ username: '', password: '' })
-        router.push('/admin/dashboard')
+        console.log('✅ Admin login successful, redirecting to:', redirectTo)
+        router.push(redirectTo)
       } else {
         setError(data.error || 'Anmeldung fehlgeschlagen')
       }

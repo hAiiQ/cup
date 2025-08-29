@@ -1,21 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { verifyToken } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   try {
-    // Check if admin session cookie exists
-    const adminToken = request.cookies.get('admin_session')?.value
+    // Check if admin token cookie exists (NOT admin_session!)
+    const adminToken = request.cookies.get('admin_token')?.value
     
     if (!adminToken) {
+      console.log('❌ No admin_token cookie found')
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    // Verify the session token (simplified check)
-    // In production, you'd verify this against a database or JWT
-    if (adminToken === 'admin_authenticated') {
-      return NextResponse.json({ authenticated: true })
+    // Verify the JWT token
+    try {
+      const decoded = verifyToken(adminToken)
+      console.log('✅ Admin token verified:', decoded)
+      return NextResponse.json({ authenticated: true, admin: decoded })
+    } catch (tokenError) {
+      console.log('❌ Invalid admin token:', tokenError)
+      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
     }
     
-    return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
   } catch (error) {
     console.error('Auth check error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

@@ -55,11 +55,12 @@ export default function WheelPage() {
         setIsAuthenticated(true)
         fetchData()
       } else {
-        router.push('/admin')  // Korrekte Admin-Login-URL
+        console.log('❌ Admin not authenticated, redirecting to login with redirect parameter')
+        router.push('/admin?redirect=' + encodeURIComponent('/admin/wheel'))
       }
     } catch (error) {
       console.error('Auth check failed:', error)
-      router.push('/admin')  // Korrekte Admin-Login-URL
+      router.push('/admin?redirect=' + encodeURIComponent('/admin/wheel'))
     } finally {
       setIsLoading(false)
     }
