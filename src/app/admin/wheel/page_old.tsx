@@ -49,60 +49,57 @@ export default function WheelPage() {
   }, [filteredUsers, currentAngle])
 
   useEffect(() => {
-    applyFilters()
+    filterUsers()
   }, [users, verificationFilter, streamerFilter, tierFilter])
 
   const fetchData = async () => {
     try {
-      console.log('🎯 Fetching users for wheel (public test)')
-      const usersResponse = await fetch('/api/wheel/users', {
-        cache: 'no-store'
-      })
+      const [usersRes, teamsRes] = await Promise.all([
+        fetch('/api/wheel/users'),
+        fetch('/api/wheel/teams')
+      ])
       
-      console.log('🎯 Fetching teams for wheel (public test)')
-      const teamsResponse = await fetch('/api/wheel/teams', {
-        cache: 'no-store'
-      })
-
-      if (usersResponse.ok && teamsResponse.ok) {
-        const usersData = await usersResponse.json()
-        const teamsData = await teamsResponse.json()
-        
-        console.log('✅ Data loaded:', { users: usersData.length, teams: teamsData.length })
-        setUsers(usersData)
-        setTeams(teamsData)
-      } else {
-        console.error('❌ Failed to fetch data:', { 
-          usersStatus: usersResponse.status, 
-          teamsStatus: teamsResponse.status 
-        })
+      if (!usersRes.ok || !teamsRes.ok) {
+        console.error('API Response nicht OK:', { usersStatus: usersRes.status, teamsStatus: teamsRes.status })
+        return
       }
+      
+      const usersData = await usersRes.json()
+      const teamsData = await teamsRes.json()
+      
+      console.log('Daten geladen:', { userCount: usersData.length, teamCount: teamsData.length })
+      
+      setUsers(usersData || [])
+      setTeams(teamsData || [])
     } catch (error) {
-      console.error('❌ Error fetching data:', error)
+      console.error('Fehler beim Laden der Daten:', error)
+      // Fallback zu leeren Arrays
+      setUsers([])
+      setTeams([])
     }
   }
 
-  const applyFilters = () => {
-    let filtered = users.filter(user => !user.teamId) // Nur Users ohne Team
+  const filterUsers = () => {
+    let filtered = users.filter(user => !user.teamId)
     
     if (verificationFilter === 'verified') {
-      filtered = filtered.filter(user => user.username?.includes('✅') || user.discordName?.includes('✅'))
+      filtered = filtered.filter(user => 
+        user.discordName || user.twitchName || user.instagramName
+      )
     } else if (verificationFilter === 'unverified') {
-      filtered = filtered.filter(user => !(user.username?.includes('✅') || user.discordName?.includes('✅')))
+      filtered = filtered.filter(user => 
+        !user.discordName && !user.twitchName && !user.instagramName
+      )
     }
     
     if (streamerFilter === 'streamers') {
-      filtered = filtered.filter(user => user.isStreamer)
-    } else if (streamerFilter === 'participants') {
-      filtered = filtered.filter(user => !user.isStreamer)
+      filtered = filtered.filter(user => user.isStreamer === true)
+    } else if (streamerFilter === 'non-streamers') {
+      filtered = filtered.filter(user => user.isStreamer === false)
     }
     
     if (tierFilter !== 'all') {
-      if (tierFilter === 'none') {
-        filtered = filtered.filter(user => !user.tier)
-      } else {
-        filtered = filtered.filter(user => user.tier === tierFilter)
-      }
+      filtered = filtered.filter(user => user.tier === tierFilter)
     }
     
     setFilteredUsers(filtered)
@@ -123,7 +120,7 @@ export default function WheelPage() {
 
     const centerX = canvas.width / 2
     const centerY = canvas.height / 2
-    const radius = Math.min(centerX, centerY) - 30  // Größerer Abstand für modernes Design
+    const radius = Math.min(centerX, centerY) - 20  // Größerer Abstand für modernes Design
 
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -164,16 +161,16 @@ export default function WheelPage() {
       ctx.rotate(textAngle + Math.PI / 2)
       
       ctx.fillStyle = '#FFFFFF'
-      ctx.font = 'bold 18px Arial'  // Größere Schrift für größeres Rad
+      ctx.font = 'bold 16px Arial'  // Größere Schrift für größeres Rad
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       
       const displayName = user.username.length > 12 ? user.username.substring(0, 10) + '..' : user.username
-      ctx.fillText(displayName, 0, -10)
+      ctx.fillText(displayName, 0, -8)
       
       if (user.isStreamer) {
-        ctx.font = 'bold 22px Arial'  // Größeres Emoji
-        ctx.fillText('🎥', 0, 15)
+        ctx.font = 'bold 20px Arial'  // Größeres Emoji
+        ctx.fillText('🎥', 0, 12)
       }
       
       ctx.restore()
@@ -182,7 +179,7 @@ export default function WheelPage() {
     // Mittelkreis - größer für modernes Design
     ctx.fillStyle = '#2C3E50'
     ctx.beginPath()
-    ctx.arc(centerX, centerY, 60, 0, 2 * Math.PI)  // Größerer Mittelkreis
+    ctx.arc(centerX, centerY, 50, 0, 2 * Math.PI)  // Größerer Mittelkreis
     ctx.fill()
     ctx.strokeStyle = '#FFFFFF'
     ctx.lineWidth = 4
@@ -190,7 +187,7 @@ export default function WheelPage() {
 
     // Logo im Zentrum - größer
     ctx.fillStyle = '#FFFFFF'
-    ctx.font = 'bold 36px Arial'  // Größeres Logo
+    ctx.font = 'bold 32px Arial'  // Größeres Logo
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillText('⚡', centerX, centerY)
@@ -198,9 +195,9 @@ export default function WheelPage() {
     // ZEIGER - größer und moderner
     ctx.fillStyle = '#FF0000'
     ctx.beginPath()
-    ctx.moveTo(centerX, 25)           // Spitze oben
-    ctx.lineTo(centerX - 20, 70)      // Links unten - breiter
-    ctx.lineTo(centerX + 20, 70)      // Rechts unten - breiter
+    ctx.moveTo(centerX, 20)           // Spitze oben
+    ctx.lineTo(centerX - 18, 60)      // Links unten - breiter
+    ctx.lineTo(centerX + 18, 60)      // Rechts unten - breiter
     ctx.closePath()
     ctx.fill()
     
@@ -240,7 +237,7 @@ export default function WheelPage() {
     // Exakt 12 komplette Drehungen für Konsistenz
     const totalRotation = (12 * 360) + targetRotation
     
-    console.log('🎰 REALISTISCHER SPIN:', {
+    console.log('� REALISTISCHER SPIN:', {
       winnerIndex: randomWinnerIndex,
       winnerName: winner.username,
       segmentSize: segmentSize.toFixed(1) + '°',
@@ -283,30 +280,28 @@ export default function WheelPage() {
         if (angleDifference > 180) angleDifference -= 360
         if (angleDifference < -180) angleDifference += 360
         
-        // Zentrierung Animation
-        const centeringDuration = 800
+        const centeringDuration = 800 // 0.8 Sekunden zum Zentrieren
         const centeringStartTime = Date.now()
         
         const centeringAnimate = () => {
           const centeringElapsed = Date.now() - centeringStartTime
           const centeringProgress = Math.min(centeringElapsed / centeringDuration, 1)
           
-          // Sanfte Easing für Zentrierung
+          // Sanfte Bewegung zur Mitte
           const easeInOut = centeringProgress < 0.5 
             ? 2 * centeringProgress * centeringProgress 
             : 1 - Math.pow(-2 * centeringProgress + 2, 2) / 2
           
-          const currentCenteringAngle = stopAngle + (angleDifference * easeInOut)
-          setCurrentAngle(currentCenteringAngle % 360)
+          const currentCenterAngle = stopAngle + (angleDifference * easeInOut)
+          setCurrentAngle(currentCenterAngle % 360)
           
           if (centeringProgress < 1) {
             animationRef.current = requestAnimationFrame(centeringAnimate)
           } else {
-            // Animation beendet - zeige Gewinner
-            setCurrentAngle(targetCenterAngle)
+            // Zentrierung abgeschlossen - zeige Gewinner
+            console.log('✅ ZENTRIERUNG BEENDET - GEWINNER:', winner.username)
             setSelectedUser(winner)
             setIsSpinning(false)
-            console.log('🏆 SPIN ABGESCHLOSSEN! Gewinner:', winner.username)
           }
         }
         
@@ -329,22 +324,23 @@ export default function WheelPage() {
         body: JSON.stringify({
           userId: selectedUser.id,
           teamId: selectedTeam
-        })
+        }),
       })
 
       if (response.ok) {
-        console.log('✅ User erfolgreich zugewiesen!')
+        setUsers(users.filter(u => u.id !== selectedUser.id))
         setSelectedUser(null)
-        fetchData() // Aktualisiere die Daten
+        await fetchData()
       } else {
-        console.error('❌ Fehler beim Zuweisen')
+        const error = await response.json()
+        alert('Fehler: ' + error.error)
       }
     } catch (error) {
-      console.error('❌ Netzwerkfehler:', error)
+      alert('Ein Fehler ist aufgetreten')
     }
   }
 
-  // Clean up animation on unmount
+  // Cleanup animation
   useEffect(() => {
     return () => {
       if (animationRef.current) {
@@ -488,8 +484,8 @@ export default function WheelPage() {
                 <div className="text-center">
                   <canvas
                     ref={canvasRef}
-                    width={750}
-                    height={750}
+                    width={700}
+                    height={700}
                     className="border-2 border-purple-500 rounded-full mx-auto shadow-2xl shadow-purple-500/30 max-w-full"
                   />
                 </div>
@@ -532,6 +528,48 @@ export default function WheelPage() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      </main>
+    </div>
+  )
+}
+                    width={600}
+                    height={600}
+                    className="border-2 border-purple-500 rounded-full mx-auto shadow-2xl shadow-purple-500/30"
+                  />
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Team auswählen:
+                      </label>
+                      <select
+                        value={selectedTeam}
+                        onChange={(e) => setSelectedTeam(e.target.value)}
+                        className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white text-lg"
+                        disabled={isSpinning}
+                      >
+                        <option value="">-- Team wählen --</option>
+                        {availableTeams.map(team => (
+                          <option key={team.id} value={team.id}>
+                            {team.name} ({team.memberCount}/6 Mitglieder)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <button
+                      onClick={spinWheel}
+                      disabled={!selectedTeam || isSpinning || filteredUsers.length === 0}
+                      className="w-full px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xl font-bold rounded-lg hover:from-purple-700 hover:to-pink-700 disabled:bg-gray-600 disabled:cursor-not-allowed transition-all duration-300 shadow-lg"
+                    >
+                      {isSpinning ? '🌀 Dreht sich... (12s)' : '🎯 RAD DREHEN (12s)'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </main>

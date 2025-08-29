@@ -619,6 +619,9 @@ video {
 .relative {
   position: relative;
 }
+.sticky {
+  position: sticky;
+}
 .inset-0 {
   inset: 0px;
 }
@@ -633,6 +636,9 @@ video {
 }
 .top-1\/2 {
   top: 50%;
+}
+.top-4 {
+  top: 1rem;
 }
 .z-10 {
   z-index: 10;
@@ -820,6 +826,9 @@ video {
 }
 .max-w-6xl {
   max-width: 72rem;
+}
+.max-w-full {
+  max-width: 100%;
 }
 .max-w-md {
   max-width: 28rem;
@@ -1559,6 +1568,10 @@ video {
   padding-top: 0.25rem;
   padding-bottom: 0.25rem;
 }
+.py-1\.5 {
+  padding-top: 0.375rem;
+  padding-bottom: 0.375rem;
+}
 .py-12 {
   padding-top: 3rem;
   padding-bottom: 3rem;
@@ -1578,6 +1591,10 @@ video {
 .py-4 {
   padding-top: 1rem;
   padding-bottom: 1rem;
+}
+.py-6 {
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
 }
 .py-8 {
   padding-top: 2rem;
@@ -2238,10 +2255,6 @@ h1, h2, h3, h4, h5, h6, .font-bold {
     grid-column: span 2 / span 2;
   }
 
-  .lg\:w-80 {
-    width: 20rem;
-  }
-
   .lg\:grid-cols-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2257,13 +2270,17 @@ h1, h2, h3, h4, h5, h6, .font-bold {
   .lg\:grid-cols-5 {
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
-
-  .lg\:flex-row {
-    flex-direction: row;
-  }
 }
 
 @media (min-width: 1280px) {
+
+  .xl\:col-span-1 {
+    grid-column: span 1 / span 1;
+  }
+
+  .xl\:col-span-2 {
+    grid-column: span 2 / span 2;
+  }
 
   .xl\:block {
     display: block;
@@ -2271,6 +2288,10 @@ h1, h2, h3, h4, h5, h6, .font-bold {
 
   .xl\:hidden {
     display: none;
+  }
+
+  .xl\:grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
