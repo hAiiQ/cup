@@ -123,7 +123,6 @@ export default function AdminBracketPage() {
       setLoading(false)
     }
   }
-  }
 
   const generateFullBracket = (teams: Team[]): Match[] => {
     const matches: Match[] = []
