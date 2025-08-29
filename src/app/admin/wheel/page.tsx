@@ -233,8 +233,9 @@ export default function SimpleWheelPage() {
     // Wenn Gewinner bei 90° steht, muss Rad um -90° drehen (oder +270°)
     const targetRotation = -winnerAngleInWheel
     
-    // Füge 8 komplette Drehungen hinzu + die Ziel-Rotation
-    const totalRotation = (8 * 360) + targetRotation
+    // Füge 12-15 komplette Drehungen hinzu + die Ziel-Rotation für längeren Spin
+    const extraRotations = 12 + Math.random() * 3 // 12-15 volle Drehungen
+    const totalRotation = (extraRotations * 360) + targetRotation
     
     console.log('🎯 KORREKTE SPIN-BERECHNUNG:', {
       winnerIndex: randomWinnerIndex,
@@ -242,11 +243,12 @@ export default function SimpleWheelPage() {
       segmentSize: segmentSize.toFixed(1) + '°',
       winnerAngleInWheel: winnerAngleInWheel.toFixed(1) + '°',
       targetRotation: targetRotation.toFixed(1) + '°',
+      extraRotations: extraRotations.toFixed(1),
       totalRotation: totalRotation.toFixed(1) + '°'
     })
 
-    // 8 Sekunden Animation mit sanfter Verlangsamung
-    const spinDuration = 8000
+    // 12 Sekunden Animation mit sanfter Verlangsamung für dramatischeren Effekt
+    const spinDuration = 12000
     const startTime = Date.now()
     const startAngle = currentAngle
 
@@ -254,8 +256,8 @@ export default function SimpleWheelPage() {
       const elapsed = Date.now() - startTime
       const progress = Math.min(elapsed / spinDuration, 1)
       
-      // Sanfte Verlangsamung
-      const easeOut = 1 - Math.pow(1 - progress, 4)
+      // Dramatischere Verlangsamung - startet schnell, wird langsamer zum Ende
+      const easeOut = 1 - Math.pow(1 - progress, 5) // Noch sanftere Verlangsamung
       const newAngle = startAngle + (totalRotation * easeOut)
       
       setCurrentAngle(newAngle % 360)
@@ -393,7 +395,7 @@ export default function SimpleWheelPage() {
                     disabled={!selectedTeam || isSpinning || filteredUsers.length === 0}
                     className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors font-bold"
                   >
-                    {isSpinning ? '🌀 Dreht sich...' : '🎯 RAD DREHEN'}
+                    {isSpinning ? '🌀 Dreht sich... (12s)' : '🎯 RAD DREHEN (12s)'}
                   </button>
                 </div>
               </div>
