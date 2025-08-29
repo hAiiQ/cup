@@ -250,10 +250,7 @@ export default function WheelPage() {
     ctx.closePath()
     ctx.fill()
     
-    // Zeiger Umrandung - dicker
-    ctx.strokeStyle = '#FFFFFF'
-    ctx.lineWidth = 3
-    ctx.stroke()
+    // Kein weißer Rahmen mehr - Zeiger Umrandung entfernt
   }
 
   const spinWheel = () => {

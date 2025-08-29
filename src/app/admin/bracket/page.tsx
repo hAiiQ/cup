@@ -40,11 +40,15 @@ export default function AdminBracketPage() {
 
   const checkAdminAuth = async () => {
     try {
+      console.log('🔍 Admin auth check starting...')
       const response = await fetch('/api/admin/auth/check', {
         credentials: 'include'
       })
       
+      console.log('🔍 Auth response status:', response.status)
+      
       if (response.ok) {
+        console.log('✅ Admin authenticated successfully')
         setIsAuthenticated(true)
         fetchData()
       } else {
@@ -53,7 +57,7 @@ export default function AdminBracketPage() {
         router.push('/admin?redirect=' + encodeURIComponent('/admin/bracket'))
       }
     } catch (error) {
-      console.error('Auth check failed:', error)
+      console.error('❌ Auth check failed:', error)
       setLoading(false)  // WICHTIG: Loading beenden auch bei Auth-Fehler  
       router.push('/admin?redirect=' + encodeURIComponent('/admin/bracket'))
     } finally {
@@ -702,6 +706,7 @@ export default function AdminBracketPage() {
 
   // Don't render content if not authenticated (will redirect)
   if (!isAuthenticated) {
+    console.log('🔍 Admin not authenticated yet, isAuthLoading:', isAuthLoading, 'loading:', loading)
     return null
   }
 
