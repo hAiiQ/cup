@@ -78,16 +78,8 @@ export default function AdminBracketPage() {
     console.log('🔄 Admin fetchData started')
     setLoading(true)  // WICHTIG: Loading state setzen
     
-    // ALWAYS generate fallback bracket with teams to ensure teams are always visible
-    const fallbackBracket = generateFullBracket([])
-    setBracket(fallbackBracket)
-    console.log('✅ Admin Fallback Bracket set with teams always visible:', fallbackBracket.length, 'matches')
-    
     try {
-      const [teamsRes, matchesRes] = await Promise.all([
-        fetch('/api/admin/teams'),
-        fetch('/api/bracket/matches')  // Use the SAME API as public bracket
-      ])
+      const teamsRes = await fetch('/api/admin/teams')
       
       let teamsData = { teams: [] }
       if (teamsRes.ok) {
@@ -97,27 +89,18 @@ export default function AdminBracketPage() {
         console.log('✅ Admin teams loaded:', sortedTeams.length)
       }
 
-      // Update bracket with API data if available, but keep fallback teams
-      if (matchesRes.ok) {
-        const matchesData = await matchesRes.json()
-        console.log('✅ Admin using bracket API matches:', matchesData.matches?.length || 0)
-        
-        if (matchesData.matches && matchesData.matches.length > 0) {
-          // Merge API matches with fallback bracket to preserve team names
-          const mergedBracket = fallbackBracket.map(fallbackMatch => {
-            const apiMatch = matchesData.matches.find((m: any) => m.id === fallbackMatch.id)
-            return apiMatch ? { ...fallbackMatch, ...apiMatch } : fallbackMatch
-          })
-          setBracket(mergedBracket)
-          console.log('🎯 Admin Bracket updated with API data while preserving teams:', mergedBracket.length, 'matches')
-        }
-      }
+      // ALWAYS generate fallback bracket - don't merge with API
+      const fallbackBracket = generateFullBracket(teamsData.teams || [])
+      setBracket(fallbackBracket)
+      console.log('✅ Admin Fallback Bracket set with all matches visible:', fallbackBracket.length, 'matches')
       
     } catch (error) {
       console.error('Error fetching data:', error)
       console.error('Error details:', error instanceof Error ? error.message : String(error))
-      // Fallback is already set above
-      console.log('🔥 Admin using fallback bracket due to error')
+      // Generate fallback bracket even on error
+      const fallbackBracket = generateFullBracket([])
+      setBracket(fallbackBracket)
+      console.log('🔥 Admin using fallback bracket due to error:', fallbackBracket.length, 'matches')
     } finally {
       console.log('🏁 Admin fetchData finished - setting loading to false')
       setLoading(false)
