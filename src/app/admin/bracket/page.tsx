@@ -160,16 +160,16 @@ export default function AdminBracketPage() {
   const generateFullBracket = (teams: Team[]): Match[] => {
     const matches: Match[] = []
     
-    // Use fixed team names like the public page
+    // Use fixed team names like the public page - FIXED: Match actual team names
     const sampleTeams = [
       { id: 'alpha', name: 'Team Alpha', position: 1 },
       { id: 'beta', name: 'Team Beta', position: 2 },
       { id: 'gamma', name: 'Team Gamma', position: 3 },
       { id: 'delta', name: 'Team Delta', position: 4 },
-      { id: 'echo', name: 'Team Echo', position: 5 },
-      { id: 'foxtrot', name: 'Team Foxtrot', position: 6 },
-      { id: 'golf', name: 'Team Golf', position: 7 },
-      { id: 'hotel', name: 'Team Hotel', position: 8 }
+      { id: 'epsilon', name: 'Team Epsilon', position: 5 },
+      { id: 'zeta', name: 'Team Zeta', position: 6 },
+      { id: 'eta', name: 'Team Eta', position: 7 },
+      { id: 'theta', name: 'Team Theta', position: 8 }
     ]
 
     // Use actual teams if available, otherwise use sample teams
@@ -180,8 +180,8 @@ export default function AdminBracketPage() {
     const quarterFinals = [
       { team1: paddedTeams[0], team2: paddedTeams[1] }, // Alpha vs Beta
       { team1: paddedTeams[2], team2: paddedTeams[3] }, // Gamma vs Delta  
-      { team1: paddedTeams[4], team2: paddedTeams[5] }, // Echo vs Foxtrot
-      { team1: paddedTeams[6], team2: paddedTeams[7] }, // Golf vs Hotel
+      { team1: paddedTeams[4], team2: paddedTeams[5] }, // Epsilon vs Zeta
+      { team1: paddedTeams[6], team2: paddedTeams[7] }, // Eta vs Theta
     ]
 
     quarterFinals.forEach((match, index) => {
@@ -614,17 +614,18 @@ export default function AdminBracketPage() {
           }
         }
 
-        // Send loser to Loser Bracket
+        // Send loser to Loser Bracket - FIXED: Correct team placement
         const loser = completedMatch.team1Score > completedMatch.team2Score ? completedMatch.team2 : completedMatch.team1
         const lbR1Index = Math.ceil(qfNumber / 2) - 1
         const lbR1Match = bracket.find(m => m.bracket === 'loser' && m.round === 1 && m.matchNumber === lbR1Index + 1)
         
         console.log(`📉 WB QF${qfNumber} Loser → LB R1-${lbR1Index + 1}`)
         if (lbR1Match && loser) {
-          if (qfNumber <= 2) {
+          // FIXED: Correct mapping - QF1→LB R1-1 Team1, QF2→LB R1-1 Team2, QF3→LB R1-2 Team1, QF4→LB R1-2 Team2
+          if (qfNumber === 1 || qfNumber === 3) {
             lbR1Match.team1 = loser
             console.log(`❌ ${loser.name} → LB R1-${lbR1Index + 1} (Team1)`)
-          } else {
+          } else { // qfNumber === 2 || qfNumber === 4
             lbR1Match.team2 = loser
             console.log(`❌ ${loser.name} → LB R1-${lbR1Index + 1} (Team2)`)
           }
