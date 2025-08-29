@@ -6,10 +6,9 @@ import { useRouter } from 'next/navigation'
 interface User {
   id: string
   username: string
-  discordTag: string | null
-  twitterHandle: string | null
-  twitchHandle: string | null
-  instagramHandle: string | null
+  discordName: string | null
+  twitchName: string | null
+  instagramName: string | null
   isStreamer: boolean
   teamId: string | null
 }
@@ -42,7 +41,9 @@ export default function SimpleWheelPage() {
   }, [])
 
   useEffect(() => {
-    drawWheel()
+    if (filteredUsers.length > 0) {
+      drawWheel()
+    }
   }, [filteredUsers, currentAngle])
 
   useEffect(() => {
@@ -52,17 +53,27 @@ export default function SimpleWheelPage() {
   const fetchData = async () => {
     try {
       const [usersRes, teamsRes] = await Promise.all([
-        fetch('/api/admin/wheel/users'),
-        fetch('/api/admin/wheel/teams')
+        fetch('/api/wheel/users'),
+        fetch('/api/wheel/teams')
       ])
+      
+      if (!usersRes.ok || !teamsRes.ok) {
+        console.error('API Response nicht OK:', { usersStatus: usersRes.status, teamsStatus: teamsRes.status })
+        return
+      }
       
       const usersData = await usersRes.json()
       const teamsData = await teamsRes.json()
       
-      setUsers(usersData)
-      setTeams(teamsData)
+      console.log('Daten geladen:', { userCount: usersData.length, teamCount: teamsData.length })
+      
+      setUsers(usersData || [])
+      setTeams(teamsData || [])
     } catch (error) {
       console.error('Fehler beim Laden der Daten:', error)
+      // Fallback zu leeren Arrays
+      setUsers([])
+      setTeams([])
     }
   }
 
@@ -71,11 +82,11 @@ export default function SimpleWheelPage() {
     
     if (verificationFilter === 'verified') {
       filtered = filtered.filter(user => 
-        user.discordTag || user.twitterHandle || user.twitchHandle || user.instagramHandle
+        user.discordName || user.twitchName || user.instagramName
       )
     } else if (verificationFilter === 'unverified') {
       filtered = filtered.filter(user => 
-        !user.discordTag && !user.twitterHandle && !user.twitchHandle && !user.instagramHandle
+        !user.discordName && !user.twitchName && !user.instagramName
       )
     }
     
@@ -90,10 +101,16 @@ export default function SimpleWheelPage() {
 
   const drawWheel = () => {
     const canvas = canvasRef.current
-    if (!canvas || filteredUsers.length === 0) return
+    if (!canvas || filteredUsers.length === 0) {
+      console.log('Canvas nicht verfügbar oder keine User:', { canvas: !!canvas, userCount: filteredUsers.length })
+      return
+    }
 
     const ctx = canvas.getContext('2d')
-    if (!ctx) return
+    if (!ctx) {
+      console.error('Canvas Context nicht verfügbar')
+      return
+    }
 
     const centerX = canvas.width / 2
     const centerY = canvas.height / 2
@@ -263,7 +280,7 @@ export default function SimpleWheelPage() {
     if (!selectedUser || !selectedTeam) return
 
     try {
-      const response = await fetch('/api/admin/wheel/assign', {
+      const response = await fetch('/api/wheel/assign', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -385,10 +402,9 @@ export default function SimpleWheelPage() {
                     {selectedUser.isStreamer ? '🎥 Streamer' : '👤 Teilnehmer'}
                   </p>
                   <div className="mt-2 text-sm text-green-200">
-                    {selectedUser.discordTag && <p>Discord: {selectedUser.discordTag}</p>}
-                    {selectedUser.twitterHandle && <p>Twitter: @{selectedUser.twitterHandle}</p>}
-                    {selectedUser.twitchHandle && <p>Twitch: {selectedUser.twitchHandle}</p>}
-                    {selectedUser.instagramHandle && <p>Instagram: @{selectedUser.instagramHandle}</p>}
+                    {selectedUser.discordName && <p>Discord: {selectedUser.discordName}</p>}
+                    {selectedUser.twitchName && <p>Twitch: {selectedUser.twitchName}</p>}
+                    {selectedUser.instagramName && <p>Instagram: @{selectedUser.instagramName}</p>}
                   </div>
                 </div>
                 <button
