@@ -9,6 +9,7 @@ interface User {
   discordName: string | null
   twitchName: string | null
   instagramName: string | null
+  tier: string | null
   isStreamer: boolean
   teamId: string | null
 }
@@ -35,6 +36,7 @@ export default function SimpleWheelPage() {
   // Filter states
   const [verificationFilter, setVerificationFilter] = useState('all')
   const [streamerFilter, setStreamerFilter] = useState('all')
+  const [tierFilter, setTierFilter] = useState('all')
 
   useEffect(() => {
     fetchData()
@@ -48,7 +50,7 @@ export default function SimpleWheelPage() {
 
   useEffect(() => {
     filterUsers()
-  }, [users, verificationFilter, streamerFilter])
+  }, [users, verificationFilter, streamerFilter, tierFilter])
 
   const fetchData = async () => {
     try {
@@ -94,6 +96,10 @@ export default function SimpleWheelPage() {
       filtered = filtered.filter(user => user.isStreamer === true)
     } else if (streamerFilter === 'non-streamers') {
       filtered = filtered.filter(user => user.isStreamer === false)
+    }
+    
+    if (tierFilter !== 'all') {
+      filtered = filtered.filter(user => user.tier === tierFilter)
     }
     
     setFilteredUsers(filtered)
@@ -212,26 +218,30 @@ export default function SimpleWheelPage() {
     
     console.log('🎯 GEWINNER VORAB BESTIMMT:', winner.username, 'Index:', randomWinnerIndex)
 
-    // EINFACHE BERECHNUNG: 
-    // Jedes Segment hat 360/anzahl Grad
-    // Der Zeiger zeigt nach oben (0°)
-    // Segment 0 startet bei 270° (-90°), dann im Uhrzeigersinn
+    // KORREKTE GEWINNER-BERECHNUNG:
+    // 1. Der Zeiger zeigt nach OBEN (12 Uhr = 0°)
+    // 2. Segmente starten bei -90° (12 Uhr) und gehen im Uhrzeigersinn
+    // 3. Wir wollen, dass der Gewinner unter dem Zeiger (0°) steht
+    
     const segmentSize = 360 / filteredUsers.length
-    const segmentStartAngle = 270 + (randomWinnerIndex * segmentSize)  // Start des Gewinner-Segments
-    const segmentMiddleAngle = segmentStartAngle + (segmentSize / 2)   // Mitte des Gewinner-Segments
     
-    // Das Gewinner-Segment soll unter dem Zeiger (0°/360°) landen
-    // Drehe das Rad so, dass die Mitte des Gewinner-Segments bei 0° steht
-    const rotationNeeded = (360 - (segmentMiddleAngle % 360)) % 360
+    // Der Gewinner soll direkt unter dem Zeiger stehen
+    // Berechne wie viel das Rad drehen muss, damit der Gewinner oben ist
+    const winnerAngleInWheel = randomWinnerIndex * segmentSize + (segmentSize / 2) // Mitte des Gewinner-Segments
     
-    // Füge 8 komplette Drehungen hinzu für den visuellen Effekt
-    const totalRotation = (8 * 360) + rotationNeeded
+    // Das Rad dreht sich, also brauchen wir die INVERSE Rotation
+    // Wenn Gewinner bei 90° steht, muss Rad um -90° drehen (oder +270°)
+    const targetRotation = -winnerAngleInWheel
     
-    console.log('🔄 SPIN-BERECHNUNG:', {
+    // Füge 8 komplette Drehungen hinzu + die Ziel-Rotation
+    const totalRotation = (8 * 360) + targetRotation
+    
+    console.log('🎯 KORREKTE SPIN-BERECHNUNG:', {
+      winnerIndex: randomWinnerIndex,
+      winnerName: winner.username,
       segmentSize: segmentSize.toFixed(1) + '°',
-      segmentStart: segmentStartAngle.toFixed(1) + '°',
-      segmentMiddle: segmentMiddleAngle.toFixed(1) + '°',
-      rotationNeeded: rotationNeeded.toFixed(1) + '°',
+      winnerAngleInWheel: winnerAngleInWheel.toFixed(1) + '°',
+      targetRotation: targetRotation.toFixed(1) + '°',
       totalRotation: totalRotation.toFixed(1) + '°'
     })
 
@@ -258,17 +268,18 @@ export default function SimpleWheelPage() {
         setSelectedUser(winner)
         setIsSpinning(false)
         
-        // VERIFIKATION: Welcher User ist jetzt oben?
+        // VERIFIKATION: Welcher User ist jetzt wirklich oben?
         const finalAngle = newAngle % 360
-        // Segment das oben steht berechnen
-        const adjustedAngle = (finalAngle + 90) % 360  // +90° weil Segment 0 bei 270° startet
-        const segmentAtTop = Math.floor(adjustedAngle / segmentSize) % filteredUsers.length
-        console.log('🔍 VERIFIKATION:', {
+        const normalizedAngle = (360 - finalAngle) % 360 // Rad dreht sich rückwärts
+        const segmentAtTop = Math.floor(normalizedAngle / segmentSize) % filteredUsers.length
+        
+        console.log('🔍 FINALE VERIFIKATION:', {
           finalAngle: finalAngle.toFixed(1) + '°',
-          adjustedAngle: adjustedAngle.toFixed(1) + '°',
+          normalizedAngle: normalizedAngle.toFixed(1) + '°',
           segmentAtTop: segmentAtTop,
           expectedWinner: randomWinnerIndex,
-          actualUserAtTop: filteredUsers[segmentAtTop]?.username
+          actualUserAtTop: filteredUsers[segmentAtTop]?.username,
+          isCorrect: segmentAtTop === randomWinnerIndex ? '✅' : '❌'
         })
       }
     }
@@ -400,6 +411,7 @@ export default function SimpleWheelPage() {
                   <p className="text-white font-bold text-lg">{selectedUser.username}</p>
                   <p className="text-green-200">
                     {selectedUser.isStreamer ? '🎥 Streamer' : '👤 Teilnehmer'}
+                    {selectedUser.tier && ` • ${selectedUser.tier === 'tier1' ? '🥇 Tier 1' : selectedUser.tier === 'tier2' ? '🥈 Tier 2' : selectedUser.tier === 'tier3' ? '🥉 Tier 3' : selectedUser.tier}`}
                   </p>
                   <div className="mt-2 text-sm text-green-200">
                     {selectedUser.discordName && <p>Discord: {selectedUser.discordName}</p>}
@@ -449,6 +461,22 @@ export default function SimpleWheelPage() {
                     <option value="all">Alle</option>
                     <option value="streamers">Nur Streamer</option>
                     <option value="non-streamers">Nur Nicht-Streamer</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Tier-Filter:
+                  </label>
+                  <select
+                    value={tierFilter}
+                    onChange={(e) => setTierFilter(e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
+                  >
+                    <option value="all">Alle Tiers</option>
+                    <option value="tier1">🥇 Tier 1</option>
+                    <option value="tier2">🥈 Tier 2</option>
+                    <option value="tier3">🥉 Tier 3</option>
                   </select>
                 </div>
               </div>

@@ -20,6 +20,7 @@ export async function GET() {
         discordName: true,
         twitchName: true,
         instagramName: true,
+        tier: true,
         isStreamer: true,
         teamId: true,
       },
