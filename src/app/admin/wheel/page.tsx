@@ -211,8 +211,11 @@ export default function SimpleWheelPage() {
 
     setIsSpinning(true)
     setSelectedUser(null)
+    
+    // WICHTIG: Reset das Rad auf 0° vor jedem neuen Spin
+    setCurrentAngle(0)
 
-    // EINFACHE LOGIK: Wähle zufälligen Gewinner
+    // Wähle einen zufälligen Gewinner
     const randomWinnerIndex = Math.floor(Math.random() * filteredUsers.length)
     const winner = filteredUsers[randomWinnerIndex]
     
@@ -256,46 +259,52 @@ export default function SimpleWheelPage() {
       const easeOut = 1 - Math.pow(1 - progress, 5)
       let newAngle = startAngle + (totalRotation * easeOut)
       
-      // REALISTISCHER EFFEKT: Leichtes "Wackeln" in den letzten 10% der Animation
-      if (progress > 0.9) {
-        const wobbleProgress = (progress - 0.9) / 0.1 // 0 bis 1 für die letzten 10%
-        const wobbleIntensity = (1 - wobbleProgress) * 2 // Wird schwächer zum Ende
-        const wobble = Math.sin(elapsed * 0.02) * wobbleIntensity // Sanftes Hin und Her
-        newAngle += wobble
-      }
-      
       setCurrentAngle(newAngle % 360)
 
       if (progress < 1) {
         animationRef.current = requestAnimationFrame(animate)
       } else {
-        // Animation beendet - zeige Gewinner
-        console.log('✅ SPIN BEENDET - GEWINNER:', winner.username)
-        setSelectedUser(winner)
-        setIsSpinning(false)
+        // NACH-ANIMATION: Sanfte Zentrierung
+        const stopAngle = newAngle % 360
+        const centerPosition = randomWinnerIndex * segmentSize + (segmentSize / 2) // Perfekt mittig
+        const targetCenterAngle = (360 - centerPosition) % 360
         
-        // VERIFIKATION: Welcher User ist jetzt wirklich oben?
-        const finalAngle = newAngle % 360
-        
-        // REALISTISCH: Bestimme welches Segment unter dem Pfeil ist
-        // Der Pfeil zeigt nach oben (0°), wir müssen rückwärts rechnen
-        const normalizedAngle = (360 - finalAngle) % 360
-        const segmentAtTop = Math.floor(normalizedAngle / segmentSize) % filteredUsers.length
-        
-        console.log('🎰 REALISTISCHER STOP:', {
-          finalAngle: finalAngle.toFixed(1) + '°',
-          normalizedAngle: normalizedAngle.toFixed(1) + '°',
-          segmentAtTop: segmentAtTop,
-          segmentUser: filteredUsers[segmentAtTop]?.username,
-          expectedWinner: randomWinnerIndex,
-          expectedUser: winner.username,
-          isCorrect: segmentAtTop === randomWinnerIndex ? '✅ PERFEKT' : '❌ FEHLER',
-          position: 'Pfeil zeigt auf Segment ' + segmentAtTop + ' (' + filteredUsers[segmentAtTop]?.username + ')'
+        console.log('🎯 ZENTRIERUNG STARTET:', {
+          stopAngle: stopAngle.toFixed(1) + '°',
+          targetCenterAngle: targetCenterAngle.toFixed(1) + '°'
         })
         
-        // WICHTIG: Immer den vorbestimmten Gewinner anzeigen, egal wo das Rad stoppt
-        // (Das macht es realistisch - das Rad kann knapp an der Linie stoppen)
-        console.log('🏆 GEWINNER BESTÄTIGT:', winner.username, '(Segment', randomWinnerIndex + ')')
+        // Berechne den kürzesten Weg zur Mitte
+        let angleDifference = targetCenterAngle - stopAngle
+        if (angleDifference > 180) angleDifference -= 360
+        if (angleDifference < -180) angleDifference += 360
+        
+        const centeringDuration = 800 // 0.8 Sekunden zum Zentrieren
+        const centeringStartTime = Date.now()
+        
+        const centeringAnimate = () => {
+          const centeringElapsed = Date.now() - centeringStartTime
+          const centeringProgress = Math.min(centeringElapsed / centeringDuration, 1)
+          
+          // Sanfte Bewegung zur Mitte
+          const easeInOut = centeringProgress < 0.5 
+            ? 2 * centeringProgress * centeringProgress 
+            : 1 - Math.pow(-2 * centeringProgress + 2, 2) / 2
+          
+          const currentCenterAngle = stopAngle + (angleDifference * easeInOut)
+          setCurrentAngle(currentCenterAngle % 360)
+          
+          if (centeringProgress < 1) {
+            animationRef.current = requestAnimationFrame(centeringAnimate)
+          } else {
+            // Zentrierung abgeschlossen - zeige Gewinner
+            console.log('✅ ZENTRIERUNG BEENDET - GEWINNER:', winner.username)
+            setSelectedUser(winner)
+            setIsSpinning(false)
+          }
+        }
+        
+        animationRef.current = requestAnimationFrame(centeringAnimate)
       }
     }
 
