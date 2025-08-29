@@ -55,11 +55,11 @@ export default function WheelPage() {
         setIsAuthenticated(true)
         fetchData()
       } else {
-        router.push('/admin/login')
+        router.push('/admin')  // Korrekte Admin-Login-URL
       }
     } catch (error) {
       console.error('Auth check failed:', error)
-      router.push('/admin/login')
+      router.push('/admin')  // Korrekte Admin-Login-URL
     } finally {
       setIsLoading(false)
     }
