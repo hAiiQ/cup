@@ -105,18 +105,35 @@ export default function AdminBracketPage() {
           const updatedBracket = fallbackBracket.map(match => {
             const liveState = liveStatesData.states.find((state: any) => state.matchId === match.id)
             if (liveState) {
+              // Determine winner using the new scoring system
+              const winningScore = match.bracket === 'grand' ? 3 : 2
+              let winner = undefined
+              let isFinished = liveState.isFinished || false
+              
+              if (liveState.team1Score >= winningScore && liveState.team1Score > liveState.team2Score) {
+                winner = match.team1
+                isFinished = true
+              } else if (liveState.team2Score >= winningScore && liveState.team2Score > liveState.team1Score) {
+                winner = match.team2
+                isFinished = true
+              }
+              
               return {
                 ...match,
                 isLive: liveState.isLive,
                 team1Score: liveState.team1Score || 0,
                 team2Score: liveState.team2Score || 0,
-                isFinished: liveState.isFinished || false
+                winner,
+                isFinished
               }
             }
             return match
           })
-          setBracket(updatedBracket)
-          console.log('🎯 Admin Bracket updated with live states')
+          
+          // Apply team progression for all completed matches
+          const processedBracket = applyExistingProgression(updatedBracket)
+          setBracket(processedBracket)
+          console.log('🎯 Admin Bracket updated with live states and team progression')
         } else {
           setBracket(fallbackBracket)
           console.log('📦 Admin using fallback bracket (no live states)')
@@ -392,7 +409,8 @@ export default function AdminBracketPage() {
       bracket: 'grand'
     })
 
-    setBracket(matches)
+    console.log('📦 Generated fallback bracket with', matches.length, 'matches')
+    return matches
   }
 
   const updateMatchScore = async (matchId: string, team1Score: number, team2Score: number) => {
@@ -419,14 +437,43 @@ export default function AdminBracketPage() {
         // Close modal
         setSelectedMatch(null)
         
-        // FIXED: Update local state instead of fetchData() to prevent matches disappearing
-        setBracket(prevBracket => 
-          prevBracket.map(m => 
-            m.id === matchId 
-              ? { ...m, team1Score, team2Score, isFinished: (team1Score > 0 || team2Score > 0) }
-              : m
-          )
-        )
+        // FIXED: Update local state AND handle team progression
+        setBracket(prevBracket => {
+          const updatedBracket = prevBracket.map(m => {
+            if (m.id === matchId) {
+              // Determine winner using the new scoring system
+              const winningScore = m.bracket === 'grand' ? 3 : 2
+              let winner = undefined
+              let isFinished = false
+              
+              if (team1Score >= winningScore && team1Score > team2Score) {
+                winner = m.team1
+                isFinished = true
+              } else if (team2Score >= winningScore && team2Score > team1Score) {
+                winner = m.team2
+                isFinished = true
+              }
+              
+              return { 
+                ...m, 
+                team1Score, 
+                team2Score, 
+                winner,
+                isFinished 
+              }
+            }
+            return m
+          })
+          
+          // Find the updated match and handle team progression if it's finished
+          const updatedMatch = updatedBracket.find(m => m.id === matchId)
+          if (updatedMatch && updatedMatch.isFinished && updatedMatch.winner) {
+            console.log(`🏆 Match ${matchId} completed! Winner: ${updatedMatch.winner.name}`)
+            updateNextRound(updatedBracket, updatedMatch)
+          }
+          
+          return updatedBracket
+        })
         console.log(`🔄 Admin: Updated local match ${matchId} scores: ${team1Score}-${team2Score}`)
         
         // Success - modal closed with visible feedback
@@ -468,7 +515,78 @@ export default function AdminBracketPage() {
     }
   }
 
+  const applyExistingProgression = (bracket: Match[]): Match[] => {
+    console.log('🔄 Applying existing team progression for completed matches...')
+    
+    // Create a working copy of the bracket
+    const workingBracket = [...bracket]
+    
+    // Process matches in order: Round 1 → Round 2 → Round 3 → etc.
+    // Winner Bracket first, then Loser Bracket
+    
+    // Winner Bracket Round 1 (Quarter Finals)
+    const wbR1Matches = workingBracket.filter(m => m.bracket === 'winner' && m.round === 1)
+    wbR1Matches.forEach(match => {
+      if (match.isFinished && match.winner) {
+        updateNextRound(workingBracket, match)
+      }
+    })
+    
+    // Winner Bracket Round 2 (Semi Finals)
+    const wbR2Matches = workingBracket.filter(m => m.bracket === 'winner' && m.round === 2)
+    wbR2Matches.forEach(match => {
+      if (match.isFinished && match.winner) {
+        updateNextRound(workingBracket, match)
+      }
+    })
+    
+    // Loser Bracket Round 1
+    const lbR1Matches = workingBracket.filter(m => m.bracket === 'loser' && m.round === 1)
+    lbR1Matches.forEach(match => {
+      if (match.isFinished && match.winner) {
+        updateNextRound(workingBracket, match)
+      }
+    })
+    
+    // Loser Bracket Round 2
+    const lbR2Matches = workingBracket.filter(m => m.bracket === 'loser' && m.round === 2)
+    lbR2Matches.forEach(match => {
+      if (match.isFinished && match.winner) {
+        updateNextRound(workingBracket, match)
+      }
+    })
+    
+    // Winner Bracket Round 3 (Final)
+    const wbR3Matches = workingBracket.filter(m => m.bracket === 'winner' && m.round === 3)
+    wbR3Matches.forEach(match => {
+      if (match.isFinished && match.winner) {
+        updateNextRound(workingBracket, match)
+      }
+    })
+    
+    // Loser Bracket Round 3
+    const lbR3Matches = workingBracket.filter(m => m.bracket === 'loser' && m.round === 3)
+    lbR3Matches.forEach(match => {
+      if (match.isFinished && match.winner) {
+        updateNextRound(workingBracket, match)
+      }
+    })
+    
+    // Loser Bracket Round 4 (Final)
+    const lbR4Matches = workingBracket.filter(m => m.bracket === 'loser' && m.round === 4)
+    lbR4Matches.forEach(match => {
+      if (match.isFinished && match.winner) {
+        updateNextRound(workingBracket, match)
+      }
+    })
+    
+    console.log('✅ Team progression applied for all completed matches')
+    return workingBracket
+  }
+
   const updateNextRound = (bracket: Match[], completedMatch: Match) => {
+    console.log(`🔄 Team Progression: Processing ${completedMatch.id} - Winner: ${completedMatch.winner?.name}`)
+    
     if (completedMatch.bracket === 'winner') {
       // Winner Bracket progression
       if (completedMatch.round === 1) {
@@ -477,11 +595,14 @@ export default function AdminBracketPage() {
         const sfIndex = Math.ceil(qfNumber / 2) - 1
         const sfMatch = bracket.find(m => m.bracket === 'winner' && m.round === 2 && m.matchNumber === sfIndex + 1)
         
+        console.log(`📈 WB QF${qfNumber} → WB SF${sfIndex + 1}`)
         if (sfMatch) {
           if (qfNumber % 2 === 1) {
             sfMatch.team1 = completedMatch.winner
+            console.log(`✅ ${completedMatch.winner?.name} → WB SF${sfIndex + 1} (Team1)`)
           } else {
             sfMatch.team2 = completedMatch.winner
+            console.log(`✅ ${completedMatch.winner?.name} → WB SF${sfIndex + 1} (Team2)`)
           }
         }
 
@@ -490,22 +611,28 @@ export default function AdminBracketPage() {
         const lbR1Index = Math.ceil(qfNumber / 2) - 1
         const lbR1Match = bracket.find(m => m.bracket === 'loser' && m.round === 1 && m.matchNumber === lbR1Index + 1)
         
+        console.log(`📉 WB QF${qfNumber} Loser → LB R1-${lbR1Index + 1}`)
         if (lbR1Match && loser) {
           if (qfNumber <= 2) {
             lbR1Match.team1 = loser
+            console.log(`❌ ${loser.name} → LB R1-${lbR1Index + 1} (Team1)`)
           } else {
             lbR1Match.team2 = loser
+            console.log(`❌ ${loser.name} → LB R1-${lbR1Index + 1} (Team2)`)
           }
         }
 
       } else if (completedMatch.round === 2) {
         // WB Semi Final to WB Final
         const finalMatch = bracket.find(m => m.bracket === 'winner' && m.round === 3)
+        console.log(`📈 WB SF${completedMatch.matchNumber} → WB Final`)
         if (finalMatch) {
           if (completedMatch.matchNumber === 1) {
             finalMatch.team1 = completedMatch.winner
+            console.log(`✅ ${completedMatch.winner?.name} → WB Final (Team1)`)
           } else {
             finalMatch.team2 = completedMatch.winner
+            console.log(`✅ ${completedMatch.winner?.name} → WB Final (Team2)`)
           }
         }
 
@@ -513,23 +640,29 @@ export default function AdminBracketPage() {
         const loser = completedMatch.team1Score > completedMatch.team2Score ? completedMatch.team2 : completedMatch.team1
         const lbR2Match = bracket.find(m => m.bracket === 'loser' && m.round === 2 && m.matchNumber === completedMatch.matchNumber)
         
+        console.log(`📉 WB SF${completedMatch.matchNumber} Loser → LB R2-${completedMatch.matchNumber}`)
         if (lbR2Match && loser) {
           lbR2Match.team2 = loser
+          console.log(`❌ ${loser.name} → LB R2-${completedMatch.matchNumber} (Team2)`)
         }
 
       } else if (completedMatch.round === 3) {
         // WB Final to Grand Final
         const grandFinal = bracket.find(m => m.bracket === 'grand')
+        console.log(`📈 WB Final → Grand Final`)
         if (grandFinal) {
           grandFinal.team1 = completedMatch.winner
+          console.log(`✅ ${completedMatch.winner?.name} → Grand Final (Team1)`)
         }
 
         // Send loser to Loser Bracket Final
         const loser = completedMatch.team1Score > completedMatch.team2Score ? completedMatch.team2 : completedMatch.team1
         const lbFinal = bracket.find(m => m.bracket === 'loser' && m.round === 4)
         
+        console.log(`📉 WB Final Loser → LB Final`)
         if (lbFinal && loser) {
           lbFinal.team2 = loser
+          console.log(`❌ ${loser.name} → LB Final (Team2)`)
         }
       }
 
@@ -538,39 +671,48 @@ export default function AdminBracketPage() {
       if (completedMatch.round === 1) {
         // LB Round 1 to LB Round 2
         const lbR2Match = bracket.find(m => m.bracket === 'loser' && m.round === 2 && m.matchNumber === completedMatch.matchNumber)
+        console.log(`📈 LB R1-${completedMatch.matchNumber} → LB R2-${completedMatch.matchNumber}`)
         if (lbR2Match) {
           lbR2Match.team1 = completedMatch.winner
+          console.log(`✅ ${completedMatch.winner?.name} → LB R2-${completedMatch.matchNumber} (Team1)`)
         }
 
       } else if (completedMatch.round === 2) {
         // LB Round 2 to LB Round 3
         const lbR3Match = bracket.find(m => m.bracket === 'loser' && m.round === 3)
+        console.log(`📈 LB R2-${completedMatch.matchNumber} → LB R3`)
         if (lbR3Match) {
           if (completedMatch.matchNumber === 1) {
             lbR3Match.team1 = completedMatch.winner
+            console.log(`✅ ${completedMatch.winner?.name} → LB R3 (Team1)`)
           } else {
             lbR3Match.team2 = completedMatch.winner
+            console.log(`✅ ${completedMatch.winner?.name} → LB R3 (Team2)`)
           }
         }
 
       } else if (completedMatch.round === 3) {
         // LB Round 3 to LB Final
         const lbFinal = bracket.find(m => m.bracket === 'loser' && m.round === 4)
+        console.log(`📈 LB R3 → LB Final`)
         if (lbFinal) {
           lbFinal.team1 = completedMatch.winner
+          console.log(`✅ ${completedMatch.winner?.name} → LB Final (Team1)`)
         }
 
       } else if (completedMatch.round === 4) {
         // LB Final to Grand Final
         const grandFinal = bracket.find(m => m.bracket === 'grand')
+        console.log(`📈 LB Final → Grand Final`)
         if (grandFinal) {
           grandFinal.team2 = completedMatch.winner
+          console.log(`✅ ${completedMatch.winner?.name} → Grand Final (Team2)`)
         }
       }
 
     } else if (completedMatch.bracket === 'grand') {
       // Grand Final completed - tournament over
-      console.log('Tournament completed! Winner:', completedMatch.winner?.name)
+      console.log('🏆 Tournament completed! Winner:', completedMatch.winner?.name)
     }
   }
 
