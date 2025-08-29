@@ -143,7 +143,7 @@ export default function AdminBracketPage() {
     const paddedTeams = teams.length >= 8 ? teams.slice(0, 8) : sampleTeams
 
     // WINNER BRACKET
-    // Winner Bracket Round 1 (Quarter Finals) - 4 Matches
+    // Winner Bracket Round 1 (Quarter Finals) - 4 Matches (RUNDE 1)
     const quarterFinals = [
       { team1: paddedTeams[0], team2: paddedTeams[1] }, // Alpha vs Beta
       { team1: paddedTeams[2], team2: paddedTeams[3] }, // Gamma vs Delta  
@@ -165,7 +165,7 @@ export default function AdminBracketPage() {
       })
     })
 
-    // Winner Bracket Semi Finals (Round 2) - 2 Matches
+    // Winner Bracket Semi Finals (Round 2) - 2 Matches (RUNDE 2)
     for (let i = 0; i < 2; i++) {
       matches.push({
         id: `WB-S${i + 1}`,
@@ -178,7 +178,7 @@ export default function AdminBracketPage() {
       })
     }
 
-    // Winner Bracket Final (Round 3) - 1 Match
+    // Winner Bracket Final (Round 3) - 1 Match (RUNDE 5)
     matches.push({
       id: 'WB-F',
       round: 3,
@@ -190,7 +190,7 @@ export default function AdminBracketPage() {
     })
 
     // LOSER BRACKET
-    // Loser Bracket Round 1 - 2 Matches
+    // Loser Bracket Round 1 - 2 Matches (RUNDE 3)
     for (let i = 0; i < 2; i++) {
       matches.push({
         id: `LB-1-${i + 1}`,
@@ -203,7 +203,7 @@ export default function AdminBracketPage() {
       })
     }
 
-    // Loser Bracket Round 2 - 2 Matches
+    // Loser Bracket Round 2 - 2 Matches (RUNDE 4)
     for (let i = 0; i < 2; i++) {
       matches.push({
         id: `LB-2-${i + 1}`,
@@ -216,7 +216,7 @@ export default function AdminBracketPage() {
       })
     }
 
-    // Loser Bracket Round 3 - 1 Match
+    // Loser Bracket Round 3 - 1 Match (RUNDE 6)
     matches.push({
       id: 'LB-3',
       round: 3,
@@ -227,7 +227,7 @@ export default function AdminBracketPage() {
       bracket: 'loser'
     })
 
-    // Loser Bracket Final - 1 Match
+    // Loser Bracket Final - 1 Match (RUNDE 7)
     matches.push({
       id: 'LB-F',
       round: 4,
@@ -238,10 +238,10 @@ export default function AdminBracketPage() {
       bracket: 'loser'
     })
 
-    // GRAND FINAL - 1 Match
+    // GRAND FINAL - 1 Match (RUNDE 8)
     matches.push({
       id: 'GF',
-      round: 4,
+      round: 1,
       matchNumber: 1,
       team1Score: 0,
       team2Score: 0,
