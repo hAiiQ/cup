@@ -686,18 +686,29 @@ export default function AdminBracketPage() {
         }
 
       } else if (completedMatch.round === 2) {
-        // LB Round 2 to LB Round 3
+        // LB Round 2 to LB Round 3 - CRITICAL: Ensure proper team assignment
         const lbR3Match = bracket.find(m => m.bracket === 'loser' && m.round === 3)
         console.log(`📈 LB R2-${completedMatch.matchNumber} → LB R3`)
         console.log(`🔍 LB R3 Match before update:`, lbR3Match ? { id: lbR3Match.id, team1: lbR3Match.team1?.name, team2: lbR3Match.team2?.name } : 'NOT FOUND')
         
         if (lbR3Match) {
+          // FIXED: More explicit assignment logic with validation
           if (completedMatch.matchNumber === 1) {
-            lbR3Match.team1 = completedMatch.winner
-            console.log(`✅ ${completedMatch.winner?.name} → LB R3 (Team1)`)
+            // LB-2-1 winner → LB-3 Team1
+            if (!lbR3Match.team1 || lbR3Match.team1.name === 'TBD') {
+              lbR3Match.team1 = completedMatch.winner
+              console.log(`✅ ${completedMatch.winner?.name} → LB R3 (Team1) - NEW ASSIGNMENT`)
+            } else {
+              console.log(`⚠️ LB R3 Team1 already assigned: ${lbR3Match.team1.name}, skipping assignment`)
+            }
           } else if (completedMatch.matchNumber === 2) {
-            lbR3Match.team2 = completedMatch.winner
-            console.log(`✅ ${completedMatch.winner?.name} → LB R3 (Team2)`)
+            // LB-2-2 winner → LB-3 Team2
+            if (!lbR3Match.team2 || lbR3Match.team2.name === 'TBD') {
+              lbR3Match.team2 = completedMatch.winner
+              console.log(`✅ ${completedMatch.winner?.name} → LB R3 (Team2) - NEW ASSIGNMENT`)
+            } else {
+              console.log(`⚠️ LB R3 Team2 already assigned: ${lbR3Match.team2.name}, skipping assignment`)
+            }
           }
           console.log(`🔍 LB R3 Match after update:`, { id: lbR3Match.id, team1: lbR3Match.team1?.name, team2: lbR3Match.team2?.name })
         }
