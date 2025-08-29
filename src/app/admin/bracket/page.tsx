@@ -94,6 +94,7 @@ export default function AdminBracketPage() {
 
       // Generate complete bracket with real teams
       const fallbackBracket = generateFullBracket(teamsData.teams || [])
+      console.log('🔍 Fallback bracket LB-3 before live states:', fallbackBracket.find(m => m.id === 'LB-3'))
       
       // Apply live states if available
       if (liveStatesRes.ok) {
@@ -517,12 +518,18 @@ export default function AdminBracketPage() {
 
   const applyExistingProgression = (bracket: Match[]): Match[] => {
     console.log('🔄 Applying existing team progression for completed matches...')
+    console.log('🔍 Input bracket LB-3:', bracket.find(m => m.id === 'LB-3'))
     
     // Create a working copy of the bracket
     const workingBracket = [...bracket]
     
-    // Process matches in order: Round 1 → Round 2 → Round 3 → etc.
-    // Winner Bracket first, then Loser Bracket
+    // CRITICAL: Process matches in DEPENDENCY order to prevent overwrites
+    // 1. Winner Bracket Round 1 (provides teams for WB R2 and LB R1)
+    // 2. Winner Bracket Round 2 (provides teams for WB R3 and LB R2)
+    // 3. Loser Bracket Round 1 (provides teams for LB R2)
+    // 4. Loser Bracket Round 2 (provides teams for LB R3)
+    // 5. Winner Bracket Round 3 (provides teams for Grand Final and LB R4)
+    // 6. Loser Bracket Round 3 (provides teams for LB R4)
     
     // Winner Bracket Round 1 (Quarter Finals)
     const wbR1Matches = workingBracket.filter(m => m.bracket === 'winner' && m.round === 1)
@@ -532,7 +539,7 @@ export default function AdminBracketPage() {
       }
     })
     
-    // Winner Bracket Round 2 (Semi Finals)
+    // Winner Bracket Round 2 (Semi Finals) - This sends losers to LB R2
     const wbR2Matches = workingBracket.filter(m => m.bracket === 'winner' && m.round === 2)
     wbR2Matches.forEach(match => {
       if (match.isFinished && match.winner) {
@@ -540,7 +547,7 @@ export default function AdminBracketPage() {
       }
     })
     
-    // Loser Bracket Round 1
+    // Loser Bracket Round 1 - This sends winners to LB R2
     const lbR1Matches = workingBracket.filter(m => m.bracket === 'loser' && m.round === 1)
     lbR1Matches.forEach(match => {
       if (match.isFinished && match.winner) {
@@ -548,7 +555,7 @@ export default function AdminBracketPage() {
       }
     })
     
-    // Loser Bracket Round 2
+    // Loser Bracket Round 2 - This sends winners to LB R3 (CRITICAL: Process both matches properly)
     const lbR2Matches = workingBracket.filter(m => m.bracket === 'loser' && m.round === 2)
     lbR2Matches.forEach(match => {
       if (match.isFinished && match.winner) {
@@ -581,6 +588,7 @@ export default function AdminBracketPage() {
     })
     
     console.log('✅ Team progression applied for all completed matches')
+    console.log('🔍 Final bracket LB-3:', workingBracket.find(m => m.id === 'LB-3'))
     return workingBracket
   }
 
@@ -681,14 +689,17 @@ export default function AdminBracketPage() {
         // LB Round 2 to LB Round 3
         const lbR3Match = bracket.find(m => m.bracket === 'loser' && m.round === 3)
         console.log(`📈 LB R2-${completedMatch.matchNumber} → LB R3`)
+        console.log(`🔍 LB R3 Match before update:`, lbR3Match ? { id: lbR3Match.id, team1: lbR3Match.team1?.name, team2: lbR3Match.team2?.name } : 'NOT FOUND')
+        
         if (lbR3Match) {
           if (completedMatch.matchNumber === 1) {
             lbR3Match.team1 = completedMatch.winner
             console.log(`✅ ${completedMatch.winner?.name} → LB R3 (Team1)`)
-          } else {
+          } else if (completedMatch.matchNumber === 2) {
             lbR3Match.team2 = completedMatch.winner
             console.log(`✅ ${completedMatch.winner?.name} → LB R3 (Team2)`)
           }
+          console.log(`🔍 LB R3 Match after update:`, { id: lbR3Match.id, team1: lbR3Match.team1?.name, team2: lbR3Match.team2?.name })
         }
 
       } else if (completedMatch.round === 3) {
