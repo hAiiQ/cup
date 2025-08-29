@@ -155,47 +155,25 @@ export default function WheelPage() {
       ctx.lineWidth = 2
       ctx.stroke()
 
-      // Text im Segment - AUSSEN an der Kante für bessere Lesbarkeit
+      // Text im Segment
       const textAngle = startAngle + (anglePerSegment / 2)
-      const textRadius = radius * 0.85  // Näher am äußeren Rand
+      const textRadius = radius * 0.6
 
       ctx.save()
-      
-      // Clipping-Region für dieses Segment erstellen
-      ctx.beginPath()
-      ctx.moveTo(centerX, centerY)
-      ctx.arc(centerX, centerY, radius, startAngle, endAngle)
-      ctx.closePath()
-      ctx.clip() // Text wird nur in diesem Segment gezeichnet
-      
       ctx.translate(centerX + Math.cos(textAngle) * textRadius, centerY + Math.sin(textAngle) * textRadius)
       ctx.rotate(textAngle + Math.PI / 2)
       
       ctx.fillStyle = '#FFFFFF'
-      ctx.font = 'bold 16px Arial'  // Etwas kleiner für bessere Anpassung
+      ctx.font = 'bold 18px Arial'  // Größere Schrift für größeres Rad
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       
-      // Berechne maximale Textbreite basierend auf Segmentgröße
-      const maxTextWidth = (radius * anglePerSegment) * 0.8 // 80% der Segmentbreite
-      
-      // Dynamische Textkürzung basierend auf verfügbarem Platz
-      let displayName = user.username
-      const textMetrics = ctx.measureText(displayName)
-      
-      if (textMetrics.width > maxTextWidth) {
-        // Kürze Text bis er passt
-        while (ctx.measureText(displayName + '..').width > maxTextWidth && displayName.length > 1) {
-          displayName = displayName.substring(0, displayName.length - 1)
-        }
-        displayName = displayName + '..'
-      }
-      
-      ctx.fillText(displayName, 0, -8)
+      const displayName = user.username.length > 12 ? user.username.substring(0, 10) + '..' : user.username
+      ctx.fillText(displayName, 0, -10)
       
       if (user.isStreamer) {
-        ctx.font = 'bold 18px Arial'  // Kleineres Emoji für bessere Anpassung
-        ctx.fillText('🎥', 0, 12)
+        ctx.font = 'bold 22px Arial'  // Größeres Emoji
+        ctx.fillText('🎥', 0, 15)
       }
       
       ctx.restore()
