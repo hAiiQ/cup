@@ -218,7 +218,7 @@ export default function SimpleWheelPage() {
     
     console.log('🎯 GEWINNER VORAB BESTIMMT:', winner.username, 'Index:', randomWinnerIndex)
 
-    // KORREKTE GEWINNER-BERECHNUNG:
+    // KORREKTE GEWINNER-BERECHNUNG - VEREINFACHT:
     // 1. Der Zeiger zeigt nach OBEN (12 Uhr = 0°)
     // 2. Segmente starten bei -90° (12 Uhr) und gehen im Uhrzeigersinn
     // 3. Wir wollen, dass der Gewinner unter dem Zeiger (0°) steht
@@ -230,20 +230,18 @@ export default function SimpleWheelPage() {
     const winnerAngleInWheel = randomWinnerIndex * segmentSize + (segmentSize / 2) // Mitte des Gewinner-Segments
     
     // Das Rad dreht sich, also brauchen wir die INVERSE Rotation
-    // Wenn Gewinner bei 90° steht, muss Rad um -90° drehen (oder +270°)
-    const targetRotation = -winnerAngleInWheel
+    // Aber bei vielen Drehungen können Rundungsfehler entstehen - verwende Modulo
+    const targetRotation = (360 - winnerAngleInWheel) % 360
     
-    // Füge 12-15 komplette Drehungen hinzu + die Ziel-Rotation für längeren Spin
-    const extraRotations = 12 + Math.random() * 3 // 12-15 volle Drehungen
-    const totalRotation = (extraRotations * 360) + targetRotation
+    // Füge exakt 12 komplette Drehungen hinzu (keine Zufälligkeit für Genauigkeit)
+    const totalRotation = (12 * 360) + targetRotation
     
-    console.log('🎯 KORREKTE SPIN-BERECHNUNG:', {
+    console.log('🎯 PRÄZISE SPIN-BERECHNUNG:', {
       winnerIndex: randomWinnerIndex,
       winnerName: winner.username,
       segmentSize: segmentSize.toFixed(1) + '°',
       winnerAngleInWheel: winnerAngleInWheel.toFixed(1) + '°',
       targetRotation: targetRotation.toFixed(1) + '°',
-      extraRotations: extraRotations.toFixed(1),
       totalRotation: totalRotation.toFixed(1) + '°'
     })
 
@@ -272,17 +270,32 @@ export default function SimpleWheelPage() {
         
         // VERIFIKATION: Welcher User ist jetzt wirklich oben?
         const finalAngle = newAngle % 360
-        const normalizedAngle = (360 - finalAngle) % 360 // Rad dreht sich rückwärts
-        const segmentAtTop = Math.floor(normalizedAngle / segmentSize) % filteredUsers.length
         
-        console.log('🔍 FINALE VERIFIKATION:', {
+        // DEBUG: Teste verschiedene Berechnungen
+        console.log('🔧 DEBUG VERSCHIEDENE BERECHNUNGEN:')
+        
+        // Methode 1: Wie es sein sollte
+        const normalizedAngle1 = (360 - finalAngle) % 360
+        const segmentAtTop1 = Math.floor(normalizedAngle1 / segmentSize) % filteredUsers.length
+        
+        // Methode 2: Direkte Berechnung
+        const segmentAtTop2 = Math.floor(finalAngle / segmentSize) % filteredUsers.length
+        
+        // Methode 3: Mit Offset
+        const adjustedAngle = (finalAngle + 90) % 360
+        const segmentAtTop3 = Math.floor(adjustedAngle / segmentSize) % filteredUsers.length
+        
+        console.log('🔍 FINALE VERIFIKATION - ALLE METHODEN:', {
           finalAngle: finalAngle.toFixed(1) + '°',
-          normalizedAngle: normalizedAngle.toFixed(1) + '°',
-          segmentAtTop: segmentAtTop,
           expectedWinner: randomWinnerIndex,
-          actualUserAtTop: filteredUsers[segmentAtTop]?.username,
-          isCorrect: segmentAtTop === randomWinnerIndex ? '✅' : '❌'
+          expectedUser: winner.username,
+          method1: { angle: normalizedAngle1.toFixed(1) + '°', segment: segmentAtTop1, user: filteredUsers[segmentAtTop1]?.username },
+          method2: { segment: segmentAtTop2, user: filteredUsers[segmentAtTop2]?.username },
+          method3: { angle: adjustedAngle.toFixed(1) + '°', segment: segmentAtTop3, user: filteredUsers[segmentAtTop3]?.username }
         })
+        
+        // Verwende die Methode die am besten funktioniert
+        const segmentAtTop = segmentAtTop1
       }
     }
 
