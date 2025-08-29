@@ -29,13 +29,38 @@ export default function AdminBracketPage() {
   const [loading, setLoading] = useState(true)
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null)
   const [scoreInput, setScoreInput] = useState({ team1: 0, team2: 0 })
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isAuthLoading, setIsAuthLoading] = useState(true)
   const router = useRouter()
 
+  // Admin Authentication Check
   useEffect(() => {
-    fetchData()
+    checkAdminAuth()
   }, [])
 
+  const checkAdminAuth = async () => {
+    try {
+      const response = await fetch('/api/admin/auth/check', {
+        credentials: 'include'
+      })
+      
+      if (response.ok) {
+        setIsAuthenticated(true)
+        fetchData()
+      } else {
+        router.push('/admin/login')
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error)
+      router.push('/admin/login')
+    } finally {
+      setIsAuthLoading(false)
+    }
+  }
+
   const fetchData = async () => {
+    if (!isAuthenticated) return
+    
     try {
       console.log('🔄 Admin fetchData started')
       
@@ -659,6 +684,22 @@ export default function AdminBracketPage() {
       </div>
     </div>
   )
+
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-purple-500 mx-auto mb-4"></div>
+          <p className="text-white text-xl">Überprüfe Admin-Berechtigung...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render content if not authenticated (will redirect)
+  if (!isAuthenticated) {
+    return null
+  }
 
   if (loading) {
     return (

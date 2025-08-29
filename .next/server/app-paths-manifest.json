@@ -1,5 +1,6 @@
 {
-  "/admin/wheel/page": "app/admin/wheel/page.js",
-  "/api/wheel/users/route": "app/api/wheel/users/route.js",
-  "/api/wheel/teams/route": "app/api/wheel/teams/route.js"
+  "/page": "app/page.js",
+  "/admin/bracket/page": "app/admin/bracket/page.js",
+  "/admin/page": "app/admin/page.js",
+  "/admin/wheel/page": "app/admin/wheel/page.js"
 }

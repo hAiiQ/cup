@@ -32,21 +32,44 @@ export default function WheelPage() {
   const [selectedTeam, setSelectedTeam] = useState<string>('')
   const [isSpinning, setIsSpinning] = useState(false)
   const [currentAngle, setCurrentAngle] = useState(0)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   
   // Filter states
   const [verificationFilter, setVerificationFilter] = useState('all')
   const [streamerFilter, setStreamerFilter] = useState('all')
   const [tierFilter, setTierFilter] = useState('all')
 
+  // Admin Authentication Check
   useEffect(() => {
-    fetchData()
+    checkAdminAuth()
   }, [])
 
+  const checkAdminAuth = async () => {
+    try {
+      const response = await fetch('/api/admin/auth/check', {
+        credentials: 'include'
+      })
+      
+      if (response.ok) {
+        setIsAuthenticated(true)
+        fetchData()
+      } else {
+        router.push('/admin/login')
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error)
+      router.push('/admin/login')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   useEffect(() => {
-    if (filteredUsers.length > 0) {
+    if (isAuthenticated && filteredUsers.length > 0) {
       drawWheel()
     }
-  }, [filteredUsers, currentAngle])
+  }, [isAuthenticated, filteredUsers, currentAngle])
 
   useEffect(() => {
     applyFilters()
@@ -217,12 +240,12 @@ export default function WheelPage() {
     ctx.textBaseline = 'middle'
     ctx.fillText('⚡', centerX, centerY)
 
-    // ZEIGER - größer und moderner
-    ctx.fillStyle = '#FF0000'
+    // ZEIGER - lila, nach unten zeigend, kleiner und höher positioniert
+    ctx.fillStyle = '#a855f7'  // Lila Farbe
     ctx.beginPath()
-    ctx.moveTo(centerX, 25)           // Spitze oben
-    ctx.lineTo(centerX - 20, 70)      // Links unten - breiter
-    ctx.lineTo(centerX + 20, 70)      // Rechts unten - breiter
+    ctx.moveTo(centerX, 65)           // Spitze unten (gespiegelt)
+    ctx.lineTo(centerX - 15, 25)      // Links oben - kleiner (15px statt 20px)
+    ctx.lineTo(centerX + 15, 25)      // Rechts oben - kleiner (15px statt 20px)
     ctx.closePath()
     ctx.fill()
     
@@ -376,6 +399,23 @@ export default function WheelPage() {
   }, [])
 
   const availableTeams = teams.filter(team => team.memberCount < 6)
+
+  // Show loading screen while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-purple-500 mx-auto mb-4"></div>
+          <p className="text-white text-xl">Überprüfe Admin-Berechtigung...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render content if not authenticated (will redirect)
+  if (!isAuthenticated) {
+    return null
+  }
 
   return (
     <div className="min-h-screen bg-gray-900">
