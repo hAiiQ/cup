@@ -130,48 +130,68 @@ export async function GET() {
         // Winner Bracket Semifinals - get winners from quarters
         const matchNum = parseInt(matchId.split('WB-S')[1])
         if (matchNum === 1) {
-          team1 = getWinnerFromMatch('WB-Q1') || { id: 'tbd-1', name: 'TBD' }
-          team2 = getWinnerFromMatch('WB-Q2') || { id: 'tbd-2', name: 'TBD' }
+          const winner1 = getWinnerFromMatch('WB-Q1')
+          const winner2 = getWinnerFromMatch('WB-Q2')
+          team1 = winner1 || { id: 'wb-q1-winner', name: 'TBD' }
+          team2 = winner2 || { id: 'wb-q2-winner', name: 'TBD' }
         } else if (matchNum === 2) {
-          team1 = getWinnerFromMatch('WB-Q3') || { id: 'tbd-3', name: 'TBD' }
-          team2 = getWinnerFromMatch('WB-Q4') || { id: 'tbd-4', name: 'TBD' }
+          const winner1 = getWinnerFromMatch('WB-Q3')
+          const winner2 = getWinnerFromMatch('WB-Q4')
+          team1 = winner1 || { id: 'wb-q3-winner', name: 'TBD' }
+          team2 = winner2 || { id: 'wb-q4-winner', name: 'TBD' }
         }
       } else if (matchId === 'WB-F') {
         // Winner Bracket Final - get winners from semis
-        team1 = getWinnerFromMatch('WB-S1') || { id: 'tbd-5', name: 'TBD' }
-        team2 = getWinnerFromMatch('WB-S2') || { id: 'tbd-6', name: 'TBD' }
+        const winner1 = getWinnerFromMatch('WB-S1')
+        const winner2 = getWinnerFromMatch('WB-S2')
+        team1 = winner1 || { id: 'wb-s1-winner', name: 'TBD' }
+        team2 = winner2 || { id: 'wb-s2-winner', name: 'TBD' }
       } else if (matchId.startsWith('LB-1-')) {
         // Loser Bracket Round 1 - get losers from quarters
         const matchNum = parseInt(matchId.split('LB-1-')[1])
         if (matchNum === 1) {
-          team1 = getLoserFromMatch('WB-Q1') || { id: 'tbd-7', name: 'TBD' }
-          team2 = getLoserFromMatch('WB-Q2') || { id: 'tbd-8', name: 'TBD' }
+          const loser1 = getLoserFromMatch('WB-Q1')
+          const loser2 = getLoserFromMatch('WB-Q2')
+          team1 = loser1 || { id: 'wb-q1-loser', name: 'TBD' }
+          team2 = loser2 || { id: 'wb-q2-loser', name: 'TBD' }
         } else if (matchNum === 2) {
-          team1 = getLoserFromMatch('WB-Q3') || { id: 'tbd-9', name: 'TBD' }
-          team2 = getLoserFromMatch('WB-Q4') || { id: 'tbd-10', name: 'TBD' }
+          const loser1 = getLoserFromMatch('WB-Q3')
+          const loser2 = getLoserFromMatch('WB-Q4')
+          team1 = loser1 || { id: 'wb-q3-loser', name: 'TBD' }
+          team2 = loser2 || { id: 'wb-q4-loser', name: 'TBD' }
         }
       } else if (matchId.startsWith('LB-2-')) {
         // Loser Bracket Round 2 - winners from LB-1 vs losers from WB Semis
         const matchNum = parseInt(matchId.split('LB-2-')[1])
         if (matchNum === 1) {
-          team1 = getWinnerFromMatch('LB-1-1') || { id: 'tbd-11', name: 'TBD' }
-          team2 = getLoserFromMatch('WB-S1') || { id: 'tbd-12', name: 'TBD' }
+          const winner = getWinnerFromMatch('LB-1-1')
+          const loser = getLoserFromMatch('WB-S1')
+          team1 = winner || { id: 'lb-1-1-winner', name: 'TBD' }
+          team2 = loser || { id: 'wb-s1-loser', name: 'TBD' }
         } else if (matchNum === 2) {
-          team1 = getWinnerFromMatch('LB-1-2') || { id: 'tbd-13', name: 'TBD' }
-          team2 = getLoserFromMatch('WB-S2') || { id: 'tbd-14', name: 'TBD' }
+          const winner = getWinnerFromMatch('LB-1-2')
+          const loser = getLoserFromMatch('WB-S2')
+          team1 = winner || { id: 'lb-1-2-winner', name: 'TBD' }
+          team2 = loser || { id: 'wb-s2-loser', name: 'TBD' }
         }
       } else if (matchId === 'LB-3') {
         // Loser Bracket Round 3 (Semifinal) - winners from LB-2
-        team1 = getWinnerFromMatch('LB-2-1') || { id: 'tbd-15', name: 'TBD' }
-        team2 = getWinnerFromMatch('LB-2-2') || { id: 'tbd-16', name: 'TBD' }
+        const winner1 = getWinnerFromMatch('LB-2-1')
+        const winner2 = getWinnerFromMatch('LB-2-2')
+        team1 = winner1 || { id: 'lb-2-1-winner', name: 'TBD' }
+        team2 = winner2 || { id: 'lb-2-2-winner', name: 'TBD' }
       } else if (matchId === 'LB-F') {
         // Loser Bracket Final - winner from LB-3 vs loser from WB Final
-        team1 = getWinnerFromMatch('LB-3') || { id: 'tbd-17', name: 'TBD' }
-        team2 = getLoserFromMatch('WB-F') || { id: 'tbd-18', name: 'TBD' }
+        const winner = getWinnerFromMatch('LB-3')
+        const loser = getLoserFromMatch('WB-F')
+        team1 = winner || { id: 'lb-3-winner', name: 'TBD' }
+        team2 = loser || { id: 'wb-f-loser', name: 'TBD' }
       } else if (matchId === 'GF') {
         // Grand Final - winner from WB Final vs winner from LB Final
-        team1 = getWinnerFromMatch('WB-F') || { id: 'tbd-19', name: 'TBD' }
-        team2 = getWinnerFromMatch('LB-F') || { id: 'tbd-20', name: 'TBD' }
+        const wbWinner = getWinnerFromMatch('WB-F')
+        const lbWinner = getWinnerFromMatch('LB-F')
+        team1 = wbWinner || { id: 'wb-f-winner', name: 'TBD' }
+        team2 = lbWinner || { id: 'lb-f-winner', name: 'TBD' }
       }
       
       return {
