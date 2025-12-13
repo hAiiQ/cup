@@ -269,23 +269,29 @@ export default function RegisterPage() {
                   Teilnahme-Voraussetzungen
                 </h3>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-4">
                   <div className="bg-white/10 rounded-lg p-4 border border-purple-500/30 text-center">
                     <div className="text-2xl mb-2">📺</div>
                     <h4 className="text-white font-semibold text-sm mb-1">Twitch Follow</h4>
                     <p className="text-white/80 text-xs">JoeDom folgen</p>
                   </div>
+
+                  <div className="bg-white/10 rounded-lg p-4 border border-red-500/30 text-center">
+                    <div className="text-2xl mb-2">▶️</div>
+                    <h4 className="text-white font-semibold text-sm mb-1">YouTube Follow</h4>
+                    <p className="text-white/80 text-xs">JoeDom abonnieren</p>
+                  </div>
                   
                   <div className="bg-white/10 rounded-lg p-4 border border-blue-500/30 text-center">
                     <div className="text-2xl mb-2">💬</div>
                     <h4 className="text-white font-semibold text-sm mb-1">Discord Join</h4>
-                    <p className="text-white/80 text-xs">JoeDom's Discord</p>
+                    <p className="text-white/80 text-xs">JoeDom & MRDE Discords</p>
                   </div>
                   
                   <div className="bg-white/10 rounded-lg p-4 border border-pink-500/30 text-center">
                     <div className="text-2xl mb-2">📸</div>
                     <h4 className="text-white font-semibold text-sm mb-1">Instagram Follow</h4>
-                    <p className="text-white/80 text-xs">OXS folgen</p>
+                    <p className="text-white/80 text-xs">JoeDom folgen</p>
                   </div>
                   
                   <div className="bg-white/10 rounded-lg p-4 border border-green-500/30 text-center">
