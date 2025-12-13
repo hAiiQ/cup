@@ -2,8 +2,8 @@
 
 ## Overview
 Automated account verification system that checks if users meet social media requirements:
-- ✅ Follow **JoeDom_** on Twitch
-- ✅ Follow **oxsaudio** on Instagram  
+- ✅ Follow **JoeDom** on Twitch
+- ✅ Follow **joel_dominikowski** on Instagram  
 - ✅ Be a member of the Discord server
 
 ## Setup Instructions
@@ -63,7 +63,7 @@ Instagram verification is complex and requires business verification. You can sk
 5. If verified, user account is marked as verified
 
 ### API Verification Process
-1. **Twitch**: Checks if user follows JoeDom_ channel
+1. **Twitch**: Checks if user follows JoeDom channel
 2. **Instagram**: Placeholder (requires business verification)
 3. **Discord**: Checks if user is member of specified server
 

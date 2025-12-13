@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
-import PromoAd from '@/components/PromoAd'
 
 export default function HomePage() {
   const { isLoggedIn, loading } = useAuth()
@@ -11,8 +10,6 @@ export default function HomePage() {
     <>
       {/* Hero Section */}
       <main className="min-h-screen flex flex-col justify-center items-center px-4 py-20 relative">
-        {/* Promo Ad - Links positioniert */}
-        <PromoAd className="absolute left-4 top-1/2 transform -translate-y-1/2 w-80 hidden xl:block z-10" />
         
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
@@ -91,10 +88,6 @@ export default function HomePage() {
             </div>
           </div>
           
-          {/* Mobile Promo Ad */}
-          <div className="xl:hidden mt-16">
-            <PromoAd className="max-w-md mx-auto" />
-          </div>
         </div>
       </main>
     </>

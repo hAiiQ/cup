@@ -92,7 +92,7 @@ async function setupSocialVerification() {
   if (config.TWITCH_CLIENT_ID && config.TWITCH_ACCESS_TOKEN) {
     try {
       const fetch = (await import('node-fetch')).default
-      const response = await fetch('https://api.twitch.tv/helix/users?login=joedom_', {
+      const response = await fetch('https://api.twitch.tv/helix/users?login=joedom', {
         headers: {
           'Client-ID': config.TWITCH_CLIENT_ID,
           'Authorization': `Bearer ${config.TWITCH_ACCESS_TOKEN}`
@@ -130,8 +130,8 @@ async function setupSocialVerification() {
   console.log('\n🎯 Setup complete!')
   console.log('Users can now verify their accounts at: http://localhost:3000/verify')
   console.log('\nRequirements for verification:')
-  console.log('- Follow JoeDom_ on Twitch')
-  console.log('- Follow oxsaudio on Instagram')
+  console.log('- Follow JoeDom on Twitch')
+  console.log('- Follow joel_dominikowski on Instagram')
   console.log('- Be a member of your Discord server')
 
   rl.close()

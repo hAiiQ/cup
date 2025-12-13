@@ -105,14 +105,14 @@ export default function RulesPage() {
                 </p>
               </div>
 
-              <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6">
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
                 <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-purple-500/30">
                   <div className="text-center">
                     <div className="text-4xl mb-4">📺</div>
                     <h3 className="text-lg font-semibold text-white mb-3">Twitch Follow</h3>
                     <p className="text-white/80 mb-4">Du musst JoeDom auf Twitch folgen</p>
                     <a 
-                      href="https://www.twitch.tv/joedom_" 
+                      href="https://www.twitch.tv/JoeDom" 
                       target="_blank" 
                       rel="noopener noreferrer" 
                       className="inline-block bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-all hover:scale-105"
@@ -122,19 +122,45 @@ export default function RulesPage() {
                   </div>
                 </div>
 
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-red-500/30">
+                  <div className="text-center">
+                    <div className="text-4xl mb-4">▶️</div>
+                    <h3 className="text-lg font-semibold text-white mb-3">YouTube Follow</h3>
+                    <p className="text-white/80 mb-4">Du musst JoeDom auf YouTube abonnieren</p>
+                    <a 
+                      href="https://www.youtube.com/@joedom" 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="inline-block bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-all hover:scale-105"
+                    >
+                      Zu YouTube
+                    </a>
+                  </div>
+                </div>
+
                 <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-blue-500/30">
                   <div className="text-center">
                     <div className="text-4xl mb-4">💬</div>
-                    <h3 className="text-lg font-semibold text-white mb-3">Discord Join</h3>
-                    <p className="text-white/80 mb-4">Du musst in JoeDom's Discord sein</p>
-                    <a 
-                      href="https://discord.gg/uvkuf4Vscy" 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-all hover:scale-105"
-                    >
-                      Zu Discord
-                    </a>
+                    <h3 className="text-lg font-semibold text-white mb-3">Discord Beitritt</h3>
+                    <p className="text-white/80 mb-4">Du musst in beiden offiziellen Discord-Servern sein</p>
+                    <div className="flex flex-col gap-2">
+                      <a 
+                        href="https://discord.gg/uvkuf4Vscy" 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-all hover:scale-105"
+                      >
+                        Main Discord
+                      </a>
+                      <a 
+                        href="https://discord.gg/uUFgCQfb" 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-all hover:scale-105"
+                      >
+                        Tournament Discord
+                      </a>
+                    </div>
                   </div>
                 </div>
 
@@ -142,9 +168,9 @@ export default function RulesPage() {
                   <div className="text-center">
                     <div className="text-4xl mb-4">📸</div>
                     <h3 className="text-lg font-semibold text-white mb-3">Instagram Follow</h3>
-                    <p className="text-white/80 mb-4">Du musst OXS auf Instagram folgen</p>
+                    <p className="text-white/80 mb-4">Du musst JoeDom auf Instagram folgen</p>
                     <a 
-                      href="https://www.instagram.com/oxsaudio/" 
+                      href="https://www.instagram.com/joel_dominikowski/" 
                       target="_blank" 
                       rel="noopener noreferrer" 
                       className="inline-block bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-lg font-medium transition-all hover:scale-105"
@@ -318,7 +344,7 @@ export default function RulesPage() {
               <div className="space-y-4">
                 <div className="bg-blue-500/20 rounded-lg p-3 border border-blue-500/30">
                   <div className="text-white/90">
-                    <span className="font-semibold">Zu verifizieren:</span> In-Game Name, Rank, Discord, Twitch und Instagram
+                    <span className="font-semibold">Zu verifizieren:</span> In-Game Name, Rank, beide Discord-Server, Twitch, YouTube und Instagram
                   </div>
                 </div>
                 <div className="flex items-start">

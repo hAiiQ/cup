@@ -77,7 +77,7 @@ export default function Navigation() {
                 </svg>
               </a>
               <a 
-                href="https://www.twitch.tv/joedom_" 
+                href="https://www.twitch.tv/JoeDom" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="w-8 h-8 bg-purple-600 hover:bg-purple-700 rounded-lg flex items-center justify-center transition-colors group hover:scale-110"
@@ -85,6 +85,17 @@ export default function Navigation() {
               >
                 <svg className="w-5 h-5 text-white group-hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/>
+                </svg>
+              </a>
+              <a 
+                href="https://www.instagram.com/joel_dominikowski/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-8 h-8 bg-gradient-to-br from-pink-500 to-yellow-500 hover:from-pink-600 hover:to-yellow-600 rounded-lg flex items-center justify-center transition-colors group hover:scale-110"
+                title="Instagram"
+              >
+                <svg className="w-5 h-5 text-white group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M7 2C4.243 2 2 4.243 2 7v10c0 2.757 2.243 5 5 5h10c2.757 0 5-2.243 5-5V7c0-2.757-2.243-5-5-5ZM4 7c0-1.654 1.346-3 3-3h10c1.654 0 3 1.346 3 3v10c0 1.654-1.346 3-3 3H7c-1.654 0-3-1.346-3-3Zm12.5 1A1.5 1.5 0 1 0 18 9.5 1.5 1.5 0 0 0 16.5 8Zm-4.5 1a5 5 0 1 0 5 5 5 5 0 0 0-5-5m0 2a3 3 0 1 1-3 3 3.003 3.003 0 0 1 3-3"/>
                 </svg>
               </a>
             </div>

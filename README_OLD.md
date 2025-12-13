@@ -170,8 +170,8 @@ src/
 ## 🔐 Social Media Verification
 
 Das System prüft automatisch:
-- ✅ **Twitch Follow** von JoeDom_
-- ✅ **Instagram Follow** von oxsaudio  
+- ✅ **Twitch Follow** von JoeDom
+- ✅ **Instagram Follow** von joel_dominikowski  
 - ✅ **Discord Membership** im Server
 
 **Setup:** Siehe [SOCIAL_VERIFICATION.md](SOCIAL_VERIFICATION.md) für Details
