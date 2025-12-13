@@ -8,7 +8,7 @@ async function checkAdminPassword() {
     const servicesResponse = await api.getServices()
     const service = servicesResponse.data.find(item => {
       const svc = item.service || item
-      return svc.name && svc.name.includes('Path of Loki')
+      return svc.name && svc.name.includes('Path of Gambit')
     })
     
     if (!service) {

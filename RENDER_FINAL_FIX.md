@@ -36,7 +36,7 @@ git push origin main
 
 ### Schritt 2: Manueller Deploy auf Render
 1. Gehe zu deinem Render Dashboard
-2. Wähle den "path-of-loki" Service
+2. Wähle den "path-of-gambit" Service
 3. Klicke auf "Manual Deploy" → "Deploy latest commit"
 
 ### Schritt 3: Build-Logs überwachen
@@ -53,9 +53,9 @@ Achte auf diese Ausgaben im Build-Log:
 ```
 
 ### Schritt 4: Nach dem Deployment
-- Gehe zu deiner Website: `https://path-of-loki.onrender.com`
-- Teste die Teams-Seite: `https://path-of-loki.onrender.com/teams`
-- Überprüfe den Admin-Bereich: `https://path-of-loki.onrender.com/admin`
+- Gehe zu deiner Website: `https://path-of-gambit.onrender.com`
+- Teste die Teams-Seite: `https://path-of-gambit.onrender.com/teams`
+- Überprüfe den Admin-Bereich: `https://path-of-gambit.onrender.com/admin`
 
 ## Falls es immer noch nicht funktioniert
 

@@ -28,7 +28,7 @@ export default function Navigation() {
               {/* Logo */}
               <Image
                 src="/logo.png"
-                alt="PATH OF LOKI Logo"
+                alt="PATH OF GAMBIT Logo"
                 width={40}
                 height={40}
                 className="object-contain"
@@ -40,12 +40,12 @@ export default function Navigation() {
                   <span 
                     className="text-transparent bg-clip-text no-text-shadow group-hover:opacity-80 transition-all duration-500"
                     style={{
-                      background: 'linear-gradient(to right, #2A7B9B, #57C785, #EDDD53)',
+                      background: 'linear-gradient(to right, #C084FC, #E879F9, #F5D0FE)',
                       backgroundClip: 'text',
                       WebkitBackgroundClip: 'text'
                     }}
                   >
-                    PATH OF LOKI
+                    PATH OF GAMBIT
                   </span>
                 </div>
                 <div className="text-xs font-medium text-white/70 group-hover:text-purple-300 transition-colors">

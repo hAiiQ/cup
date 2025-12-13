@@ -9,7 +9,7 @@ $deployId = 'dep-d2jstbe3jp1c73fh5gf0'
 $url = "https://api.render.com/v1/services/$serviceId/deploys"
 
 Write-Host "📊 Monitoring deployment: $deployId"
-Write-Host "Service: https://path-of-loki.onrender.com"
+Write-Host "Service: https://path-of-gambit.onrender.com"
 Write-Host "================================"
 
 $attempts = 0
@@ -28,7 +28,7 @@ while ($attempts -lt $maxAttempts) {
             if ($status -eq "live") {
                 Write-Host "🎉 Deployment completed successfully!"
                 Write-Host "🌐 Your site is now live with the user deletion fix!"
-                Write-Host "🔗 URL: https://path-of-loki.onrender.com"
+                Write-Host "🔗 URL: https://path-of-gambit.onrender.com"
                 break
             } elseif ($status -eq "build_failed" -or $status -eq "failed") {
                 Write-Host "❌ Deployment failed!"

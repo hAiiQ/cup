@@ -132,7 +132,7 @@ export async function GET() {
 - [ ] Relations schrittweise re-aktivieren
 
 ## Result
-**✅ Teams-Seite funktioniert jetzt auf https://path-of-loki.onrender.com/teams**
+**✅ Teams-Seite funktioniert jetzt auf https://path-of-gambit.onrender.com/teams**
 
 ### Working Features
 - ✅ Teams werden angezeigt

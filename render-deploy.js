@@ -142,14 +142,14 @@ async function main() {
     const tournamentService = servicesResponse.data.find(item => {
       const service = item.service || item
       return service.name && (
-        service.name.toLowerCase().includes('path-of-loki') || 
+        service.name.toLowerCase().includes('path-of-gambit') || 
         service.name.toLowerCase().includes('tournament') ||
         service.name.toLowerCase().includes('cup')
       )
     })?.service || servicesResponse.data.find(item => {
       const service = item.service || item
       return service.name && (
-        service.name.toLowerCase().includes('path-of-loki') || 
+        service.name.toLowerCase().includes('path-of-gambit') || 
         service.name.toLowerCase().includes('tournament') ||
         service.name.toLowerCase().includes('cup')
       )

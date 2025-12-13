@@ -10,7 +10,7 @@ class RenderEnvironmentManager {
     this.api = new RenderAPI(apiKey)
   }
 
-  async findService(namePattern = 'Path of Loki') {
+  async findService(namePattern = 'Path of Gambit') {
     const servicesResponse = await this.api.getServices()
     
     if (servicesResponse.status !== 200) {
@@ -34,7 +34,7 @@ class RenderEnvironmentManager {
     return service.service || service
   }
 
-  async checkEnvironment(serviceName = 'Path of Loki') {
+  async checkEnvironment(serviceName = 'Path of Gambit') {
     console.log('🔍 Environment Check')
     console.log('===================')
     
@@ -90,7 +90,7 @@ class RenderEnvironmentManager {
     }
   }
 
-  async getLogs(serviceName = 'path-of-loki', lines = 100) {
+  async getLogs(serviceName = 'path-of-gambit', lines = 100) {
     console.log('📋 Recent Logs')
     console.log('==============')
     
@@ -106,7 +106,7 @@ class RenderEnvironmentManager {
     }
   }
 
-  async restartService(serviceName = 'path-of-loki') {
+  async restartService(serviceName = 'path-of-gambit') {
     console.log('🔄 Restarting Service')
     console.log('====================')
     
@@ -128,7 +128,7 @@ class RenderEnvironmentManager {
     }
   }
 
-  async runDatabaseCheck(serviceName = 'path-of-loki') {
+  async runDatabaseCheck(serviceName = 'path-of-gambit') {
     console.log('🗄️ Database Connection Check')
     console.log('============================')
     
@@ -168,7 +168,7 @@ class RenderEnvironmentManager {
 
 async function main() {
   const command = process.argv[2]
-  const serviceName = process.argv[3] || 'path-of-loki'
+  const serviceName = process.argv[3] || 'path-of-gambit'
   
   if (!process.env.RENDER_API_KEY) {
     console.log('❌ RENDER_API_KEY environment variable not set!')
@@ -214,7 +214,7 @@ async function main() {
       console.log('')
       console.log('Examples:')
       console.log('  node render-env.js env')
-      console.log('  node render-env.js restart path-of-loki')
+      console.log('  node render-env.js restart path-of-gambit')
       console.log('  node render-env.js db')
   }
 }

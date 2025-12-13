@@ -9,7 +9,7 @@ class RenderPasswordUpdater {
     this.api = new RenderAPI(apiKey)
   }
 
-  async findService(namePattern = 'Path of Loki') {
+  async findService(namePattern = 'Path of Gambit') {
     const servicesResponse = await this.api.getServices()
     
     if (servicesResponse.status !== 200) {
@@ -33,7 +33,7 @@ class RenderPasswordUpdater {
     return service.service || service
   }
 
-  async updateAdminPassword(serviceName = 'Path of Loki', newPassword = 'rootmr') {
+  async updateAdminPassword(serviceName = 'Path of Gambit', newPassword = 'rootmr') {
     console.log('🔐 Updating Admin Password on Render')
     console.log('====================================')
     
@@ -114,7 +114,7 @@ async function main() {
   }
   
   const updater = new RenderPasswordUpdater(apiKey)
-  await updater.updateAdminPassword('Path of Loki', newPassword)
+  await updater.updateAdminPassword('Path of Gambit', newPassword)
 }
 
 if (require.main === module) {

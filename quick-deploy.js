@@ -5,7 +5,7 @@
 
 const { RenderAPI } = require('./render-deploy')
 
-async function quickDeploy(serviceName = 'path-of-loki') {
+async function quickDeploy(serviceName = 'path-of-gambit') {
   console.log('🚀 Quick Deploy Script')
   console.log('=====================')
   
@@ -105,5 +105,5 @@ async function monitorDeployment(api, serviceId, deployId) {
 }
 
 // Get service name from command line argument
-const serviceName = process.argv[2] || 'path-of-loki'
+const serviceName = process.argv[2] || 'path-of-gambit'
 quickDeploy(serviceName)

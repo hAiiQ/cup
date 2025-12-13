@@ -10,7 +10,7 @@ Die PostgreSQL-Datenbank ist verbunden, aber die Tabellen wurden nicht korrekt e
 
 ### Schritt 1: Neues Deployment triggern
 1. Gehe zu deinem Render Dashboard
-2. Wähle deinen "path-of-loki" Service
+2. Wähle deinen "path-of-gambit" Service
 3. Klicke auf "Manual Deploy" > "Deploy latest commit"
 
 ### Schritt 2: Build-Logs überwachen

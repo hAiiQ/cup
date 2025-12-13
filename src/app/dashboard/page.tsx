@@ -192,7 +192,7 @@ export default function DashboardPage() {
                     🎮 Willkommen, {user?.inGameName || user?.username}!
                   </h1>
                   <p className="text-white/80 text-lg">
-                    Du bist für das JOEDOM'S PATH OF LOKI Tournament registriert
+                    Du bist für das JOEDOM'S PATH OF GAMBIT Tournament registriert
                   </p>
                 </div>
                 <div className="hidden md:block">
@@ -545,7 +545,7 @@ export default function DashboardPage() {
                 <div className="space-y-4">
                   <div className="bg-gradient-to-r from-purple-600/30 to-pink-600/30 border border-purple-500 rounded-lg p-4">
                     <div className="text-purple-200 font-medium text-sm">Registriert für:</div>
-                    <div className="text-white text-lg font-bold mt-1">JOEDOM'S PATH OF LOKI</div>
+                    <div className="text-white text-lg font-bold mt-1">JOEDOM'S PATH OF GAMBIT</div>
                     <div className="text-purple-200 text-sm mt-1">Marvel Rivals Tournament</div>
                   </div>
                   

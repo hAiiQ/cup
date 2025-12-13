@@ -1,6 +1,6 @@
 ## 🚀 DEPLOYMENT STATUS - Tournament Portal
 
-### ✅ LETZTE UPDATES (29. August 2025)
+### ✅ LETZTE UPDATES (20.12.2025)
 
 #### 🔧 Kritischer Fix - Runde 7 Lower Bracket Final
 **Problem:** Runde 7 (Lower Bracket Final) wurde im Admin Bracket nicht angezeigt
@@ -22,8 +22,8 @@
 **Platform:** Render.com  
 **Auto-Deploy:** ✅ Aktiviert (triggers on git push)
 
-**Production URL:** https://path-of-loki.onrender.com  
-**Admin URL:** https://path-of-loki.onrender.com/admin  
+**Production URL:** https://path-of-gambit.onrender.com  
+**Admin URL:** https://path-of-gambit.onrender.com/admin  
 **Admin Login:** admin / rootmr
 
 ### 🗄️ DATABASE  
@@ -59,5 +59,5 @@
 - **Real-time:** ✅ Live Updates möglich  
 
 ---
-**Letztes Update:** 29. August 2025  
+**Letztes Update:** 20.12.2025  
 **Nächstes Review:** Nach Tournament Launch

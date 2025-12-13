@@ -7,7 +7,7 @@ async function updateProductionAdminPassword() {
     console.log('🔄 Updating admin password in production database...')
     
     // Call the production API to update the admin password
-    const response = await fetch('https://path-of-loki.onrender.com/api/admin/update-password', {
+    const response = await fetch('https://path-of-gambit.onrender.com/api/admin/update-password', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
