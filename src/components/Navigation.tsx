@@ -3,13 +3,11 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
-import { useState, useEffect } from 'react'
 import Image from 'next/image'
 
 export default function Navigation() {
   const router = useRouter()
   const { user, isLoggedIn, logout } = useAuth()
-  const [oxsLogoError, setOxsLogoError] = useState(false)
 
   const handleLogout = async () => {
     // Use the logout function from AuthContext which handles everything
@@ -54,35 +52,21 @@ export default function Navigation() {
               </div>
             </Link>
             
-            {/* Discord, Twitch & OXS Website Buttons */}
+            {/* Social Buttons */}
             <div className="flex items-center space-x-2 ml-6">
               <a 
-                href="https://de.oxsaudio.com" 
+                href="https://www.youtube.com/@joedom" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="w-8 h-8 flex items-center justify-center group hover:scale-110"
-                title="OXS Audio Website"
+                className="w-8 h-8 bg-red-600 hover:bg-red-700 rounded-lg flex items-center justify-center transition-colors group hover:scale-110"
+                title="YouTube Channel"
               >
-                <img
-                  src="/OXS_Logo.png"
-                  alt="OXS"
-                  width="32"
-                  height="32"
-                  className="group-hover:scale-110 transition-transform object-contain rounded-lg"
-                  onError={(e) => {
-                    console.log('OXS Logo failed to load, using fallback')
-                    setOxsLogoError(true)
-                  }}
-                  onLoad={() => console.log('OXS Logo loaded successfully')}
-                />
-                {oxsLogoError && (
-                  <div className="w-5 h-5 text-white group-hover:scale-110 transition-transform font-bold text-xs flex items-center justify-center absolute">
-                    OXS
-                  </div>
-                )}
+                <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.4 31.4 0 0 0 0 12a31.4 31.4 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1 31.4 31.4 0 0 0 .5-5.8 31.4 31.4 0 0 0-.5-5.8Zm-14 9.3V8.5l6 3.5Z" />
+                </svg>
               </a>
               <a 
-                href="https://discord.gg/uvkuf4Vscy" 
+                href="https://discord.gg/uUFgCQfb" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="w-8 h-8 bg-indigo-600 hover:bg-indigo-700 rounded-lg flex items-center justify-center transition-colors group hover:scale-110"
@@ -102,21 +86,6 @@ export default function Navigation() {
                 <svg className="w-5 h-5 text-white group-hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/>
                 </svg>
-              </a>
-              <a 
-                href="https://www.instagram.com/oxsaudio/" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="w-8 h-8 flex items-center justify-center group"
-                title="OXS Audio Instagram"
-              >
-                <img
-                  src="/OXS_instagram.png"
-                  alt="Instagram"
-                  width="32"
-                  height="32"
-                  className="group-hover:scale-110 transition-transform object-contain rounded-lg"
-                />
               </a>
             </div>
           </div>
