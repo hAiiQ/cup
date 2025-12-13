@@ -3,6 +3,14 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { formatTierShortLabel, resolveTierKey, TIER_SELECT_OPTIONS, type TierKey } from '@/lib/tierConfig'
+
+const TIER_BADGE_CLASSES: Record<TierKey, string> = {
+  tier1: 'bg-blue-600 text-white',
+  tier2: 'bg-green-600 text-white',
+  tier3: 'bg-yellow-600 text-white',
+  tier4: 'bg-orange-600 text-white'
+}
 
 interface User {
   id: string
@@ -411,14 +419,21 @@ export default function AdminDashboard() {
                           <div className="space-y-2">
                             <div className="flex flex-wrap gap-1">
                               {/* Tier Badge */}
-                              <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                                user.tier === 'tier1' ? 'bg-blue-600 text-white' :
-                                user.tier === 'tier2' ? 'bg-green-600 text-white' :
-                                user.tier === 'tier3' ? 'bg-yellow-600 text-white' :
-                                'bg-gray-600 text-gray-300'
-                              }`}>
-                                {user.tier ? user.tier.toUpperCase() : 'KEIN TIER'}
-                              </span>
+                              {(() => {
+                                const tierKey = resolveTierKey(user.tier)
+                                const badgeClass = tierKey
+                                  ? TIER_BADGE_CLASSES[tierKey]
+                                  : 'bg-gray-600 text-gray-300'
+                                const badgeLabel = tierKey
+                                  ? formatTierShortLabel(tierKey)
+                                  : 'KEIN TIER'
+
+                                return (
+                                  <span className={`px-2 py-1 rounded text-xs font-semibold ${badgeClass}`}>
+                                    {badgeLabel}
+                                  </span>
+                                )
+                              })()}
                               
                               {/* Streamer Badge */}
                               {user.isStreamer && (
@@ -436,9 +451,11 @@ export default function AdminDashboard() {
                                 className="bg-gray-700 border border-gray-600 rounded text-xs text-white px-2 py-1 focus:outline-none focus:border-blue-500 flex-1"
                               >
                                 <option value="">Kein Tier</option>
-                                <option value="tier1">Tier 1</option>
-                                <option value="tier2">Tier 2</option>
-                                <option value="tier3">Tier 3</option>
+                                {TIER_SELECT_OPTIONS.map((option) => (
+                                  <option key={option.value} value={option.value}>
+                                    {option.label}
+                                  </option>
+                                ))}
                               </select>
                               
                               {/* Streamer Toggle */}

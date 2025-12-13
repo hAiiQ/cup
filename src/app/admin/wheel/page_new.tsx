@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { formatTierLabel, TIER_SELECT_OPTIONS } from '@/lib/tierConfig'
 
 interface User {
   id: string
@@ -425,9 +426,11 @@ export default function WheelPage() {
                     className="w-full px-2 py-1.5 bg-gray-700 border border-gray-600 rounded text-white text-sm"
                   >
                     <option value="all">Alle Tiers</option>
-                    <option value="tier1">🥇 Tier 1</option>
-                    <option value="tier2">🥈 Tier 2</option>
-                    <option value="tier3">🥉 Tier 3</option>
+                    {TIER_SELECT_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                     <option value="none">Kein Tier</option>
                   </select>
                 </div>
@@ -506,7 +509,7 @@ export default function WheelPage() {
                   <p className="text-white font-bold text-lg">{selectedUser.username}</p>
                   <p className="text-green-200 text-sm">
                     {selectedUser.isStreamer ? '🎥 Streamer' : '👤 Teilnehmer'}
-                    {selectedUser.tier && ` • ${selectedUser.tier === 'tier1' ? '🥇 Tier 1' : selectedUser.tier === 'tier2' ? '🥈 Tier 2' : selectedUser.tier === 'tier3' ? '🥉 Tier 3' : selectedUser.tier}`}
+                    {selectedUser.tier && ` • ${formatTierLabel(selectedUser.tier)}`}
                   </p>
                 </div>
                 <button
