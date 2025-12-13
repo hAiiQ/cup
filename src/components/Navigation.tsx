@@ -4,13 +4,32 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import Image from 'next/image'
-import { FocusEvent, useState } from 'react'
+import { FocusEvent, useRef, useState } from 'react'
 
 
 export default function Navigation() {
   const router = useRouter()
   const { user, isLoggedIn, logout } = useAuth()
   const [discordMenuOpen, setDiscordMenuOpen] = useState(false)
+  const discordCloseTimeout = useRef<NodeJS.Timeout | null>(null)
+
+  const openDiscordMenu = () => {
+    if (discordCloseTimeout.current) {
+      clearTimeout(discordCloseTimeout.current)
+      discordCloseTimeout.current = null
+    }
+    setDiscordMenuOpen(true)
+  }
+
+  const scheduleDiscordMenuClose = () => {
+    if (discordCloseTimeout.current) {
+      clearTimeout(discordCloseTimeout.current)
+    }
+    discordCloseTimeout.current = setTimeout(() => {
+      setDiscordMenuOpen(false)
+      discordCloseTimeout.current = null
+    }, 150)
+  }
 
   const handleLogout = async () => {
     // Use the logout function from AuthContext which handles everything
@@ -70,12 +89,12 @@ export default function Navigation() {
               </a>
               <div 
                 className="relative"
-                onMouseEnter={() => setDiscordMenuOpen(true)}
-                onMouseLeave={() => setDiscordMenuOpen(false)}
-                onFocus={() => setDiscordMenuOpen(true)}
+                onMouseEnter={openDiscordMenu}
+                onMouseLeave={scheduleDiscordMenuClose}
+                onFocus={openDiscordMenu}
                 onBlur={(event: FocusEvent<HTMLDivElement>) => {
                   if (!event.currentTarget.contains(event.relatedTarget)) {
-                    setDiscordMenuOpen(false)
+                    scheduleDiscordMenuClose()
                   }
                 }}
               >
