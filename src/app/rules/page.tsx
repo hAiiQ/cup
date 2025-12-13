@@ -83,7 +83,7 @@ export default function RulesPage() {
                 🏆 Tournament Regeln
               </h1>
               <p className="text-xl text-white/80 max-w-3xl mx-auto">
-                JOEDOM'S PATH OF LOKI - Marvel Rivals Tournament
+                JOEDOM'S PATH OF GAMBIT - Marvel Rivals Tournament
               </p>
               <div className="mt-4 inline-block bg-purple-600/30 border border-purple-400 rounded-lg px-6 py-2">
                 <span className="text-purple-200 font-medium">📅 Double Elimination • 8 Teams • Marvel Rivals</span>
@@ -229,13 +229,13 @@ export default function RulesPage() {
                 <div className="bg-yellow-500/20 rounded-lg p-3 border border-yellow-500/30">
                   <div className="flex items-start">
                     <span className="text-yellow-400 mr-3 text-xl mt-1">⚡</span>
-                    <span className="text-white/90"><strong>Jeder Tier 1 Spieler muss Loki spielen</strong></span>
+                    <span className="text-white/90"><strong>Jeder Tier 1 Spieler muss Gambit spielen</strong></span>
                   </div>
                 </div>
                 <div className="bg-red-500/20 rounded-lg p-3 border border-red-500/30">
                   <div className="flex items-start">
                     <span className="text-red-400 mr-3 text-xl mt-1">🚫</span>
-                    <span className="text-white/90"><strong>Loki darf nicht gebannt werden</strong></span>
+                    <span className="text-white/90"><strong>Gambit darf nicht gebannt werden</strong></span>
                   </div>
                 </div>
                 <div className="flex items-start">
@@ -278,7 +278,7 @@ export default function RulesPage() {
                     <span className="text-orange-400 mr-3 text-xl">🥈</span>
                     <div>
                       <span className="text-white font-semibold">Tier 2:</span>
-                      <span className="text-white/90 ml-2">Mittlere Skill-Kategorie</span>
+                      <span className="text-white/90 ml-2">Obere Mittelkategorie</span>
                     </div>
                   </div>
                 </div>
@@ -287,6 +287,15 @@ export default function RulesPage() {
                     <span className="text-gray-400 mr-3 text-xl">🥉</span>
                     <div>
                       <span className="text-white font-semibold">Tier 3:</span>
+                      <span className="text-white/90 ml-2">Untere Mittelkategorie</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-cyan-500/20 rounded-lg p-3 border border-cyan-500/30">
+                  <div className="flex items-center">
+                    <span className="text-cyan-300 mr-3 text-xl">🏅</span>
+                    <div>
+                      <span className="text-white font-semibold">Tier 4:</span>
                       <span className="text-white/90 ml-2">Niedrigste Skill-Kategorie</span>
                     </div>
                   </div>

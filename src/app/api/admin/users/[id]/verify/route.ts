@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
+import { resolveTierKey } from '@/lib/tierConfig'
 
 // Helper function to verify admin
 async function verifyAdmin(request: NextRequest) {
@@ -43,8 +44,9 @@ export async function POST(
 
     const { id } = params
     const { tier } = await request.json()
-    
-    if (!['tier1', 'tier2', 'tier3'].includes(tier)) {
+    const tierKey = resolveTierKey(tier)
+
+    if (!tierKey) {
       return NextResponse.json(
         { error: 'Ungültiges Tier' },
         { status: 400 }
@@ -54,7 +56,7 @@ export async function POST(
     const user = await prisma.user.update({
       where: { id },
       data: {
-        tier,
+        tier: tierKey,
         isVerified: true
       }
     })

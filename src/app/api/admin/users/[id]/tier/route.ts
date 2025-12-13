@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { resolveTierKey } from '@/lib/tierConfig'
 
 
 // Force dynamic rendering
@@ -13,15 +14,16 @@ export async function POST(
     const { id } = params
     const userId = id
     const { tier } = await request.json()
+    const tierKey = resolveTierKey(tier)
 
     // Allow empty string for "no tier" or valid tier values
-    if (tier !== '' && !['tier1', 'tier2', 'tier3'].includes(tier)) {
+    if (tier !== '' && !tierKey) {
       return NextResponse.json({ error: 'Invalid tier' }, { status: 400 })
     }
 
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { tier: tier === '' ? null : tier },
+      data: { tier: tier === '' ? null : tierKey },
     })
 
     return NextResponse.json({ 
