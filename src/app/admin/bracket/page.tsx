@@ -13,11 +13,9 @@ import {
 import type { MatchState } from '@/lib/matchState'
 import BracketDiagram from '@/components/bracket/BracketDiagram'
 
-interface EditingState {
-  id: string
-  team1Score: number
-  team2Score: number
-  maxScore: number
+interface ScoreInput {
+  team1: number
+  team2: number
 }
 
 const createStateMap = (states: any[]): Map<string, MatchState> => {
@@ -44,8 +42,9 @@ export default function AdminBracketPage() {
   const [bracket, setBracket] = useState<BracketMatch[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [editingMatch, setEditingMatch] = useState<EditingState | null>(null)
-  const [savingMatchId, setSavingMatchId] = useState<string | null>(null)
+  const [selectedMatch, setSelectedMatch] = useState<BracketMatch | null>(null)
+  const [scoreInput, setScoreInput] = useState<ScoreInput>({ team1: 0, team2: 0 })
+  const [savingScores, setSavingScores] = useState(false)
   const [liveToggleMatchId, setLiveToggleMatchId] = useState<string | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isAuthLoading, setIsAuthLoading] = useState(true)
@@ -123,34 +122,20 @@ export default function AdminBracketPage() {
     }
   }
 
-  const beginScoreEdit = (match: BracketMatch) => {
+  const openScoreModal = (match: BracketMatch) => {
     if (!match.team1 || !match.team2 || match.autoAdvance) {
       alert('Teams stehen noch nicht fest. Scores können noch nicht gesetzt werden.')
       return
     }
 
-    const maxScore = match.id === 'GF' ? 3 : 2
-    setEditingMatch({
-      id: match.id,
-      team1Score: match.team1Score ?? 0,
-      team2Score: match.team2Score ?? 0,
-      maxScore
+    setSelectedMatch(match)
+    setScoreInput({
+      team1: match.team1Score ?? 0,
+      team2: match.team2Score ?? 0
     })
   }
 
-  const cancelScoreEdit = () => setEditingMatch(null)
-
-  const updateEditingScore = (team: 'team1' | 'team2', value: number) => {
-    setEditingMatch(prev => {
-      if (!prev) return prev
-      const clamped = Math.max(0, Math.min(prev.maxScore, value))
-      return {
-        ...prev,
-        team1Score: team === 'team1' ? clamped : prev.team1Score,
-        team2Score: team === 'team2' ? clamped : prev.team2Score
-      }
-    })
-  }
+  const closeScoreModal = () => setSelectedMatch(null)
 
   const toggleLiveStatus = async (match: BracketMatch) => {
     if (match.autoAdvance) {
@@ -186,7 +171,7 @@ export default function AdminBracketPage() {
 
   const updateMatchScore = async (matchId: string, team1Score: number, team2Score: number) => {
     try {
-      setSavingMatchId(matchId)
+      setSavingScores(true)
       const response = await fetch('/api/admin/bracket/matches/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -197,7 +182,7 @@ export default function AdminBracketPage() {
       if (response.ok) {
         const result = await response.json()
         alert(`✅ ${result.message || 'Match-Score gespeichert!'}`)
-        setEditingMatch(null)
+        setSelectedMatch(null)
         await fetchData(false)
       } else {
         alert('Fehler beim Speichern des Ergebnisses')
@@ -206,7 +191,7 @@ export default function AdminBracketPage() {
       console.error('Error updating match:', error)
       alert('Ein Fehler ist aufgetreten')
     } finally {
-      setSavingMatchId(null)
+      setSavingScores(false)
     }
   }
 
@@ -224,7 +209,7 @@ export default function AdminBracketPage() {
 
       if (response.ok) {
         alert('Tournament erfolgreich zurückgesetzt!')
-        setEditingMatch(null)
+        setSelectedMatch(null)
         await fetchData()
       } else {
         alert('Fehler beim Zurücksetzen des Tournaments')
@@ -239,37 +224,25 @@ export default function AdminBracketPage() {
     if (!match) {
       return (
         <div className={`bg-gray-900/60 border border-dashed border-white/15 rounded-lg p-4 text-center text-gray-400 text-sm ${className}`}>
-          Match noch nicht bereit
+          Match folgt
         </div>
       )
     }
 
-    const winningScore = match.id === 'GF' ? 3 : 2
     const team1Name = match.team1?.name || 'TBD'
     const team2Name = match.team2?.name || 'TBD'
-    const isEditing = editingMatch?.id === match.id
-    const displayTeam1Score = isEditing ? editingMatch?.team1Score ?? 0 : match.team1Score ?? 0
-    const displayTeam2Score = isEditing ? editingMatch?.team2Score ?? 0 : match.team2Score ?? 0
     const team1Wins = match.isFinished && match.winnerId === 'team1'
     const team2Wins = match.isFinished && match.winnerId === 'team2'
-    const canEditScores = Boolean(match.team1 && match.team2 && !match.autoAdvance)
-    const isSaving = savingMatchId === match.id
     const isTogglingLive = liveToggleMatchId === match.id
 
     return (
-      <div className={`bg-gray-900/80 border border-white/10 rounded-lg px-3 py-4 w-full h-full flex flex-col gap-3 ${className}`}>
+      <div className={`bg-gray-900/75 border border-white/10 rounded-lg px-3 py-4 w-full h-full flex flex-col gap-3 shadow-lg ${className}`}>
         <div className="flex items-center justify-between text-[11px] uppercase tracking-wide text-purple-200">
           <span className="truncate pr-2">{match.roundLabel}</span>
           <div className="flex items-center gap-2">
-            {match.autoAdvance && (
-              <span className="text-cyan-300 font-semibold">Freilos</span>
-            )}
-            {match.isLive && !match.autoAdvance && (
-              <span className="text-red-400 font-semibold">LIVE</span>
-            )}
-            {match.isFinished && !match.autoAdvance && (
-              <span className="text-green-400 font-semibold">FINISHED</span>
-            )}
+            {match.autoAdvance && <span className="text-cyan-300 font-semibold">Freilos</span>}
+            {match.isLive && !match.autoAdvance && <span className="text-red-400 font-semibold">Live</span>}
+            {match.isFinished && !match.autoAdvance && <span className="text-green-400 font-semibold">Finished</span>}
             {!match.autoAdvance && (
               <button
                 className={`px-2 py-1 rounded text-[10px] font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
@@ -290,70 +263,22 @@ export default function AdminBracketPage() {
           <div className="flex items-center justify-center gap-3 text-white text-sm font-bold w-full">
             <span className={`truncate text-right max-w-[120px] ${team1Wins ? 'text-green-400' : ''}`}>{team1Name}</span>
             <span className={`whitespace-nowrap text-purple-200 ${match.isLive ? 'text-yellow-300' : ''}`}>
-              {displayTeam1Score} - {displayTeam2Score}
+              {(match.team1Score ?? 0)} - {(match.team2Score ?? 0)}
             </span>
             <span className={`truncate text-left max-w-[120px] ${team2Wins ? 'text-green-400' : ''}`}>{team2Name}</span>
           </div>
         </div>
 
-        {match.autoAdvance && (
+        {match.autoAdvance ? (
           <p className="text-xs text-center text-cyan-200">Freilos – Team rückt automatisch weiter</p>
-        )}
-
-        {canEditScores && !isEditing && (
+        ) : (
           <div className="flex items-center justify-end">
             <button
-              onClick={() => beginScoreEdit(match)}
+              onClick={() => openScoreModal(match)}
               className="text-xs text-white/80 hover:text-white underline underline-offset-2"
             >
               Scores bearbeiten
             </button>
-          </div>
-        )}
-
-        {isEditing && editingMatch && (
-          <div className="bg-gray-950/70 border border-white/5 rounded-lg p-3 space-y-3">
-            <div>
-              <label className="block text-xs text-gray-300 mb-1">{team1Name}</label>
-              <input
-                type="number"
-                min={0}
-                max={editingMatch.maxScore}
-                value={editingMatch.team1Score}
-                onChange={(e) => updateEditingScore('team1', Number(e.target.value) || 0)}
-                className="w-full px-3 py-2 bg-gray-900 border border-gray-700 text-white rounded"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-300 mb-1">{team2Name}</label>
-              <input
-                type="number"
-                min={0}
-                max={editingMatch.maxScore}
-                value={editingMatch.team2Score}
-                onChange={(e) => updateEditingScore('team2', Number(e.target.value) || 0)}
-                className="w-full px-3 py-2 bg-gray-900 border border-gray-700 text-white rounded"
-              />
-            </div>
-            <p className="text-[11px] text-gray-400">
-              {editingMatch.maxScore === 3 ? 'Grand Final – erstes Team auf 3 Punkte gewinnt' : 'Best of 3 – erstes Team auf 2 Punkte gewinnt'}
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => updateMatchScore(match.id, editingMatch.team1Score, editingMatch.team2Score)}
-                className="flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={isSaving}
-              >
-                {isSaving ? 'Speichere...' : 'Speichern'}
-              </button>
-              <button
-                onClick={cancelScoreEdit}
-                className="flex-1 bg-gray-700 text-white py-2 rounded hover:bg-gray-600 disabled:opacity-50"
-                disabled={isSaving}
-              >
-                Abbrechen
-              </button>
-            </div>
           </div>
         )}
       </div>
@@ -451,6 +376,70 @@ export default function AdminBracketPage() {
           </div>
         </section>
       </div>
+      {selectedMatch && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
+          <div className="bg-gray-900 rounded-xl p-6 w-full max-w-md border border-gray-700 space-y-4">
+            <h3 className="text-xl font-bold text-white text-center">
+              {selectedMatch.label} – {selectedMatch.roundLabel}
+            </h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-gray-300 font-semibold mb-1">
+                  {selectedMatch.team1?.name || 'TBD'}
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={selectedMatch.id === 'GF' ? 3 : 2}
+                  value={scoreInput.team1}
+                  onChange={(e) => {
+                    const maxScore = selectedMatch.id === 'GF' ? 3 : 2
+                    const nextValue = Math.max(0, Math.min(maxScore, Number(e.target.value) || 0))
+                    setScoreInput(prev => ({ ...prev, team1: nextValue }))
+                  }}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 text-white rounded"
+                />
+              </div>
+              <div>
+                <label className="block text-gray-300 font-semibold mb-1">
+                  {selectedMatch.team2?.name || 'TBD'}
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={selectedMatch.id === 'GF' ? 3 : 2}
+                  value={scoreInput.team2}
+                  onChange={(e) => {
+                    const maxScore = selectedMatch.id === 'GF' ? 3 : 2
+                    const nextValue = Math.max(0, Math.min(maxScore, Number(e.target.value) || 0))
+                    setScoreInput(prev => ({ ...prev, team2: nextValue }))
+                  }}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 text-white rounded"
+                />
+              </div>
+            </div>
+            <p className="text-gray-400 text-sm text-center">
+              {selectedMatch.id === 'GF' ? 'Best of 5 – erstes Team auf 3 Punkte gewinnt' : 'Best of 3 – erstes Team auf 2 Punkte gewinnt'}
+            </p>
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => updateMatchScore(selectedMatch.id, scoreInput.team1, scoreInput.team2)}
+                className="flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700 disabled:opacity-50"
+                disabled={savingScores}
+              >
+                {savingScores ? 'Speichere...' : '💾 Speichern'}
+              </button>
+              <button
+                onClick={closeScoreModal}
+                className="flex-1 bg-gray-700 text-white py-2 rounded hover:bg-gray-600 disabled:opacity-50"
+                disabled={savingScores}
+              >
+                Abbrechen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
