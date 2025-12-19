@@ -112,11 +112,11 @@ export default function BracketPage() {
     const team2Score = match.team2Score ?? 0
 
     return (
-      <div className={`bg-gray-900/70 border border-white/10 rounded-lg px-3 py-4 w-full h-full flex items-center justify-center ${className}`}>
-        <div className="flex items-center gap-3 text-white text-sm font-semibold w-full justify-center">
-          <span className="truncate text-right max-w-[120px]">{team1Name}</span>
+      <div className={`bg-gray-900/70 border border-white/10 rounded-lg px-4 py-4 w-full h-full flex items-center justify-center ${className}`}>
+        <div className="flex flex-wrap items-center gap-3 text-white text-base font-semibold w-full justify-center text-center">
+          <span className="text-right flex-1 min-w-[140px]">{team1Name}</span>
           <span className="text-purple-200 whitespace-nowrap">{team1Score} - {team2Score}</span>
-          <span className="truncate text-left max-w-[120px]">{team2Name}</span>
+          <span className="text-left flex-1 min-w-[140px]">{team2Name}</span>
         </div>
       </div>
     )
@@ -155,52 +155,53 @@ export default function BracketPage() {
         </div>
 
         {/* Tournament Bracket */}
-        <div className="space-y-8">
-          <section className="bg-black/20 backdrop-blur-sm rounded-xl p-5 border border-purple-500/50">
-            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-white">Winner Bracket</h2>
-                <p className="text-purple-200">Fünf Matches zum Auftakt, danach entscheidet ein Freilos das Tempo.</p>
-              </div>
-              <span className="text-sm text-purple-200">Double Elimination • Best-of-3 außer Grand Final</span>
+        <section className="bg-black/20 backdrop-blur-sm rounded-xl p-5 border border-purple-500/50 space-y-6">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-white">Tournament Bracket</h2>
+              <p className="text-purple-200">Winner und Loser Bracket auf einen Blick – Finale inklusive.</p>
             </div>
-            <div className="overflow-x-auto pb-2">
-              <BracketDiagram
-                matches={bracket}
-                layout={WINNER_BRACKET_LAYOUT}
-                connections={WINNER_BRACKET_CONNECTIONS}
-                renderMatch={(match) => <MatchBox match={match} className="h-full" />}
-                className="mx-auto"
-              />
-            </div>
-          </section>
+            <span className="text-sm text-purple-200">Best-of-3 (Grand Final Bo5)</span>
+          </div>
 
-          <section className="bg-black/20 backdrop-blur-sm rounded-xl p-5 border border-purple-500/50">
-            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-6">
+          <div className="grid gap-6 xl:grid-cols-2">
+            <div className="space-y-4">
               <div>
-                <h2 className="text-2xl font-bold text-white">Loser Bracket</h2>
-                <p className="text-purple-200">Wer fällt, kämpft sich hier zurück – inklusive eines Freilos für das beste Ranking.</p>
+                <h3 className="text-xl font-semibold text-white mb-1">Winner Bracket</h3>
+                <p className="text-purple-200 text-sm">Fünf Matches zum Auftakt, danach regelt das Freilos die Pace.</p>
               </div>
-              <span className="text-sm text-purple-200">Jede Niederlage zählt</span>
+              <div className="overflow-x-auto pb-2">
+                <BracketDiagram
+                  matches={bracket}
+                  layout={WINNER_BRACKET_LAYOUT}
+                  connections={WINNER_BRACKET_CONNECTIONS}
+                  renderMatch={(match) => <MatchBox match={match} className="h-full" />}
+                  className="mx-auto"
+                />
+              </div>
             </div>
-            <div className="overflow-x-auto pb-2">
-              <BracketDiagram
-                matches={bracket}
-                layout={LOSER_BRACKET_LAYOUT}
-                connections={LOSER_BRACKET_CONNECTIONS}
-                renderMatch={(match) => <MatchBox match={match} className="h-full" />}
-                className="mx-auto"
-              />
-            </div>
-          </section>
 
-          <section className="bg-black/20 backdrop-blur-sm rounded-xl p-5 border border-purple-500/50">
-            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-6">
+            <div className="space-y-4">
               <div>
-                <h2 className="text-2xl font-bold text-white">Final Stage</h2>
-                <p className="text-purple-200">Winner Final trifft Loser Final – erst danach steht der Champion fest.</p>
+                <h3 className="text-xl font-semibold text-white mb-1">Loser Bracket</h3>
+                <p className="text-purple-200 text-sm">Hier kämpfen die Herausforderer um das Ticket ins Finale.</p>
               </div>
-              <span className="text-sm text-purple-200">Grand Final ist Best-of-5</span>
+              <div className="overflow-x-auto pb-2">
+                <BracketDiagram
+                  matches={bracket}
+                  layout={LOSER_BRACKET_LAYOUT}
+                  connections={LOSER_BRACKET_CONNECTIONS}
+                  renderMatch={(match) => <MatchBox match={match} className="h-full" />}
+                  className="mx-auto"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-xl font-semibold text-white mb-1">Final Stage</h3>
+              <p className="text-purple-200 text-sm">Winner Final trifft Loser Final – danach entscheidet das Bo5.</p>
             </div>
             <div className="overflow-x-auto pb-2">
               <BracketDiagram
@@ -211,8 +212,8 @@ export default function BracketPage() {
                 className="mx-auto"
               />
             </div>
-          </section>
-        </div>
+          </div>
+        </section>
 
         {/* Teams Overview */}
         <div className="mt-8">
