@@ -421,36 +421,56 @@ export const GRAND_FINAL_CONNECTIONS: BracketConnection[] = [
   ['WB-F', 'GF'],
   ['LB-F', 'GF']
 ]
+const LOSER_ROW_OFFSET = 6
 
-const shiftLayout = (
-  layout: BracketNodeLayout[],
-  columnOffset: number,
-  rowOffset = 0
-): BracketNodeLayout[] =>
-  layout.map(node => ({
-    ...node,
-    column: node.column + columnOffset,
-    row: node.row + rowOffset
-  }))
+const COMBINED_WINNER_LAYOUT: BracketNodeLayout[] = [
+  { id: 'WB-R1-1', column: 1, row: 1 },
+  { id: 'WB-R1-2', column: 1, row: 2 },
+  { id: 'WB-R1-3', column: 1, row: 3 },
+  { id: 'WB-R1-4', column: 1, row: 4 },
+  { id: 'WB-R1-5', column: 1, row: 5 },
+  { id: 'WB-R2-1', column: 2, row: 1.5 },
+  { id: 'WB-R2-2', column: 2, row: 3.5 },
+  { id: 'WB-R2-3', column: 2, row: 5 },
+  { id: 'WB-R3-1', column: 3, row: 2.5 },
+  { id: 'WB-F', column: 4, row: 3 }
+]
 
-const LOSER_LAYOUT_OFFSET = 4
-const FINAL_COLUMN = LOSER_LAYOUT_OFFSET + 5
+const COMBINED_LOSER_LAYOUT: BracketNodeLayout[] = [
+  { id: 'LB-R1-1', column: 1, row: LOSER_ROW_OFFSET + 1 },
+  { id: 'LB-R1-2', column: 1, row: LOSER_ROW_OFFSET + 2 },
+  { id: 'LB-R1-3', column: 1, row: LOSER_ROW_OFFSET + 3 },
+  { id: 'LB-R2-1', column: 2, row: LOSER_ROW_OFFSET + 1.5 },
+  { id: 'LB-R2-2', column: 2, row: LOSER_ROW_OFFSET + 2.5 },
+  { id: 'LB-R3-1', column: 3, row: LOSER_ROW_OFFSET + 2 },
+  { id: 'LB-R3-2', column: 3, row: LOSER_ROW_OFFSET + 3.5 },
+  { id: 'LB-R4', column: 4, row: LOSER_ROW_OFFSET + 2.75 },
+  { id: 'LB-F', column: 4, row: LOSER_ROW_OFFSET + 3.25 }
+]
 
 export const COMBINED_BRACKET_LAYOUT: BracketNodeLayout[] = [
-  ...WINNER_BRACKET_LAYOUT.filter(node => node.id !== 'WB-F'),
-  ...shiftLayout(
-    LOSER_BRACKET_LAYOUT.filter(node => node.id !== 'LB-F'),
-    LOSER_LAYOUT_OFFSET
-  ),
-  { id: 'WB-F', column: FINAL_COLUMN, row: 3 },
-  { id: 'LB-F', column: FINAL_COLUMN, row: 4.5 },
-  { id: 'GF', column: FINAL_COLUMN + 1.5, row: 3.75 }
+  ...COMBINED_WINNER_LAYOUT,
+  ...COMBINED_LOSER_LAYOUT,
+  { id: 'GF', column: 5, row: LOSER_ROW_OFFSET + 1.75 }
+]
+
+const WINNER_TO_LOSER_CONNECTIONS: BracketConnection[] = [
+  ['WB-R1-1', 'LB-R1-1'],
+  ['WB-R1-2', 'LB-R1-1'],
+  ['WB-R1-3', 'LB-R1-2'],
+  ['WB-R1-4', 'LB-R1-2'],
+  ['WB-R1-5', 'LB-R1-3'],
+  ['WB-R2-1', 'LB-R2-1'],
+  ['WB-R2-2', 'LB-R2-2'],
+  ['WB-R3-1', 'LB-R3-2'],
+  ['WB-F', 'LB-F']
 ]
 
 export const COMBINED_BRACKET_CONNECTIONS: BracketConnection[] = [
   ...WINNER_BRACKET_CONNECTIONS,
   ...LOSER_BRACKET_CONNECTIONS,
-  ...GRAND_FINAL_CONNECTIONS
+  ...GRAND_FINAL_CONNECTIONS,
+  ...WINNER_TO_LOSER_CONNECTIONS
 ]
 
 const virtualTeam = (label: string): BracketTeam => ({
