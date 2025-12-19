@@ -17,20 +17,25 @@ async function main() {
     }
   })
 
-  // Create 8 default teams
-  for (let i = 1; i <= 8; i++) {
+  const defaultTeams = [
+    'Team Alpha', 'Team Beta', 'Team Gamma', 'Team Delta',
+    'Team Echo', 'Team Foxtrot', 'Team Golf', 'Team Hotel',
+    'Team Indigo', 'Team Jade'
+  ]
+
+  for (let i = 0; i < defaultTeams.length; i++) {
     await prisma.team.upsert({
       where: { position: i },
       update: {},
       create: {
-        name: `Team ${i}`,
+        name: defaultTeams[i],
         position: i
       }
     })
   }
 
   console.log('✅ Admin created: username: admin, password: rootmr')
-  console.log('✅ 8 Teams created (Team 1 - Team 8)')
+  console.log(`✅ ${defaultTeams.length} Teams created (${defaultTeams[0]} - ${defaultTeams[defaultTeams.length - 1]})`)
 }
 
 main()

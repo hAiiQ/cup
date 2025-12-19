@@ -16,7 +16,12 @@ export interface ParticipantSourceMatch {
   matchId: string
 }
 
-export type ParticipantSource = ParticipantSourceSeed | ParticipantSourceMatch
+export interface ParticipantSourceBye {
+  kind: 'bye'
+  label?: string
+}
+
+export type ParticipantSource = ParticipantSourceSeed | ParticipantSourceMatch | ParticipantSourceBye
 
 export type BracketType = 'winner' | 'loser' | 'grand'
 
@@ -42,7 +47,16 @@ export interface BracketMatch {
   isLive: boolean
   isFinished: boolean
   winnerId?: string
+  autoAdvance?: boolean
 }
+
+export interface BracketNodeLayout {
+  id: string
+  column: number
+  row: number
+}
+
+export type BracketConnection = [string, string]
 
 export interface RoundGroup {
   title: string
@@ -64,92 +78,106 @@ const DEFAULT_TEAM_NAMES = [
 ]
 
 const MATCH_BLUEPRINTS: MatchBlueprint[] = [
+  // Winner Bracket Round 1 (all 10 teams play)
   {
-    id: 'WB-P1',
-    label: 'Play-In A',
+    id: 'WB-R1-1',
+    label: 'Round 1 Match 1',
     bracket: 'winner',
-    roundLabel: 'Play-In',
-    roundOrder: 0,
+    roundLabel: 'Winner Round 1',
+    roundOrder: 1,
     sources: [
-      { kind: 'seed', position: 7 },
+      { kind: 'seed', position: 1 },
       { kind: 'seed', position: 10 }
     ]
   },
   {
-    id: 'WB-P2',
-    label: 'Play-In B',
+    id: 'WB-R1-2',
+    label: 'Round 1 Match 2',
     bracket: 'winner',
-    roundLabel: 'Play-In',
-    roundOrder: 0,
+    roundLabel: 'Winner Round 1',
+    roundOrder: 1,
     sources: [
-      { kind: 'seed', position: 8 },
+      { kind: 'seed', position: 2 },
       { kind: 'seed', position: 9 }
     ]
   },
   {
-    id: 'WB-Q1',
-    label: 'Quarterfinal 1',
+    id: 'WB-R1-3',
+    label: 'Round 1 Match 3',
     bracket: 'winner',
-    roundLabel: 'Quarterfinals',
-    roundOrder: 1,
-    sources: [
-      { kind: 'seed', position: 1 },
-      { kind: 'winner', matchId: 'WB-P2' }
-    ]
-  },
-  {
-    id: 'WB-Q2',
-    label: 'Quarterfinal 2',
-    bracket: 'winner',
-    roundLabel: 'Quarterfinals',
-    roundOrder: 1,
-    sources: [
-      { kind: 'seed', position: 4 },
-      { kind: 'seed', position: 5 }
-    ]
-  },
-  {
-    id: 'WB-Q3',
-    label: 'Quarterfinal 3',
-    bracket: 'winner',
-    roundLabel: 'Quarterfinals',
+    roundLabel: 'Winner Round 1',
     roundOrder: 1,
     sources: [
       { kind: 'seed', position: 3 },
+      { kind: 'seed', position: 8 }
+    ]
+  },
+  {
+    id: 'WB-R1-4',
+    label: 'Round 1 Match 4',
+    bracket: 'winner',
+    roundLabel: 'Winner Round 1',
+    roundOrder: 1,
+    sources: [
+      { kind: 'seed', position: 4 },
+      { kind: 'seed', position: 7 }
+    ]
+  },
+  {
+    id: 'WB-R1-5',
+    label: 'Round 1 Match 5',
+    bracket: 'winner',
+    roundLabel: 'Winner Round 1',
+    roundOrder: 1,
+    sources: [
+      { kind: 'seed', position: 5 },
       { kind: 'seed', position: 6 }
     ]
   },
+  // Winner Bracket Round 2 with one auto-advance
   {
-    id: 'WB-Q4',
-    label: 'Quarterfinal 4',
+    id: 'WB-R2-1',
+    label: 'Round 2 Match 1',
     bracket: 'winner',
-    roundLabel: 'Quarterfinals',
-    roundOrder: 1,
+    roundLabel: 'Winner Round 2',
+    roundOrder: 2,
     sources: [
-      { kind: 'seed', position: 2 },
-      { kind: 'winner', matchId: 'WB-P1' }
+      { kind: 'winner', matchId: 'WB-R1-1' },
+      { kind: 'winner', matchId: 'WB-R1-2' }
     ]
   },
   {
-    id: 'WB-S1',
-    label: 'Semifinal 1',
+    id: 'WB-R2-2',
+    label: 'Round 2 Match 2',
     bracket: 'winner',
-    roundLabel: 'Semifinals',
+    roundLabel: 'Winner Round 2',
     roundOrder: 2,
     sources: [
-      { kind: 'winner', matchId: 'WB-Q1' },
-      { kind: 'winner', matchId: 'WB-Q2' }
+      { kind: 'winner', matchId: 'WB-R1-3' },
+      { kind: 'winner', matchId: 'WB-R1-4' }
     ]
   },
   {
-    id: 'WB-S2',
-    label: 'Semifinal 2',
+    id: 'WB-R2-3',
+    label: 'Round 2 Freilos',
     bracket: 'winner',
-    roundLabel: 'Semifinals',
+    roundLabel: 'Winner Round 2',
     roundOrder: 2,
     sources: [
-      { kind: 'winner', matchId: 'WB-Q3' },
-      { kind: 'winner', matchId: 'WB-Q4' }
+      { kind: 'winner', matchId: 'WB-R1-5' },
+      { kind: 'bye', label: 'Freilos' }
+    ]
+  },
+  // Winner Bracket Semifinal and Final
+  {
+    id: 'WB-R3-1',
+    label: 'Winner Semifinal',
+    bracket: 'winner',
+    roundLabel: 'Winner Semifinal',
+    roundOrder: 3,
+    sources: [
+      { kind: 'winner', matchId: 'WB-R2-1' },
+      { kind: 'winner', matchId: 'WB-R2-2' }
     ]
   },
   {
@@ -157,87 +185,102 @@ const MATCH_BLUEPRINTS: MatchBlueprint[] = [
     label: 'Winner Final',
     bracket: 'winner',
     roundLabel: 'Winner Final',
-    roundOrder: 3,
+    roundOrder: 4,
     sources: [
-      { kind: 'winner', matchId: 'WB-S1' },
-      { kind: 'winner', matchId: 'WB-S2' }
+      { kind: 'winner', matchId: 'WB-R3-1' },
+      { kind: 'winner', matchId: 'WB-R2-3' }
     ]
   },
+  // Loser Bracket Round 1 (includes one auto advance)
   {
-    id: 'LB-1-1',
-    label: 'Loser R1 Match 1',
+    id: 'LB-R1-1',
+    label: 'Loser Round 1A',
     bracket: 'loser',
     roundLabel: 'Loser Round 1',
     roundOrder: 1,
     sources: [
-      { kind: 'loser', matchId: 'WB-P1' },
-      { kind: 'loser', matchId: 'WB-Q1' }
+      { kind: 'loser', matchId: 'WB-R1-1' },
+      { kind: 'loser', matchId: 'WB-R1-2' }
     ]
   },
   {
-    id: 'LB-1-2',
-    label: 'Loser R1 Match 2',
+    id: 'LB-R1-2',
+    label: 'Loser Round 1B',
     bracket: 'loser',
     roundLabel: 'Loser Round 1',
     roundOrder: 1,
     sources: [
-      { kind: 'loser', matchId: 'WB-P2' },
-      { kind: 'loser', matchId: 'WB-Q2' }
+      { kind: 'loser', matchId: 'WB-R1-3' },
+      { kind: 'loser', matchId: 'WB-R1-4' }
     ]
   },
   {
-    id: 'LB-2-1',
-    label: 'Loser R2 Match 1',
+    id: 'LB-R1-3',
+    label: 'Loser Round 1 Freilos',
+    bracket: 'loser',
+    roundLabel: 'Loser Round 1',
+    roundOrder: 1,
+    sources: [
+      { kind: 'loser', matchId: 'WB-R1-5' },
+      { kind: 'bye', label: 'Freilos' }
+    ]
+  },
+  // Loser Bracket Round 2
+  {
+    id: 'LB-R2-1',
+    label: 'Loser Round 2A',
     bracket: 'loser',
     roundLabel: 'Loser Round 2',
     roundOrder: 2,
     sources: [
-      { kind: 'winner', matchId: 'LB-1-1' },
-      { kind: 'loser', matchId: 'WB-Q3' }
+      { kind: 'winner', matchId: 'LB-R1-1' },
+      { kind: 'loser', matchId: 'WB-R2-1' }
     ]
   },
   {
-    id: 'LB-2-2',
-    label: 'Loser R2 Match 2',
+    id: 'LB-R2-2',
+    label: 'Loser Round 2B',
     bracket: 'loser',
     roundLabel: 'Loser Round 2',
     roundOrder: 2,
     sources: [
-      { kind: 'winner', matchId: 'LB-1-2' },
-      { kind: 'loser', matchId: 'WB-Q4' }
+      { kind: 'winner', matchId: 'LB-R1-2' },
+      { kind: 'loser', matchId: 'WB-R2-2' }
     ]
   },
+  // Loser Bracket Round 3
   {
-    id: 'LB-3-1',
-    label: 'Loser R3 Match 1',
+    id: 'LB-R3-1',
+    label: 'Loser Round 3A',
     bracket: 'loser',
     roundLabel: 'Loser Round 3',
     roundOrder: 3,
     sources: [
-      { kind: 'winner', matchId: 'LB-2-1' },
-      { kind: 'loser', matchId: 'WB-S1' }
+      { kind: 'winner', matchId: 'LB-R2-1' },
+      { kind: 'winner', matchId: 'LB-R2-2' }
     ]
   },
   {
-    id: 'LB-3-2',
-    label: 'Loser R3 Match 2',
+    id: 'LB-R3-2',
+    label: 'Loser Round 3B',
     bracket: 'loser',
     roundLabel: 'Loser Round 3',
     roundOrder: 3,
     sources: [
-      { kind: 'winner', matchId: 'LB-2-2' },
-      { kind: 'loser', matchId: 'WB-S2' }
+      { kind: 'winner', matchId: 'LB-R1-3' },
+      { kind: 'loser', matchId: 'WB-R3-1' }
     ]
   },
+  // Loser bracket closing rounds
   {
-    id: 'LB-4',
+    id: 'LB-R4',
     label: 'Loser Semifinal',
     bracket: 'loser',
     roundLabel: 'Loser Semifinal',
     roundOrder: 4,
     sources: [
-      { kind: 'winner', matchId: 'LB-3-1' },
-      { kind: 'winner', matchId: 'LB-3-2' }
+      { kind: 'winner', matchId: 'LB-R3-1' },
+      { kind: 'winner', matchId: 'LB-R3-2' }
     ]
   },
   {
@@ -247,7 +290,7 @@ const MATCH_BLUEPRINTS: MatchBlueprint[] = [
     roundLabel: 'Loser Final',
     roundOrder: 5,
     sources: [
-      { kind: 'winner', matchId: 'LB-4' },
+      { kind: 'winner', matchId: 'LB-R4' },
       { kind: 'loser', matchId: 'WB-F' }
     ]
   },
@@ -266,28 +309,28 @@ const MATCH_BLUEPRINTS: MatchBlueprint[] = [
 
 export const WINNER_ROUND_GROUPS: RoundGroup[] = [
   {
-    title: 'Play-In',
-    description: 'Seeds 7-10 fight for the last bracket spots',
-    matchIds: ['WB-P1', 'WB-P2']
+    title: 'Winner Round 1',
+    description: 'Alle zehn Teams starten direkt in die Action',
+    matchIds: ['WB-R1-1', 'WB-R1-2', 'WB-R1-3', 'WB-R1-4', 'WB-R1-5']
   },
   {
-    title: 'Quarterfinals',
-    description: 'Top 6 seeds join the winners from the play-ins',
-    matchIds: ['WB-Q1', 'WB-Q2', 'WB-Q3', 'WB-Q4']
+    title: 'Winner Round 2',
+    description: 'Die Sieger spielen um die Halbfinal-Slots, ein Match hat Freilos',
+    matchIds: ['WB-R2-1', 'WB-R2-2', 'WB-R2-3']
   },
   {
-    title: 'Semifinals',
-    description: 'Four teams remain in the winner bracket',
-    matchIds: ['WB-S1', 'WB-S2']
+    title: 'Winner Semifinal',
+    description: 'Die letzten drei Teams kämpfen um das Ticket ins Finale',
+    matchIds: ['WB-R3-1']
   },
   {
     title: 'Winner Final',
-    description: 'Winner bracket champion heads to the Grand Final',
+    description: 'Der Winner-Bracket-Sieger wartet auf den Herausforderer',
     matchIds: ['WB-F']
   },
   {
     title: 'Grand Final',
-    description: 'Winner bracket champ vs. loser bracket survivor',
+    description: 'Winner Bracket Champion vs. Loser Bracket Survivor',
     matchIds: ['GF']
   }
 ]
@@ -295,29 +338,88 @@ export const WINNER_ROUND_GROUPS: RoundGroup[] = [
 export const LOSER_ROUND_GROUPS: RoundGroup[] = [
   {
     title: 'Loser Round 1',
-    description: 'Play-in losers and early drops get a second chance',
-    matchIds: ['LB-1-1', 'LB-1-2']
+    description: 'Verlierer der ersten Winner-Runde kämpfen ums Überleben',
+    matchIds: ['LB-R1-1', 'LB-R1-2', 'LB-R1-3']
   },
   {
     title: 'Loser Round 2',
-    description: 'Quarterfinal losers join the lower bracket',
-    matchIds: ['LB-2-1', 'LB-2-2']
+    description: 'Neue Gegner durch die Verlierer der Winner Round 2',
+    matchIds: ['LB-R2-1', 'LB-R2-2']
   },
   {
     title: 'Loser Round 3',
-    description: 'Winners face off against semifinal drops',
-    matchIds: ['LB-3-1', 'LB-3-2']
+    description: 'Kurz vor Schluss: Wer bleibt im Rennen?',
+    matchIds: ['LB-R3-1', 'LB-R3-2']
   },
   {
     title: 'Loser Semifinal',
-    description: 'Only one team survives to reach the final',
-    matchIds: ['LB-4']
+    description: 'Die zwei heißesten Teams spielen um den Finalplatz',
+    matchIds: ['LB-R4']
   },
   {
     title: 'Loser Final',
-    description: 'Winner meets the loser of the Winner Final',
+    description: 'Der Herausforderer fürs Grand Final wird bestimmt',
     matchIds: ['LB-F']
   }
+]
+
+export const WINNER_BRACKET_LAYOUT: BracketNodeLayout[] = [
+  { id: 'WB-R1-1', column: 1, row: 1 },
+  { id: 'WB-R1-2', column: 1, row: 3 },
+  { id: 'WB-R1-3', column: 1, row: 5 },
+  { id: 'WB-R1-4', column: 1, row: 7 },
+  { id: 'WB-R1-5', column: 1, row: 9 },
+  { id: 'WB-R2-1', column: 2, row: 2 },
+  { id: 'WB-R2-2', column: 2, row: 6 },
+  { id: 'WB-R2-3', column: 2, row: 8 },
+  { id: 'WB-R3-1', column: 3, row: 4 },
+  { id: 'WB-F', column: 4, row: 5 }
+]
+
+export const LOSER_BRACKET_LAYOUT: BracketNodeLayout[] = [
+  { id: 'LB-R1-1', column: 1, row: 1 },
+  { id: 'LB-R1-2', column: 1, row: 4 },
+  { id: 'LB-R1-3', column: 1, row: 7 },
+  { id: 'LB-R2-1', column: 2, row: 2 },
+  { id: 'LB-R2-2', column: 2, row: 5 },
+  { id: 'LB-R3-1', column: 3, row: 3 },
+  { id: 'LB-R3-2', column: 3, row: 7 },
+  { id: 'LB-R4', column: 4, row: 4 },
+  { id: 'LB-F', column: 5, row: 5 }
+]
+
+export const GRAND_FINAL_LAYOUT: BracketNodeLayout[] = [
+  { id: 'WB-F', column: 1, row: 1 },
+  { id: 'LB-F', column: 1, row: 3 },
+  { id: 'GF', column: 2, row: 2 }
+]
+
+export const WINNER_BRACKET_CONNECTIONS: BracketConnection[] = [
+  ['WB-R1-1', 'WB-R2-1'],
+  ['WB-R1-2', 'WB-R2-1'],
+  ['WB-R1-3', 'WB-R2-2'],
+  ['WB-R1-4', 'WB-R2-2'],
+  ['WB-R1-5', 'WB-R2-3'],
+  ['WB-R2-1', 'WB-R3-1'],
+  ['WB-R2-2', 'WB-R3-1'],
+  ['WB-R3-1', 'WB-F'],
+  ['WB-R2-3', 'WB-F']
+]
+
+export const LOSER_BRACKET_CONNECTIONS: BracketConnection[] = [
+  ['LB-R1-1', 'LB-R2-1'],
+  ['LB-R1-2', 'LB-R2-2'],
+  ['LB-R1-3', 'LB-R3-2'],
+  ['LB-R2-1', 'LB-R3-1'],
+  ['LB-R2-2', 'LB-R3-1'],
+  ['LB-R3-1', 'LB-R4'],
+  ['LB-R3-2', 'LB-R4'],
+  ['LB-R4', 'LB-F']
+]
+
+export const GRAND_FINAL_CONNECTIONS: BracketConnection[] = [
+  ['WB-F', 'GF'],
+  ['LB-F', 'GF']
 ]
 
 const virtualTeam = (label: string): BracketTeam => ({
@@ -366,28 +468,33 @@ export const buildBracketMatches = (
       return positionMap.get(source.position) || placeholderTeam(source.position)
     }
 
+    if (source.kind === 'bye') {
+      return virtualTeam(source.label || 'Freilos')
+    }
+
     const referencedMatch = matchLookup.get(source.matchId)
     if (!referencedMatch) {
       return virtualTeam(`${source.kind === 'winner' ? 'Winner' : 'Loser'} ${source.matchId}`)
     }
 
     const referencedState = stateMap.get(source.matchId)
-    if (!referencedState || !referencedState.winnerId) {
+    const resolvedWinnerId = referencedState?.winnerId || referencedMatch.winnerId
+    if (!resolvedWinnerId) {
       return virtualTeam(`${source.kind === 'winner' ? 'Winner' : 'Loser'} ${referencedMatch.label}`)
     }
 
     if (source.kind === 'winner') {
-      if (referencedState.winnerId === 'team1') {
+      if (resolvedWinnerId === 'team1') {
         return referencedMatch.team1 || virtualTeam('TBD')
       }
-      if (referencedState.winnerId === 'team2') {
+      if (resolvedWinnerId === 'team2') {
         return referencedMatch.team2 || virtualTeam('TBD')
       }
     } else {
-      if (referencedState.winnerId === 'team1') {
+      if (resolvedWinnerId === 'team1') {
         return referencedMatch.team2 || virtualTeam('TBD')
       }
-      if (referencedState.winnerId === 'team2') {
+      if (resolvedWinnerId === 'team2') {
         return referencedMatch.team1 || virtualTeam('TBD')
       }
     }
@@ -413,6 +520,24 @@ export const buildBracketMatches = (
       isLive: state?.isLive ?? false,
       isFinished: state?.isFinished ?? false,
       winnerId: state?.winnerId
+    }
+
+    let autoAdvanceWinner: 'team1' | 'team2' | undefined
+    if (!state?.winnerId) {
+      const [sourceA, sourceB] = blueprint.sources
+      if (sourceA.kind === 'bye' && sourceB.kind !== 'bye') {
+        autoAdvanceWinner = 'team2'
+      } else if (sourceB.kind === 'bye' && sourceA.kind !== 'bye') {
+        autoAdvanceWinner = 'team1'
+      }
+    }
+
+    if (autoAdvanceWinner) {
+      match.autoAdvance = true
+      match.isFinished = true
+      match.winnerId = autoAdvanceWinner
+      match.team1Score = autoAdvanceWinner === 'team1' ? 2 : 0
+      match.team2Score = autoAdvanceWinner === 'team2' ? 2 : 0
     }
 
     matchLookup.set(blueprint.id, match)

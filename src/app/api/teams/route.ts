@@ -24,7 +24,8 @@ export async function GET() {
       // Create default teams if none exist
       const defaultTeams = [
         'Team Alpha', 'Team Beta', 'Team Gamma', 'Team Delta',
-        'Team Epsilon', 'Team Zeta', 'Team Eta', 'Team Theta'
+        'Team Echo', 'Team Foxtrot', 'Team Golf', 'Team Hotel',
+        'Team Indigo', 'Team Jade'
       ]
       
       for (let i = 0; i < defaultTeams.length; i++) {

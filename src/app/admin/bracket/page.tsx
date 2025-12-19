@@ -5,12 +5,17 @@ import { useRouter } from 'next/navigation'
 import {
   buildBracketMatches,
   ensureTenTeams,
-  WINNER_ROUND_GROUPS,
-  LOSER_ROUND_GROUPS,
+  WINNER_BRACKET_LAYOUT,
+  LOSER_BRACKET_LAYOUT,
+  GRAND_FINAL_LAYOUT,
+  WINNER_BRACKET_CONNECTIONS,
+  LOSER_BRACKET_CONNECTIONS,
+  GRAND_FINAL_CONNECTIONS,
   type BracketMatch,
   type BracketTeam
 } from '@/lib/bracketStructure'
 import type { MatchState } from '@/lib/matchState'
+import BracketDiagram from '@/components/bracket/BracketDiagram'
 
 interface ScoreInput {
   team1: number
@@ -199,12 +204,10 @@ export default function AdminBracketPage() {
     }
   }
 
-  const getMatchById = (id: string) => bracket.find(match => match.id === id)
-
-  const MatchBox = ({ match }: { match?: BracketMatch }) => {
+  const MatchBox = ({ match, className = '' }: { match?: BracketMatch, className?: string }) => {
     if (!match) {
       return (
-        <div className="bg-gray-800/50 border border-dashed border-gray-600 rounded-xl p-4 text-center text-gray-400 text-sm">
+        <div className={`bg-gray-800/50 border border-dashed border-gray-600 rounded-xl p-4 text-center text-gray-400 text-sm ${className}`}>
           Match noch nicht bereit
         </div>
       )
@@ -215,26 +218,39 @@ export default function AdminBracketPage() {
     const team2Name = match.team2?.name || 'TBD'
     const team1Wins = match.isFinished && match.team1Score >= winningScore
     const team2Wins = match.isFinished && match.team2Score >= winningScore
+    const statusClass = match.autoAdvance
+      ? 'border-sky-400/80 bg-sky-900/40'
+      : match.isFinished
+        ? 'border-green-500/70'
+        : match.isLive
+          ? 'border-yellow-500/70'
+          : 'border-gray-700'
 
     return (
-      <div className={`bg-gray-800/80 border rounded-xl p-4 flex flex-col gap-3 ${
-        match.isFinished ? 'border-green-500/70' : match.isLive ? 'border-yellow-500/70' : 'border-gray-700'
-      }`}>
+      <div className={`bg-gray-800/80 border rounded-xl p-4 flex flex-col gap-3 ${statusClass} ${className}`}>
         <div className="flex items-center justify-between text-xs uppercase tracking-wide">
           <span className="text-purple-200">{match.roundLabel}</span>
-          <button
-            className={`px-2 py-1 rounded text-xs font-semibold ${
-              match.isLive ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-green-600 text-white hover:bg-green-700'
-            }`}
-            onClick={() => toggleLiveStatus(match)}
-          >
-            {match.isLive ? 'STOP' : 'START'}
-          </button>
+          {match.autoAdvance ? (
+            <span className="text-cyan-200 font-semibold">AUTO ADVANCE</span>
+          ) : (
+            <button
+              className={`px-2 py-1 rounded text-xs font-semibold ${
+                match.isLive ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-green-600 text-white hover:bg-green-700'
+              }`}
+              onClick={() => toggleLiveStatus(match)}
+            >
+              {match.isLive ? 'STOP' : 'START'}
+            </button>
+          )}
         </div>
         <div className="text-center text-sm font-semibold text-white">{match.label}</div>
         <div
-          className="bg-gray-900/60 rounded-lg p-3 cursor-pointer hover:bg-gray-900"
-          onClick={() => openScoreModal(match)}
+          className={`bg-gray-900/60 rounded-lg p-3 ${match.autoAdvance ? '' : 'cursor-pointer hover:bg-gray-900'}`}
+          onClick={() => {
+            if (!match.autoAdvance) {
+              openScoreModal(match)
+            }
+          }}
         >
           <div className="grid grid-cols-5 gap-1 items-center text-sm font-medium text-white">
             <div className={`${team1Wins ? 'text-green-400 font-bold' : ''} text-right`}>{team1Name}</div>
@@ -243,6 +259,11 @@ export default function AdminBracketPage() {
             <div className={`${team2Wins ? 'text-green-400 font-bold' : ''} text-center`}>{match.team2Score}</div>
             <div className={`${team2Wins ? 'text-green-400 font-bold' : ''} text-left`}>{team2Name}</div>
           </div>
+          {match.autoAdvance && (
+            <div className="text-xs text-center text-cyan-200 font-semibold mt-2">
+              Freilos – Ergebnis wird automatisch gesetzt
+            </div>
+          )}
         </div>
       </div>
     )
@@ -313,43 +334,56 @@ export default function AdminBracketPage() {
 
       <div className="w-full px-4 py-8 space-y-10">
         <section className="bg-black/20 backdrop-blur-sm rounded-xl p-6 border border-purple-500/50">
-          <h2 className="text-2xl font-bold text-white mb-6">Winner Bracket</h2>
-          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
-            {WINNER_ROUND_GROUPS.map(group => (
-              <div key={group.title} className="bg-black/40 border border-white/10 rounded-xl p-4 flex flex-col gap-4">
-                <div>
-                  <h3 className="text-white font-semibold text-lg">{group.title}</h3>
-                  <p className="text-purple-200 text-sm">{group.description}</p>
-                </div>
-                <div className="flex flex-col gap-3">
-                  {group.matchIds.map(matchId => (
-                    <MatchBox key={matchId} match={getMatchById(matchId)} />
-                  ))}
-                </div>
-              </div>
-            ))}
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-white">Winner Bracket</h2>
+              <p className="text-purple-200">Fünf Matches in Runde 1 + ein Freilos für das bestplatzierte Team.</p>
+            </div>
+            <span className="text-sm text-purple-200">Alle Matches Best-of-3 (außer Grand Final)</span>
+          </div>
+          <div className="overflow-x-auto pb-4">
+            <BracketDiagram
+              matches={bracket}
+              layout={WINNER_BRACKET_LAYOUT}
+              connections={WINNER_BRACKET_CONNECTIONS}
+              renderMatch={(match) => <MatchBox match={match} className="h-full" />}
+            />
           </div>
         </section>
 
         <section className="bg-black/20 backdrop-blur-sm rounded-xl p-6 border border-purple-500/50">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-white">Loser Bracket</h2>
-            <span className="text-sm text-purple-200">Jede Niederlage zählt – Double Elimination</span>
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-white">Loser Bracket</h2>
+              <p className="text-purple-200">Hier landen alle Niederlagen – inklusive eines automatischen Vorrückers.</p>
+            </div>
+            <span className="text-sm text-purple-200">Double Elimination = Zweite Chance</span>
           </div>
-          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
-            {LOSER_ROUND_GROUPS.map(group => (
-              <div key={group.title} className="bg-black/40 border border-white/10 rounded-xl p-4 flex flex-col gap-4">
-                <div>
-                  <h3 className="text-white font-semibold text-lg">{group.title}</h3>
-                  <p className="text-purple-200 text-sm">{group.description}</p>
-                </div>
-                <div className="flex flex-col gap-3">
-                  {group.matchIds.map(matchId => (
-                    <MatchBox key={matchId} match={getMatchById(matchId)} />
-                  ))}
-                </div>
-              </div>
-            ))}
+          <div className="overflow-x-auto pb-4">
+            <BracketDiagram
+              matches={bracket}
+              layout={LOSER_BRACKET_LAYOUT}
+              connections={LOSER_BRACKET_CONNECTIONS}
+              renderMatch={(match) => <MatchBox match={match} className="h-full" />}
+            />
+          </div>
+        </section>
+
+        <section className="bg-black/20 backdrop-blur-sm rounded-xl p-6 border border-purple-500/50">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-white">Final Stage</h2>
+              <p className="text-purple-200">Winner Final vs. Loser Final – Sieger trifft im Bo5 auf das Herausforderer-Team.</p>
+            </div>
+            <span className="text-sm text-purple-200">Grand Final Best-of-5</span>
+          </div>
+          <div className="overflow-x-auto pb-4">
+            <BracketDiagram
+              matches={bracket}
+              layout={GRAND_FINAL_LAYOUT}
+              connections={GRAND_FINAL_CONNECTIONS}
+              renderMatch={(match) => <MatchBox match={match} className="h-full" />}
+            />
           </div>
         </section>
 

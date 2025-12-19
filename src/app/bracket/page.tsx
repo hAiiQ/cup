@@ -3,11 +3,16 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import {
-  WINNER_ROUND_GROUPS,
-  LOSER_ROUND_GROUPS,
   type BracketMatch,
-  type BracketTeam
+  type BracketTeam,
+  WINNER_BRACKET_LAYOUT,
+  LOSER_BRACKET_LAYOUT,
+  GRAND_FINAL_LAYOUT,
+  WINNER_BRACKET_CONNECTIONS,
+  LOSER_BRACKET_CONNECTIONS,
+  GRAND_FINAL_CONNECTIONS
 } from '@/lib/bracketStructure'
+import BracketDiagram from '@/components/bracket/BracketDiagram'
 
 export default function BracketPage() {
   const [bracket, setBracket] = useState<BracketMatch[]>([])
@@ -80,11 +85,6 @@ export default function BracketPage() {
     return () => clearInterval(interval)
   }, [])
 
-  // Helper function to find match by ID
-  const findMatchById = (matchId: string) => {
-    return bracket.find(m => m.id === matchId)
-  }
-
   // Helper function to get team name or fallback
   const getTeamName = (team?: BracketTeam, fallback: string = 'TBD') => {
     return team?.name || fallback
@@ -108,8 +108,14 @@ export default function BracketPage() {
 
     const team1Name = getTeamName(match.team1, 'TBD')
     const team2Name = getTeamName(match.team2, 'TBD')
-    const hasScore = (match.team1Score > 0 || match.team2Score > 0) // Zeige Scores auch bei laufenden Matches
     const isLive = match.isLive || false // Live Status kommt jetzt aus der Datenbank
+    const statusClass = match.autoAdvance
+      ? 'border-sky-400/80 bg-sky-900/20'
+      : match.isFinished
+        ? 'border-green-500 bg-green-900/20'
+        : isLive
+          ? 'border-yellow-500 bg-yellow-900/20'
+          : ''
     
     // Determine winner and styling based on scoring rules
     // Grand Final: First to 3 points wins, All other matches: First to 2 points wins
@@ -125,12 +131,15 @@ export default function BracketPage() {
                       team1IsWinner ? "text-gray-400" : "text-white"
 
     return (
-      <div className={`bg-gray-700/90 border border-gray-600 rounded-lg p-4 w-full flex flex-col gap-3 ${
-        match.isFinished ? 'border-green-500 bg-green-900/20' : isLive ? 'border-yellow-500 bg-yellow-900/20' : ''
-      } ${className}`}>
+      <div className={`bg-gray-700/90 border border-gray-600 rounded-lg p-4 w-full flex flex-col gap-3 ${statusClass} ${className}`}>
         <div className="flex items-center justify-between text-xs uppercase tracking-wide text-purple-200">
           <span>{match.roundLabel}</span>
-          {isLive && <span className="text-yellow-300 font-semibold">LIVE</span>}
+          <div className="flex items-center gap-2">
+            {match.autoAdvance && (
+              <span className="text-cyan-200 font-semibold">AUTO</span>
+            )}
+            {isLive && <span className="text-yellow-300 font-semibold">LIVE</span>}
+          </div>
         </div>
         <div className="text-center text-sm font-semibold text-white">{match.label}</div>
         <div className="text-center text-sm font-medium w-full">
@@ -148,6 +157,11 @@ export default function BracketPage() {
             <div className="text-white">{team1Name} vs {team2Name}</div>
           )}
         </div>
+        {match.autoAdvance && (
+          <div className="text-center text-xs text-cyan-200 font-medium">
+            Team rückt dank Freilos automatisch weiter
+          </div>
+        )}
       </div>
     )
   }
@@ -186,46 +200,59 @@ export default function BracketPage() {
 
         {/* Tournament Bracket */}
         <div className="space-y-10">
-          <div className="bg-black/20 backdrop-blur-sm rounded-xl p-6 border border-purple-500/50">
-            <h2 className="text-2xl font-bold text-white mb-6">Winner Bracket</h2>
-            <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
-              {WINNER_ROUND_GROUPS.map(group => (
-                <div key={group.title} className="bg-black/40 border border-white/10 rounded-xl p-4 flex flex-col gap-3">
-                  <div>
-                    <h3 className="text-white font-semibold text-lg">{group.title}</h3>
-                    <p className="text-purple-200 text-sm">{group.description}</p>
-                  </div>
-                  <div className="flex flex-col gap-3">
-                    {group.matchIds.map(matchId => (
-                      <MatchBox key={matchId} match={findMatchById(matchId)} />
-                    ))}
-                  </div>
-                </div>
-              ))}
+          <section className="bg-black/20 backdrop-blur-sm rounded-xl p-6 border border-purple-500/50">
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-white">Winner Bracket</h2>
+                <p className="text-purple-200">Fünf Matches zum Auftakt, danach entscheidet ein Freilos das Tempo.</p>
+              </div>
+              <span className="text-sm text-purple-200">Double Elimination • Best-of-3 außer Grand Final</span>
             </div>
-          </div>
+            <div className="overflow-x-auto pb-4">
+              <BracketDiagram
+                matches={bracket}
+                layout={WINNER_BRACKET_LAYOUT}
+                connections={WINNER_BRACKET_CONNECTIONS}
+                renderMatch={(match) => <MatchBox match={match} className="h-full" />}
+              />
+            </div>
+          </section>
 
-          <div className="bg-black/20 backdrop-blur-sm rounded-xl p-6 border border-purple-500/50">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white">Loser Bracket</h2>
-              <span className="text-sm text-purple-200">Double elimination • Jede Niederlage zählt</span>
+          <section className="bg-black/20 backdrop-blur-sm rounded-xl p-6 border border-purple-500/50">
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-white">Loser Bracket</h2>
+                <p className="text-purple-200">Wer fällt, kämpft sich hier zurück – inklusive eines Freilos für das beste Ranking.</p>
+              </div>
+              <span className="text-sm text-purple-200">Jede Niederlage zählt</span>
             </div>
-            <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
-              {LOSER_ROUND_GROUPS.map(group => (
-                <div key={group.title} className="bg-black/40 border border-white/10 rounded-xl p-4 flex flex-col gap-3">
-                  <div>
-                    <h3 className="text-white font-semibold text-lg">{group.title}</h3>
-                    <p className="text-purple-200 text-sm">{group.description}</p>
-                  </div>
-                  <div className="flex flex-col gap-3">
-                    {group.matchIds.map(matchId => (
-                      <MatchBox key={matchId} match={findMatchById(matchId)} />
-                    ))}
-                  </div>
-                </div>
-              ))}
+            <div className="overflow-x-auto pb-4">
+              <BracketDiagram
+                matches={bracket}
+                layout={LOSER_BRACKET_LAYOUT}
+                connections={LOSER_BRACKET_CONNECTIONS}
+                renderMatch={(match) => <MatchBox match={match} className="h-full" />}
+              />
             </div>
-          </div>
+          </section>
+
+          <section className="bg-black/20 backdrop-blur-sm rounded-xl p-6 border border-purple-500/50">
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-white">Final Stage</h2>
+                <p className="text-purple-200">Winner Final trifft Loser Final – erst danach steht der Champion fest.</p>
+              </div>
+              <span className="text-sm text-purple-200">Grand Final ist Best-of-5</span>
+            </div>
+            <div className="overflow-x-auto pb-4">
+              <BracketDiagram
+                matches={bracket}
+                layout={GRAND_FINAL_LAYOUT}
+                connections={GRAND_FINAL_CONNECTIONS}
+                renderMatch={(match) => <MatchBox match={match} className="h-full" />}
+              />
+            </div>
+          </section>
         </div>
 
         {/* Teams Overview */}

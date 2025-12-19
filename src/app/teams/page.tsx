@@ -98,6 +98,14 @@ export default function TeamsPage() {
     }
   }
 
+  const MAX_TEAMS = 10
+  const TEAM_SIZE = 6
+  const totalPlayers = teams.reduce((sum, team) => sum + team.members.length, 0)
+  const verifiedPlayers = teams.reduce((sum, team) => sum + team.members.filter(m => m.isVerified).length, 0)
+  const fullTeamsCount = teams.filter(team => team.members.length === TEAM_SIZE).length
+  const totalCapacity = MAX_TEAMS * TEAM_SIZE
+  const freeSlots = Math.max(totalCapacity - totalPlayers, 0)
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -340,25 +348,25 @@ export default function TeamsPage() {
               <div className="grid md:grid-cols-4 gap-4">
                 <div className="text-center">
                   <p className="text-3xl font-bold text-blue-400">
-                    {teams.reduce((sum, team) => sum + team.members.length, 0)}
+                    {totalPlayers}
                   </p>
                   <p className="text-white/70">Gesamte Spieler</p>
                 </div>
                 <div className="text-center">
                   <p className="text-3xl font-bold text-green-400">
-                    {teams.filter(team => team.members.length === 6).length}
+                    {fullTeamsCount}
                   </p>
                   <p className="text-white/70">Vollständige Teams</p>
                 </div>
                 <div className="text-center">
                   <p className="text-3xl font-bold text-yellow-400">
-                    {teams.reduce((sum, team) => sum + team.members.filter(m => m.isVerified).length, 0)}
+                    {verifiedPlayers}
                   </p>
                   <p className="text-white/70">Verifizierte Spieler</p>
                 </div>
                 <div className="text-center">
                   <p className="text-3xl font-bold text-purple-400">
-                    {48 - teams.reduce((sum, team) => sum + team.members.length, 0)}
+                    {freeSlots}
                   </p>
                   <p className="text-white/70">Freie Plätze</p>
                 </div>
