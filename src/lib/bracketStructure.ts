@@ -422,23 +422,6 @@ export const GRAND_FINAL_CONNECTIONS: BracketConnection[] = [
   ['LB-F', 'GF']
 ]
 
-const shiftLayout = (layout: BracketNodeLayout[], columnOffset: number): BracketNodeLayout[] =>
-  layout.map(node => ({ ...node, column: node.column + columnOffset }))
-
-const LOSER_LAYOUT_OFFSET = 6
-
-export const COMBINED_BRACKET_LAYOUT: BracketNodeLayout[] = [
-  ...WINNER_BRACKET_LAYOUT,
-  ...shiftLayout(LOSER_BRACKET_LAYOUT, LOSER_LAYOUT_OFFSET),
-  { id: 'GF', column: 12, row: 3 }
-]
-
-export const COMBINED_BRACKET_CONNECTIONS: BracketConnection[] = [
-  ...WINNER_BRACKET_CONNECTIONS,
-  ...LOSER_BRACKET_CONNECTIONS,
-  ...GRAND_FINAL_CONNECTIONS
-]
-
 const virtualTeam = (label: string): BracketTeam => ({
   id: `virtual-${label.replace(/\s+/g, '-').toLowerCase()}`,
   name: label,
