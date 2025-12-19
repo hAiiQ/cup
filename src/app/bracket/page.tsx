@@ -128,10 +128,10 @@ export default function BracketPage() {
         <section className="bg-black/20 backdrop-blur-sm rounded-xl p-5 border border-purple-500/50">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-white">Complete Bracket</h2>
-              <p className="text-purple-200 text-sm">Ein Board, alle Matches – aktuell nur Platzhalter.</p>
+              <h2 className="text-2xl font-bold text-white">Single Tournament Tree</h2>
+              <p className="text-purple-200 text-sm">Alle Matches auf einem einzigen Baum – aktuell als Platzhalter.</p>
             </div>
-            <span className="text-sm text-purple-200">Double Elimination Übersicht</span>
+            <span className="text-sm text-purple-200">Best-of-3 bis zum Finale</span>
           </div>
           <div className="overflow-x-auto pb-2">
             <BracketDiagram
