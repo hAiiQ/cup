@@ -182,6 +182,7 @@ export default function AdminBracketPage() {
     } finally {
       setLiveToggleMatchId(null)
     }
+  }
 
   const updateMatchScore = async (matchId: string, team1Score: number, team2Score: number) => {
     try {
