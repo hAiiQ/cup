@@ -2,30 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-
-interface Team {
-  id: string
-  name: string
-  position: number
-}
-
-interface Match {
-  id: string
-  round: string  // Changed from number to string
-  bracket: string
-  team1?: Team
-  team2?: Team
-  team1Score: number
-  team2Score: number
-  winner?: Team
-  isFinished: boolean
-  isLive?: boolean
-  winnerId?: string  // Added this field
-}
+import {
+  WINNER_ROUND_GROUPS,
+  LOSER_ROUND_GROUPS,
+  type BracketMatch,
+  type BracketTeam
+} from '@/lib/bracketStructure'
 
 export default function BracketPage() {
-  const [bracket, setBracket] = useState<Match[]>([])
-  const [teams, setTeams] = useState<Team[]>([])
+  const [bracket, setBracket] = useState<BracketMatch[]>([])
+  const [teams, setTeams] = useState<BracketTeam[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -100,7 +86,7 @@ export default function BracketPage() {
   }
 
   // Helper function to get team name or fallback
-  const getTeamName = (team?: Team, fallback: string = 'TBD') => {
+  const getTeamName = (team?: BracketTeam, fallback: string = 'TBD') => {
     return team?.name || fallback
   }
 
@@ -109,7 +95,7 @@ export default function BracketPage() {
     match, 
     className = ""
   }: {
-    match?: Match
+    match?: BracketMatch
     className?: string
   }) => {
     if (!match) {
@@ -139,13 +125,17 @@ export default function BracketPage() {
                       team1IsWinner ? "text-gray-400" : "text-white"
 
     return (
-      <div className={`bg-gray-700/90 border border-gray-600 rounded-lg p-3 w-full min-h-[60px] flex items-center justify-center ${
+      <div className={`bg-gray-700/90 border border-gray-600 rounded-lg p-4 w-full flex flex-col gap-3 ${
         match.isFinished ? 'border-green-500 bg-green-900/20' : isLive ? 'border-yellow-500 bg-yellow-900/20' : ''
       } ${className}`}>
+        <div className="flex items-center justify-between text-xs uppercase tracking-wide text-purple-200">
+          <span>{match.roundLabel}</span>
+          {isLive && <span className="text-yellow-300 font-semibold">LIVE</span>}
+        </div>
+        <div className="text-center text-sm font-semibold text-white">{match.label}</div>
         <div className="text-center text-sm font-medium w-full">
           {match.team1 && match.team2 ? (
             <div className="space-y-1">
-              {/* Horizontal Score Display - Echte Zentrierung mit festen Spalten */}
               <div className="grid grid-cols-5 gap-1 items-center w-full max-w-xs mx-auto">
                 <div className={`${team1Style} text-right`}>{team1Name}</div>
                 <div className={`${team1Style} font-bold text-center`}>{match.team1Score}</div>
@@ -153,10 +143,6 @@ export default function BracketPage() {
                 <div className={`${team2Style} font-bold text-center`}>{match.team2Score}</div>
                 <div className={`${team2Style} text-left`}>{team2Name}</div>
               </div>
-              {/* Live Indicator */}
-              {isLive && (
-                <div className="text-yellow-400 text-xs">🔴 LIVE</div>
-              )}
             </div>
           ) : (
             <div className="text-white">{team1Name} vs {team2Name}</div>
@@ -198,119 +184,49 @@ export default function BracketPage() {
           </div>
         </div>
 
-        {/* Tournament Bracket - Always show bracket structure */}
-        <div className="relative bg-black/20 backdrop-blur-sm rounded-xl p-6 border border-purple-500/50 w-full">{/* Always show bracket, remove condition */}
-            
-            {/* Lines Background Image - Absolute positioned overlay */}
-            <div className="absolute" style={{top: '175px', left: '365px', zIndex: 1}}>
-              <img 
-                src="/lines.png" 
-                alt="Bracket Lines" 
-                className="select-none pointer-events-none"
-                style={{
-                  userSelect: 'none', 
-                  WebkitUserSelect: 'none', 
-                  MozUserSelect: 'none', 
-                  msUserSelect: 'none',
-                  width: 'auto',
-                  height: 'auto',
-                  maxWidth: 'none',
-                  maxHeight: 'none'
-                }}
-                draggable={false}
-              />
-            </div>
-            
-            <div className="w-full relative" style={{height: '600px'}}>
-              
-              {/* Quarter Finals */}
-              <div className="absolute bg-black/30 rounded-lg border border-purple-500/30 p-4" style={{left: '21px', top: '135px', zIndex: 2, width: '320px'}}>
-                <div className="bg-purple-600 text-white px-4 py-2 rounded-lg font-bold text-center w-full text-sm mb-3">
-                  RUNDE 1 - QUARTER FINALS
+        {/* Tournament Bracket */}
+        <div className="space-y-10">
+          <div className="bg-black/20 backdrop-blur-sm rounded-xl p-6 border border-purple-500/50">
+            <h2 className="text-2xl font-bold text-white mb-6">Winner Bracket</h2>
+            <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
+              {WINNER_ROUND_GROUPS.map(group => (
+                <div key={group.title} className="bg-black/40 border border-white/10 rounded-xl p-4 flex flex-col gap-3">
+                  <div>
+                    <h3 className="text-white font-semibold text-lg">{group.title}</h3>
+                    <p className="text-purple-200 text-sm">{group.description}</p>
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    {group.matchIds.map(matchId => (
+                      <MatchBox key={matchId} match={findMatchById(matchId)} />
+                    ))}
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <MatchBox match={findMatchById('WB-Q1')} />
-                  <MatchBox match={findMatchById('WB-Q2')} />
-                  <MatchBox match={findMatchById('WB-Q3')} />
-                  <MatchBox match={findMatchById('WB-Q4')} />
-                </div>
-              </div>
-
-              {/* Semi Finals */}
-              <div className="absolute bg-black/30 rounded-lg border border-purple-500/30 p-4" style={{left: '387px', top: '55px', zIndex: 2, width: '320px'}}>
-                <div className="bg-purple-600 text-white px-4 py-2 rounded-lg font-bold text-center w-full text-sm mb-3">
-                  RUNDE 2 - SEMI FINALS
-                </div>
-                <div className="space-y-3">
-                  <MatchBox match={findMatchById('WB-S1')} />
-                  <MatchBox match={findMatchById('WB-S2')} />
-                </div>
-              </div>
-
-              {/* Winner Bracket Final */}
-              <div className="absolute bg-black/30 rounded-lg border border-purple-500/30 p-4" style={{left: '1117px', top: '91px', zIndex: 2, width: '320px'}}>
-                <div className="bg-purple-600 text-white px-4 py-2 rounded-lg font-bold text-center w-full text-sm mb-3">
-                  WINNER BRACKET FINAL
-                </div>
-                <div>
-                  <MatchBox match={findMatchById('WB-F')} />
-                </div>
-              </div>
-
-              {/* Loser Bracket Round 1 */}
-              <div className="absolute bg-black/30 rounded-lg border border-purple-500/30 p-4" style={{left: '387px', top: '323px', zIndex: 2, width: '320px'}}>
-                <div className="bg-purple-700 text-white px-4 py-2 rounded-lg font-bold text-center w-full text-sm mb-3">
-                  LOSER BRACKET R1
-                </div>
-                <div className="space-y-3">
-                  <MatchBox match={findMatchById('LB-1-1')} />
-                  <MatchBox match={findMatchById('LB-1-2')} />
-                </div>
-              </div>
-
-              {/* Loser Bracket Round 2 */}
-              <div className="absolute bg-black/30 rounded-lg border border-purple-500/30 p-4" style={{left: '752px', top: '323px', zIndex: 2, width: '320px'}}>
-                <div className="bg-purple-700 text-white px-4 py-2 rounded-lg font-bold text-center w-full text-sm mb-3">
-                  LOSER BRACKET R2
-                </div>
-                <div className="space-y-3">
-                  <MatchBox match={findMatchById('LB-2-1')} />
-                  <MatchBox match={findMatchById('LB-2-2')} />
-                </div>
-              </div>
-
-              {/* Loser Bracket Round 3 */}
-              <div className="absolute bg-black/30 rounded-lg border border-purple-500/30 p-4" style={{left: '1117px', top: '359px', zIndex: 2, width: '320px'}}>
-                <div className="bg-purple-700 text-white px-4 py-2 rounded-lg font-bold text-center w-full text-sm mb-3">
-                  LOSER BRACKET R3
-                </div>
-                <div>
-                  <MatchBox match={findMatchById('LB-3')} />
-                </div>
-              </div>
-
-              {/* Loser Bracket Final */}
-              <div className="absolute bg-black/30 rounded-lg border border-purple-500/30 p-4" style={{left: '1482px', top: '359px', zIndex: 2, width: '320px'}}>
-                <div className="bg-purple-700 text-white px-4 py-2 rounded-lg font-bold text-center w-full text-sm mb-3">
-                  LOSER BRACKET FINAL
-                </div>
-                <div>
-                  <MatchBox match={findMatchById('LB-F')} />
-                </div>
-              </div>
-
-              {/* Grand Final */}
-              <div className="absolute bg-black/30 rounded-lg border border-yellow-500/50 p-4" style={{left: '1482px', top: '91px', zIndex: 2, width: '320px'}}>
-                <div className="bg-yellow-500 text-black px-4 py-2 rounded-lg font-bold text-center w-full text-sm mb-3 flex items-center justify-center">
-                  🏆 GRAND FINAL
-                </div>
-                <div>
-                  <MatchBox match={findMatchById('GF')} />
-                </div>
-              </div>
-
+              ))}
             </div>
           </div>
+
+          <div className="bg-black/20 backdrop-blur-sm rounded-xl p-6 border border-purple-500/50">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-white">Loser Bracket</h2>
+              <span className="text-sm text-purple-200">Double elimination • Jede Niederlage zählt</span>
+            </div>
+            <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
+              {LOSER_ROUND_GROUPS.map(group => (
+                <div key={group.title} className="bg-black/40 border border-white/10 rounded-xl p-4 flex flex-col gap-3">
+                  <div>
+                    <h3 className="text-white font-semibold text-lg">{group.title}</h3>
+                    <p className="text-purple-200 text-sm">{group.description}</p>
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    {group.matchIds.map(matchId => (
+                      <MatchBox key={matchId} match={findMatchById(matchId)} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
 
         {/* Teams Overview */}
         <div className="mt-8">
@@ -323,7 +239,7 @@ export default function BracketPage() {
               </div>
             )) : (
               // Fallback teams if no teams are loaded
-              ['Team Alpha', 'Team Beta', 'Team Gamma', 'Team Delta', 'Team Echo', 'Team Foxtrot', 'Team Golf', 'Team Hotel'].map((teamName, index) => (
+              ['Team Alpha', 'Team Beta', 'Team Gamma', 'Team Delta', 'Team Echo', 'Team Foxtrot', 'Team Golf', 'Team Hotel', 'Team Indigo', 'Team Jade'].map((teamName, index) => (
                 <div key={index} className="bg-purple-600/20 backdrop-blur-sm rounded-lg p-3 border border-purple-500/50">
                   <h3 className="text-white font-semibold text-center text-base">{teamName}</h3>
                   <p className="text-purple-200 text-center text-xs">Position {index + 1}</p>

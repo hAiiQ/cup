@@ -1,13 +1,14 @@
 // Simple in-memory state for live match status and scores
 // This will persist during server runtime
 
-interface MatchState {
+export interface MatchState {
   isLive: boolean
   team1Score: number
   team2Score: number
   isFinished: boolean
   winnerId?: string
   lastUpdated: number
+  source?: 'database' | 'memory'
 }
 
 // In-memory storage for match states

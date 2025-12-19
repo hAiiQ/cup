@@ -1,483 +1,167 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import {
+  buildBracketMatches,
+  ensureTenTeams,
+  WINNER_ROUND_GROUPS,
+  LOSER_ROUND_GROUPS,
+  type BracketMatch,
+  type BracketTeam
+} from '@/lib/bracketStructure'
+import type { MatchState } from '@/lib/matchState'
 
-interface Team {
-  id: string
-  name: string
-  position: number
+interface ScoreInput {
+  team1: number
+  team2: number
 }
 
-interface Match {
-  id: string
-  round: number
-  matchNumber: number
-  bracket: string
-  team1?: Team
-  team2?: Team
-  team1Score: number
-  team2Score: number
-  winner?: Team
-  isFinished: boolean
-  isLive?: boolean
+const createStateMap = (states: any[]): Map<string, MatchState> => {
+  const map = new Map<string, MatchState>()
+
+  states?.forEach((state) => {
+    map.set(state.matchId, {
+      isLive: Boolean(state.isLive),
+      team1Score: Number(state.team1Score) || 0,
+      team2Score: Number(state.team2Score) || 0,
+      isFinished: Boolean(state.isFinished),
+      winnerId: state.winnerId || undefined,
+      lastUpdated: state.lastUpdated || Date.now(),
+      source: state.source === 'database' ? 'database' : 'memory'
+    })
+  })
+
+  return map
 }
 
 export default function AdminBracketPage() {
-  const [teams, setTeams] = useState<Team[]>([])
-  const [bracket, setBracket] = useState<Match[]>([])
+  const router = useRouter()
+  const [teams, setTeams] = useState<BracketTeam[]>([])
+  const [bracket, setBracket] = useState<BracketMatch[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null)
-  const [scoreInput, setScoreInput] = useState({ team1: 0, team2: 0 })
+  const [refreshing, setRefreshing] = useState(false)
+  const [selectedMatch, setSelectedMatch] = useState<BracketMatch | null>(null)
+  const [scoreInput, setScoreInput] = useState<ScoreInput>({ team1: 0, team2: 0 })
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isAuthLoading, setIsAuthLoading] = useState(true)
-  const router = useRouter()
 
-  // Admin Authentication Check
   useEffect(() => {
     checkAdminAuth()
   }, [])
 
   const checkAdminAuth = async () => {
     try {
-      console.log('🔍 Admin auth check starting...')
       const response = await fetch('/api/admin/auth/check', {
         credentials: 'include'
       })
-      
-      console.log('🔍 Auth response status:', response.status)
-      
+
       if (response.ok) {
-        console.log('✅ Admin authenticated successfully')
         setIsAuthenticated(true)
-        // Add a small delay to ensure state is set before calling fetchData
-        setTimeout(() => {
-          console.log('🚀 Calling fetchData after auth success')
-          fetchData()
-        }, 100)
+        await fetchData()
       } else {
-        console.log('❌ Admin not authenticated, redirecting to login with redirect parameter')
-        setLoading(false)  // WICHTIG: Loading beenden auch bei Auth-Fehler
-        setIsAuthenticated(false)  // Explizit auf false setzen
-        // Force immediate redirect
+        setIsAuthenticated(false)
         window.location.href = '/admin?redirect=' + encodeURIComponent('/admin/bracket')
       }
     } catch (error) {
       console.error('❌ Auth check failed:', error)
-      setLoading(false)  // WICHTIG: Loading beenden auch bei Auth-Fehler  
-      setIsAuthenticated(false)  // Explizit auf false setzen
-      // Force immediate redirect
+      setIsAuthenticated(false)
       window.location.href = '/admin?redirect=' + encodeURIComponent('/admin/bracket')
     } finally {
       setIsAuthLoading(false)
     }
   }
 
-  const fetchData = async () => {
-    // Remove the authentication check - this is already verified before calling
-    console.log('🔄 Admin fetchData started')
-    setLoading(true)  // WICHTIG: Loading state setzen
-    
+  const fetchData = async (showMainSpinner = true) => {
     try {
-      const [teamsRes, liveStatesRes] = await Promise.all([
-        fetch('/api/admin/teams'),
-        fetch('/api/admin/bracket/matches/live-states') // Get live states only
-      ])
-      
-      let teamsData = { teams: [] }
-      if (teamsRes.ok) {
-        teamsData = await teamsRes.json()
-        const sortedTeams = teamsData.teams.sort((a: Team, b: Team) => a.position - b.position)
-        setTeams(sortedTeams)
-        console.log('✅ Admin teams loaded:', sortedTeams.length)
-      }
-
-      // Generate complete bracket with real teams
-      const fallbackBracket = generateFullBracket(teamsData.teams || [])
-      console.log('🔍 Fallback bracket LB-3 before live states:', fallbackBracket.find(m => m.id === 'LB-3'))
-      
-      // Apply live states if available
-      if (liveStatesRes.ok) {
-        const liveStatesData = await liveStatesRes.json()
-        console.log('✅ Admin live states loaded:', liveStatesData.states?.length || 0)
-        
-        if (liveStatesData.states && liveStatesData.states.length > 0) {
-          // Apply live states to fallback bracket
-          const updatedBracket = fallbackBracket.map(match => {
-            const liveState = liveStatesData.states.find((state: any) => state.matchId === match.id)
-            if (liveState) {
-              // Determine winner using the new scoring system
-              const winningScore = match.bracket === 'grand' ? 3 : 2
-              let winner = undefined
-              let isFinished = liveState.isFinished || false
-              
-              if (liveState.team1Score >= winningScore && liveState.team1Score > liveState.team2Score) {
-                winner = match.team1
-                isFinished = true
-              } else if (liveState.team2Score >= winningScore && liveState.team2Score > liveState.team1Score) {
-                winner = match.team2
-                isFinished = true
-              }
-              
-              return {
-                ...match,
-                isLive: liveState.isLive,
-                team1Score: liveState.team1Score || 0,
-                team2Score: liveState.team2Score || 0,
-                winner,
-                isFinished
-              }
-            }
-            return match
-          })
-          
-          // Apply team progression for all completed matches
-          const processedBracket = applyExistingProgression(updatedBracket)
-          setBracket(processedBracket)
-          console.log('🎯 Admin Bracket updated with live states and team progression')
-        } else {
-          setBracket(fallbackBracket)
-          console.log('📦 Admin using fallback bracket (no live states)')
-        }
+      if (showMainSpinner) {
+        setLoading(true)
       } else {
-        setBracket(fallbackBracket)
-        console.log('⚠️ Admin live states API failed, using fallback bracket')
+        setRefreshing(true)
       }
-      
+
+      const [teamsRes, statesRes] = await Promise.all([
+        fetch('/api/admin/teams'),
+        fetch('/api/admin/bracket/matches/live-states')
+      ])
+
+      let fetchedTeams: BracketTeam[] = []
+      if (teamsRes.ok) {
+        const payload = await teamsRes.json()
+        fetchedTeams = (payload.teams || []).map((team: any) => ({
+          id: team.id,
+          name: team.name,
+          position: team.position || 0
+        }))
+      }
+
+      const normalizedTeams = ensureTenTeams(fetchedTeams)
+      setTeams(normalizedTeams)
+
+      let stateMap = new Map<string, MatchState>()
+      if (statesRes.ok) {
+        const statePayload = await statesRes.json()
+        stateMap = createStateMap(statePayload.states || [])
+      }
+
+      const matches = buildBracketMatches(normalizedTeams, stateMap)
+      setBracket(matches)
     } catch (error) {
-      console.error('Error fetching data:', error)
-      console.error('Error details:', error instanceof Error ? error.message : String(error))
-      // Generate fallback bracket even on error
-      const fallbackBracket = generateFullBracket([])
-      setBracket(fallbackBracket)
-      console.log('🔥 Admin using fallback bracket due to error:', fallbackBracket.length, 'matches')
+      console.error('Error fetching bracket data:', error)
     } finally {
-      console.log('🏁 Admin fetchData finished - setting loading to false')
-      setLoading(false)
+      if (showMainSpinner) {
+        setLoading(false)
+      } else {
+        setRefreshing(false)
+      }
     }
   }
 
-  const generateFullBracket = (teams: Team[]): Match[] => {
-    const matches: Match[] = []
-    
-    // Use fixed team names like the public page - FIXED: Match actual team names
-    const sampleTeams = [
-      { id: 'alpha', name: 'Team Alpha', position: 1 },
-      { id: 'beta', name: 'Team Beta', position: 2 },
-      { id: 'gamma', name: 'Team Gamma', position: 3 },
-      { id: 'delta', name: 'Team Delta', position: 4 },
-      { id: 'epsilon', name: 'Team Epsilon', position: 5 },
-      { id: 'zeta', name: 'Team Zeta', position: 6 },
-      { id: 'eta', name: 'Team Eta', position: 7 },
-      { id: 'theta', name: 'Team Theta', position: 8 }
-    ]
-
-    // Use actual teams if available, otherwise use sample teams
-    const paddedTeams = teams.length >= 8 ? teams.slice(0, 8) : sampleTeams
-
-    // WINNER BRACKET
-    // Winner Bracket Round 1 (Quarter Finals) - 4 Matches (RUNDE 1)
-    const quarterFinals = [
-      { team1: paddedTeams[0], team2: paddedTeams[1] }, // Alpha vs Beta
-      { team1: paddedTeams[2], team2: paddedTeams[3] }, // Gamma vs Delta  
-      { team1: paddedTeams[4], team2: paddedTeams[5] }, // Epsilon vs Zeta
-      { team1: paddedTeams[6], team2: paddedTeams[7] }, // Eta vs Theta
-    ]
-
-    quarterFinals.forEach((match, index) => {
-      matches.push({
-        id: `WB-Q${index + 1}`,
-        round: 1,
-        matchNumber: index + 1,
-        team1: match.team1,
-        team2: match.team2,
-        team1Score: 0,
-        team2Score: 0,
-        isFinished: false,
-        bracket: 'winner'
-      })
+  const openScoreModal = (match: BracketMatch) => {
+    setSelectedMatch(match)
+    setScoreInput({
+      team1: match.team1Score,
+      team2: match.team2Score
     })
-
-    // Winner Bracket Semi Finals (Round 2) - 2 Matches (RUNDE 2)
-    for (let i = 0; i < 2; i++) {
-      matches.push({
-        id: `WB-S${i + 1}`,
-        round: 2,
-        matchNumber: i + 1,
-        team1Score: 0,
-        team2Score: 0,
-        isFinished: false,
-        bracket: 'winner'
-      })
-    }
-
-    // Winner Bracket Final (Round 3) - 1 Match (RUNDE 5)
-    matches.push({
-      id: 'WB-F',
-      round: 3,
-      matchNumber: 1,
-      team1Score: 0,
-      team2Score: 0,
-      isFinished: false,
-      bracket: 'winner'
-    })
-
-    // LOSER BRACKET
-    // Loser Bracket Round 1 - 2 Matches (RUNDE 3)
-    for (let i = 0; i < 2; i++) {
-      matches.push({
-        id: `LB-1-${i + 1}`,
-        round: 1,
-        matchNumber: i + 1,
-        team1Score: 0,
-        team2Score: 0,
-        isFinished: false,
-        bracket: 'loser'
-      })
-    }
-
-    // Loser Bracket Round 2 - 2 Matches (RUNDE 4)
-    for (let i = 0; i < 2; i++) {
-      matches.push({
-        id: `LB-2-${i + 1}`,
-        round: 2,
-        matchNumber: i + 1,
-        team1Score: 0,
-        team2Score: 0,
-        isFinished: false,
-        bracket: 'loser'
-      })
-    }
-
-    // Loser Bracket Round 3 - 1 Match (RUNDE 6)
-    matches.push({
-      id: 'LB-3',
-      round: 3,
-      matchNumber: 1,
-      team1Score: 0,
-      team2Score: 0,
-      isFinished: false,
-      bracket: 'loser'
-    })
-
-    // Loser Bracket Final - 1 Match (RUNDE 7)
-    matches.push({
-      id: 'LB-F',
-      round: 4,
-      matchNumber: 1,
-      team1Score: 0,
-      team2Score: 0,
-      isFinished: false,
-      bracket: 'loser'
-    })
-
-    // GRAND FINAL - 1 Match (RUNDE 8)
-    matches.push({
-      id: 'GF',
-      round: 1,
-      matchNumber: 1,
-      team1Score: 0,
-      team2Score: 0,
-      isFinished: false,
-      bracket: 'grand'
-    })
-
-    return matches
   }
 
-  const generateBracket = (teams: Team[]) => {
-    const matches: Match[] = []
-    
-    // Use fixed team names like the public page
-    const sampleTeams = [
-      { id: 'alpha', name: 'Team Alpha', position: 1 },
-      { id: 'beta', name: 'Team Beta', position: 2 },
-      { id: 'gamma', name: 'Team Gamma', position: 3 },
-      { id: 'delta', name: 'Team Delta', position: 4 },
-      { id: 'echo', name: 'Team Echo', position: 5 },
-      { id: 'foxtrot', name: 'Team Foxtrot', position: 6 },
-      { id: 'golf', name: 'Team Golf', position: 7 },
-      { id: 'hotel', name: 'Team Hotel', position: 8 }
-    ]
-
-    // Use actual teams if available, otherwise use sample teams
-    const paddedTeams = teams.length >= 8 ? teams.slice(0, 8) : sampleTeams
-
-    // WINNER BRACKET
-    // Winner Bracket Round 1 (Quarter Finals) - 4 Matches
-    const quarterFinals = [
-      { team1: paddedTeams[0], team2: paddedTeams[1] }, // Alpha vs Beta
-      { team1: paddedTeams[2], team2: paddedTeams[3] }, // Gamma vs Delta  
-      { team1: paddedTeams[4], team2: paddedTeams[5] }, // Echo vs Foxtrot
-      { team1: paddedTeams[6], team2: paddedTeams[7] }, // Golf vs Hotel
-    ]
-
-    quarterFinals.forEach((match, index) => {
-      matches.push({
-        id: `WB-Q${index + 1}`,
-        round: 1,
-        matchNumber: index + 1,
-        team1: match.team1,
-        team2: match.team2,
-        team1Score: 0,
-        team2Score: 0,
-        isFinished: false,
-        bracket: 'winner'
+  const toggleLiveStatus = async (match: BracketMatch) => {
+    try {
+      const response = await fetch('/api/admin/bracket/matches/live', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          matchId: match.id,
+          isLive: !match.isLive
+        })
       })
-    })
 
-    // Winner Bracket Semi Finals (Round 2) - 2 Matches
-    for (let i = 0; i < 2; i++) {
-      matches.push({
-        id: `WB-S${i + 1}`,
-        round: 2,
-        matchNumber: i + 1,
-        team1Score: 0,
-        team2Score: 0,
-        isFinished: false,
-        bracket: 'winner'
-      })
+      if (response.ok) {
+        const result = await response.json()
+        alert(`✅ ${result.message || (match.isLive ? 'Match gestoppt' : 'Match gestartet')}`)
+        await fetchData(false)
+      } else {
+        alert('Fehler beim Aktualisieren des Live-Status')
+      }
+    } catch (error) {
+      console.error('Error toggling live status:', error)
+      alert('Fehler beim Aktualisieren des Live-Status')
     }
-
-    // Winner Bracket Final (Round 3) - 1 Match
-    matches.push({
-      id: 'WB-F',
-      round: 3,
-      matchNumber: 1,
-      team1Score: 0,
-      team2Score: 0,
-      isFinished: false,
-      bracket: 'winner'
-    })
-
-    // LOSER BRACKET
-    // Loser Bracket Round 1 - 2 Matches (losers from WB QF 1&2 vs losers from WB QF 3&4)
-    for (let i = 0; i < 2; i++) {
-      matches.push({
-        id: `LB-1-${i + 1}`,
-        round: 1,
-        matchNumber: i + 1,
-        team1Score: 0,
-        team2Score: 0,
-        isFinished: false,
-        bracket: 'loser'
-      })
-    }
-
-    // Loser Bracket Round 2 - 2 Matches (winners from LB R1 vs losers from WB SF)
-    for (let i = 0; i < 2; i++) {
-      matches.push({
-        id: `LB-2-${i + 1}`,
-        round: 2,
-        matchNumber: i + 1,
-        team1Score: 0,
-        team2Score: 0,
-        isFinished: false,
-        bracket: 'loser'
-      })
-    }
-
-    // Loser Bracket Round 3 - 1 Match (LB R2 winners)
-    matches.push({
-      id: 'LB-3',
-      round: 3,
-      matchNumber: 1,
-      team1Score: 0,
-      team2Score: 0,
-      isFinished: false,
-      bracket: 'loser'
-    })
-
-    // Loser Bracket Final - 1 Match (LB R3 winner vs loser from WB Final)
-    matches.push({
-      id: 'LB-F',
-      round: 4,
-      matchNumber: 1,
-      team1Score: 0,
-      team2Score: 0,
-      isFinished: false,
-      bracket: 'loser'
-    })
-
-    // GRAND FINAL - 1 Match (WB Final winner vs LB Final winner)
-    matches.push({
-      id: 'GF',
-      round: 4,
-      matchNumber: 1,
-      team1Score: 0,
-      team2Score: 0,
-      isFinished: false,
-      bracket: 'grand'
-    })
-
-    console.log('📦 Generated fallback bracket with', matches.length, 'matches')
-    return matches
   }
 
   const updateMatchScore = async (matchId: string, team1Score: number, team2Score: number) => {
     try {
-      // Update match score via API
-      const updateResponse = await fetch('/api/admin/bracket/matches/update', {
+      const response = await fetch('/api/admin/bracket/matches/update', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          matchId,
-          team1Score,
-          team2Score
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matchId, team1Score, team2Score })
       })
 
-      if (updateResponse.ok) {
-        const result = await updateResponse.json()
-        
-        // Show success message
+      if (response.ok) {
+        const result = await response.json()
         alert(`✅ ${result.message || 'Match-Score gespeichert!'}`)
-        
-        // Close modal
         setSelectedMatch(null)
-        
-        // FIXED: Update local state AND handle team progression
-        setBracket(prevBracket => {
-          const updatedBracket = prevBracket.map(m => {
-            if (m.id === matchId) {
-              // Determine winner using the new scoring system
-              const winningScore = m.bracket === 'grand' ? 3 : 2
-              let winner = undefined
-              let isFinished = false
-              
-              if (team1Score >= winningScore && team1Score > team2Score) {
-                winner = m.team1
-                isFinished = true
-              } else if (team2Score >= winningScore && team2Score > team1Score) {
-                winner = m.team2
-                isFinished = true
-              }
-              
-              return { 
-                ...m, 
-                team1Score, 
-                team2Score, 
-                winner,
-                isFinished 
-              }
-            }
-            return m
-          })
-          
-          // Find the updated match and handle team progression if it's finished
-          const updatedMatch = updatedBracket.find(m => m.id === matchId)
-          if (updatedMatch && updatedMatch.isFinished && updatedMatch.winner) {
-            console.log(`🏆 Match ${matchId} completed! Winner: ${updatedMatch.winner.name}`)
-            updateNextRound(updatedBracket, updatedMatch)
-          }
-          
-          return updatedBracket
-        })
-        console.log(`🔄 Admin: Updated local match ${matchId} scores: ${team1Score}-${team2Score}`)
-        
-        // Success - modal closed with visible feedback
+        await fetchData(false)
       } else {
         alert('Fehler beim Speichern des Ergebnisses')
       }
@@ -488,25 +172,19 @@ export default function AdminBracketPage() {
   }
 
   const resetTournament = async () => {
-    if (!confirm('Möchtest du wirklich das gesamte Tournament zurücksetzen? Alle Ergebnisse gehen verloren!')) {
+    if (!confirm('Möchtest du das Tournament wirklich komplett zurücksetzen?')) {
       return
     }
 
     try {
-      // Delete all matches from database
       const response = await fetch('/api/admin/bracket/reset', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' }
       })
 
       if (response.ok) {
-        // Reset local state with fresh bracket
-        const freshBracket = generateFullBracket(teams)
-        setBracket(freshBracket)
-        console.log('✅ Tournament reset - generated fresh bracket with', freshBracket.length, 'matches')
         alert('Tournament erfolgreich zurückgesetzt!')
+        await fetchData()
       } else {
         alert('Fehler beim Zurücksetzen des Tournaments')
       }
@@ -516,399 +194,67 @@ export default function AdminBracketPage() {
     }
   }
 
-  const applyExistingProgression = (bracket: Match[]): Match[] => {
-    console.log('🔄 Applying existing team progression for completed matches...')
-    console.log('🔍 Input bracket LB-3:', bracket.find(m => m.id === 'LB-3'))
-    
-    // Create a working copy of the bracket
-    const workingBracket = [...bracket]
-    
-    // CRITICAL: Process matches in DEPENDENCY order to prevent overwrites
-    // 1. Winner Bracket Round 1 (provides teams for WB R2 and LB R1)
-    // 2. Winner Bracket Round 2 (provides teams for WB R3 and LB R2)
-    // 3. Loser Bracket Round 1 (provides teams for LB R2)
-    // 4. Loser Bracket Round 2 (provides teams for LB R3)
-    // 5. Winner Bracket Round 3 (provides teams for Grand Final and LB R4)
-    // 6. Loser Bracket Round 3 (provides teams for LB R4)
-    
-    // Winner Bracket Round 1 (Quarter Finals)
-    const wbR1Matches = workingBracket.filter(m => m.bracket === 'winner' && m.round === 1)
-    wbR1Matches.forEach(match => {
-      if (match.isFinished && match.winner) {
-        updateNextRound(workingBracket, match)
-      }
-    })
-    
-    // Winner Bracket Round 2 (Semi Finals) - This sends losers to LB R2
-    const wbR2Matches = workingBracket.filter(m => m.bracket === 'winner' && m.round === 2)
-    wbR2Matches.forEach(match => {
-      if (match.isFinished && match.winner) {
-        updateNextRound(workingBracket, match)
-      }
-    })
-    
-    // Loser Bracket Round 1 - This sends winners to LB R2
-    const lbR1Matches = workingBracket.filter(m => m.bracket === 'loser' && m.round === 1)
-    lbR1Matches.forEach(match => {
-      if (match.isFinished && match.winner) {
-        updateNextRound(workingBracket, match)
-      }
-    })
-    
-    // Loser Bracket Round 2 - This sends winners to LB R3 (CRITICAL: Process both matches properly)
-    const lbR2Matches = workingBracket.filter(m => m.bracket === 'loser' && m.round === 2)
-    lbR2Matches.forEach(match => {
-      if (match.isFinished && match.winner) {
-        updateNextRound(workingBracket, match)
-      }
-    })
-    
-    // Winner Bracket Round 3 (Final)
-    const wbR3Matches = workingBracket.filter(m => m.bracket === 'winner' && m.round === 3)
-    wbR3Matches.forEach(match => {
-      if (match.isFinished && match.winner) {
-        updateNextRound(workingBracket, match)
-      }
-    })
-    
-    // Loser Bracket Round 3
-    const lbR3Matches = workingBracket.filter(m => m.bracket === 'loser' && m.round === 3)
-    lbR3Matches.forEach(match => {
-      if (match.isFinished && match.winner) {
-        updateNextRound(workingBracket, match)
-      }
-    })
-    
-    // Loser Bracket Round 4 (Final)
-    const lbR4Matches = workingBracket.filter(m => m.bracket === 'loser' && m.round === 4)
-    lbR4Matches.forEach(match => {
-      if (match.isFinished && match.winner) {
-        updateNextRound(workingBracket, match)
-      }
-    })
-    
-    console.log('✅ Team progression applied for all completed matches')
-    console.log('🔍 Final bracket LB-3:', workingBracket.find(m => m.id === 'LB-3'))
-    return workingBracket
-  }
+  const getMatchById = (id: string) => bracket.find(match => match.id === id)
 
-  const updateNextRound = (bracket: Match[], completedMatch: Match) => {
-    console.log(`🔄 Team Progression: Processing ${completedMatch.id} - Winner: ${completedMatch.winner?.name}`)
-    
-    if (completedMatch.bracket === 'winner') {
-      // Winner Bracket progression
-      if (completedMatch.round === 1) {
-        // WB Quarter Final to WB Semi Final
-        const qfNumber = completedMatch.matchNumber
-        const sfIndex = Math.ceil(qfNumber / 2) - 1
-        const sfMatch = bracket.find(m => m.bracket === 'winner' && m.round === 2 && m.matchNumber === sfIndex + 1)
-        
-        console.log(`📈 WB QF${qfNumber} → WB SF${sfIndex + 1}`)
-        if (sfMatch) {
-          if (qfNumber % 2 === 1) {
-            sfMatch.team1 = completedMatch.winner
-            console.log(`✅ ${completedMatch.winner?.name} → WB SF${sfIndex + 1} (Team1)`)
-          } else {
-            sfMatch.team2 = completedMatch.winner
-            console.log(`✅ ${completedMatch.winner?.name} → WB SF${sfIndex + 1} (Team2)`)
-          }
-        }
-
-        // Send loser to Loser Bracket - FIXED: Correct team placement
-        const loser = completedMatch.team1Score > completedMatch.team2Score ? completedMatch.team2 : completedMatch.team1
-        const lbR1Index = Math.ceil(qfNumber / 2) - 1
-        const lbR1Match = bracket.find(m => m.bracket === 'loser' && m.round === 1 && m.matchNumber === lbR1Index + 1)
-        
-        console.log(`📉 WB QF${qfNumber} Loser → LB R1-${lbR1Index + 1}`)
-        if (lbR1Match && loser) {
-          // FIXED: Correct mapping - QF1→LB R1-1 Team1, QF2→LB R1-1 Team2, QF3→LB R1-2 Team1, QF4→LB R1-2 Team2
-          if (qfNumber === 1 || qfNumber === 3) {
-            lbR1Match.team1 = loser
-            console.log(`❌ ${loser.name} → LB R1-${lbR1Index + 1} (Team1)`)
-          } else { // qfNumber === 2 || qfNumber === 4
-            lbR1Match.team2 = loser
-            console.log(`❌ ${loser.name} → LB R1-${lbR1Index + 1} (Team2)`)
-          }
-        }
-
-      } else if (completedMatch.round === 2) {
-        // WB Semi Final to WB Final
-        const finalMatch = bracket.find(m => m.bracket === 'winner' && m.round === 3)
-        console.log(`📈 WB SF${completedMatch.matchNumber} → WB Final`)
-        if (finalMatch) {
-          if (completedMatch.matchNumber === 1) {
-            finalMatch.team1 = completedMatch.winner
-            console.log(`✅ ${completedMatch.winner?.name} → WB Final (Team1)`)
-          } else {
-            finalMatch.team2 = completedMatch.winner
-            console.log(`✅ ${completedMatch.winner?.name} → WB Final (Team2)`)
-          }
-        }
-
-        // Send loser to Loser Bracket Round 2
-        const loser = completedMatch.team1Score > completedMatch.team2Score ? completedMatch.team2 : completedMatch.team1
-        const lbR2Match = bracket.find(m => m.bracket === 'loser' && m.round === 2 && m.matchNumber === completedMatch.matchNumber)
-        
-        console.log(`📉 WB SF${completedMatch.matchNumber} Loser → LB R2-${completedMatch.matchNumber}`)
-        if (lbR2Match && loser) {
-          lbR2Match.team2 = loser
-          console.log(`❌ ${loser.name} → LB R2-${completedMatch.matchNumber} (Team2)`)
-        }
-
-      } else if (completedMatch.round === 3) {
-        // WB Final to Grand Final
-        const grandFinal = bracket.find(m => m.bracket === 'grand')
-        console.log(`📈 WB Final → Grand Final`)
-        if (grandFinal) {
-          grandFinal.team1 = completedMatch.winner
-          console.log(`✅ ${completedMatch.winner?.name} → Grand Final (Team1)`)
-        }
-
-        // Send loser to Loser Bracket Final
-        const loser = completedMatch.team1Score > completedMatch.team2Score ? completedMatch.team2 : completedMatch.team1
-        const lbFinal = bracket.find(m => m.bracket === 'loser' && m.round === 4)
-        
-        console.log(`📉 WB Final Loser → LB Final`)
-        if (lbFinal && loser) {
-          lbFinal.team2 = loser
-          console.log(`❌ ${loser.name} → LB Final (Team2)`)
-        }
-      }
-
-    } else if (completedMatch.bracket === 'loser') {
-      // Loser Bracket progression
-      if (completedMatch.round === 1) {
-        // LB Round 1 to LB Round 2
-        const lbR2Match = bracket.find(m => m.bracket === 'loser' && m.round === 2 && m.matchNumber === completedMatch.matchNumber)
-        console.log(`📈 LB R1-${completedMatch.matchNumber} → LB R2-${completedMatch.matchNumber}`)
-        if (lbR2Match) {
-          lbR2Match.team1 = completedMatch.winner
-          console.log(`✅ ${completedMatch.winner?.name} → LB R2-${completedMatch.matchNumber} (Team1)`)
-        }
-
-      } else if (completedMatch.round === 2) {
-        // LB Round 2 to LB Round 3 - CRITICAL: Ensure proper team assignment
-        const lbR3Match = bracket.find(m => m.bracket === 'loser' && m.round === 3)
-        console.log(`📈 LB R2-${completedMatch.matchNumber} → LB R3`)
-        console.log(`🔍 LB R3 Match before update:`, lbR3Match ? { id: lbR3Match.id, team1: lbR3Match.team1?.name, team2: lbR3Match.team2?.name } : 'NOT FOUND')
-        
-        if (lbR3Match) {
-          // FIXED: Correct team positioning - Zeta (from LB-2-1) left, Delta (from LB-2-2) right
-          if (completedMatch.matchNumber === 1) {
-            // LB-2-1 winner → LB-3 Team1 (left side)
-            if (!lbR3Match.team1 || lbR3Match.team1.name === 'TBD') {
-              lbR3Match.team1 = completedMatch.winner
-              console.log(`✅ ${completedMatch.winner?.name} → LB R3 (Team1/Left) - NEW ASSIGNMENT`)
-            } else {
-              console.log(`⚠️ LB R3 Team1 already assigned: ${lbR3Match.team1.name}, skipping assignment`)
-            }
-          } else if (completedMatch.matchNumber === 2) {
-            // LB-2-2 winner → LB-3 Team2 (right side)
-            if (!lbR3Match.team2 || lbR3Match.team2.name === 'TBD') {
-              lbR3Match.team2 = completedMatch.winner
-              console.log(`✅ ${completedMatch.winner?.name} → LB R3 (Team2/Right) - NEW ASSIGNMENT`)
-            } else {
-              console.log(`⚠️ LB R3 Team2 already assigned: ${lbR3Match.team2.name}, skipping assignment`)
-            }
-          }
-          console.log(`🔍 LB R3 Match after update:`, { id: lbR3Match.id, team1: lbR3Match.team1?.name, team2: lbR3Match.team2?.name })
-        }
-
-      } else if (completedMatch.round === 3) {
-        // LB Round 3 to LB Final
-        const lbFinal = bracket.find(m => m.bracket === 'loser' && m.round === 4)
-        console.log(`📈 LB R3 → LB Final`)
-        if (lbFinal) {
-          lbFinal.team1 = completedMatch.winner
-          console.log(`✅ ${completedMatch.winner?.name} → LB Final (Team1)`)
-        }
-
-      } else if (completedMatch.round === 4) {
-        // LB Final to Grand Final
-        const grandFinal = bracket.find(m => m.bracket === 'grand')
-        console.log(`📈 LB Final → Grand Final`)
-        if (grandFinal) {
-          grandFinal.team2 = completedMatch.winner
-          console.log(`✅ ${completedMatch.winner?.name} → Grand Final (Team2)`)
-        }
-      }
-
-    } else if (completedMatch.bracket === 'grand') {
-      // Grand Final completed - tournament over
-      console.log('🏆 Tournament completed! Winner:', completedMatch.winner?.name)
-    }
-  }
-
-  const getMatchesByBracketAndRound = (bracketType: string, round: number) => {
-    const filtered = bracket.filter(match => match.bracket === bracketType && match.round === round)
-    console.log(`🔍 Admin Bracket Filter: ${bracketType} round ${round} → ${filtered.length} matches`, filtered.map(m => m.id))
-    return filtered
-  }
-
-  const getWinnerMatches = () => {
-    return bracket.filter(match => match.bracket === 'winner')
-  }
-
-  const getLoserMatches = () => {
-    return bracket.filter(match => match.bracket === 'loser')
-  }
-
-  const getGrandFinal = () => {
-    return bracket.find(match => match.bracket === 'grand')
-  }
-
-  const openScoreModal = (match: Match) => {
-    setSelectedMatch(match)
-    setScoreInput({ team1: match.team1Score, team2: match.team2Score })
-  }
-
-  const MatchBox = ({ match, className = "", onClick }: {
-    match?: Match
-    className?: string
-    onClick?: (match: Match) => void
-  }) => {
-    const displayTeam1 = match?.team1?.name || 'TBD'
-    const displayTeam2 = match?.team2?.name || 'TBD'
-    const hasScore = match && (match.team1Score > 0 || match.team2Score > 0)
-    const team1Score = match?.team1Score || 0
-    const team2Score = match?.team2Score || 0
-    const isLive = match?.isLive || false
-    
-    // Determine winner and styling based on scoring rules
-    // Grand Final: First to 3 points wins, All other matches: First to 2 points wins
-    const isGrandFinal = match?.id === 'GF'
-    const winningScore = isGrandFinal ? 3 : 2
-    
-    const team1IsWinner = hasScore && team1Score >= winningScore
-    const team2IsWinner = hasScore && team2Score >= winningScore
-    
-    const team1Style = team1IsWinner ? "text-green-400 font-bold" : 
-                      team2IsWinner ? "text-gray-500" : "text-white"
-    const team2Style = team2IsWinner ? "text-green-400 font-bold" : 
-                      team1IsWinner ? "text-gray-500" : "text-white"
-
-    const handleMatchClick = () => {
-      if (match && onClick) {
-        onClick(match)
-      }
+  const MatchBox = ({ match }: { match?: BracketMatch }) => {
+    if (!match) {
+      return (
+        <div className="bg-gray-800/50 border border-dashed border-gray-600 rounded-xl p-4 text-center text-gray-400 text-sm">
+          Match noch nicht bereit
+        </div>
+      )
     }
 
-    const toggleLiveStatus = async (e: React.MouseEvent) => {
-      e.stopPropagation()
-      if (!match) return
-      
-      try {
-        const response = await fetch('/api/admin/bracket/matches/live', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            matchId: match.id,
-            isLive: !isLive
-          }),
-        })
-
-        if (response.ok) {
-          const result = await response.json()
-          
-          // Show success message
-          alert(`✅ ${result.message || (isLive ? 'Match gestoppt' : 'Match gestartet')}`)
-          
-          // FIXED: Update local state instead of fetchData() to prevent matches disappearing
-          setBracket(prevBracket => 
-            prevBracket.map(m => 
-              m.id === match.id 
-                ? { ...m, isLive: !isLive }
-                : m
-            )
-          )
-          console.log(`🔄 Admin: Updated local match ${match.id} isLive to ${!isLive}`)
-        } else {
-          alert('Fehler beim Ändern des Live-Status')
-        }
-      } catch (error) {
-        console.error('Error toggling live status:', error)
-        alert('Fehler beim Ändern des Live-Status')
-      }
-    }
+    const winningScore = match.id === 'GF' ? 3 : 2
+    const team1Name = match.team1?.name || 'TBD'
+    const team2Name = match.team2?.name || 'TBD'
+    const team1Wins = match.isFinished && match.team1Score >= winningScore
+    const team2Wins = match.isFinished && match.team2Score >= winningScore
 
     return (
-      <div className={`bg-gray-700/90 border border-gray-600 rounded-lg p-3 w-full min-h-[80px] flex flex-col justify-center cursor-pointer hover:border-purple-500 transition-colors ${isLive ? 'border-red-500 bg-red-900/20' : ''} ${className}`}>
-        {/* Live indicator and controls */}
-        {match && (
-          <div className="flex justify-between items-center mb-2">
-            <div className="flex items-center space-x-2">
-              {isLive && (
-                <div className="flex items-center space-x-1">
-                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                  <span className="text-red-400 text-xs font-bold">LIVE</span>
-                </div>
-              )}
-            </div>
-            <button
-              onClick={toggleLiveStatus}
-              className={`px-2 py-1 text-xs rounded ${
-                isLive 
-                  ? 'bg-red-600 text-white hover:bg-red-700' 
-                  : 'bg-green-600 text-white hover:bg-green-700'
-              }`}
-            >
-              {isLive ? 'STOP' : 'START'}
-            </button>
-          </div>
-        )}
-        
-        {/* Match content */}
-        <div 
-          className="text-center text-sm font-medium flex-1 flex items-center justify-center cursor-pointer hover:bg-gray-600/50 transition-colors p-2 rounded"
-          onClick={handleMatchClick}
+      <div className={`bg-gray-800/80 border rounded-xl p-4 flex flex-col gap-3 ${
+        match.isFinished ? 'border-green-500/70' : match.isLive ? 'border-yellow-500/70' : 'border-gray-700'
+      }`}>
+        <div className="flex items-center justify-between text-xs uppercase tracking-wide">
+          <span className="text-purple-200">{match.roundLabel}</span>
+          <button
+            className={`px-2 py-1 rounded text-xs font-semibold ${
+              match.isLive ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-green-600 text-white hover:bg-green-700'
+            }`}
+            onClick={() => toggleLiveStatus(match)}
+          >
+            {match.isLive ? 'STOP' : 'START'}
+          </button>
+        </div>
+        <div className="text-center text-sm font-semibold text-white">{match.label}</div>
+        <div
+          className="bg-gray-900/60 rounded-lg p-3 cursor-pointer hover:bg-gray-900"
+          onClick={() => openScoreModal(match)}
         >
-          {hasScore ? (
-            <div className="flex items-center justify-center space-x-2">
-              <span className={`${team1Style}`}>{team1Score}</span>
-              <span className={team1Style}>{displayTeam1}</span>
-              <span className="text-white">VS</span>
-              <span className={team2Style}>{displayTeam2}</span>
-              <span className={`${team2Style}`}>{team2Score}</span>
-            </div>
-          ) : (
-            <div className="text-white">{displayTeam1} VS {displayTeam2}</div>
-          )}
+          <div className="grid grid-cols-5 gap-1 items-center text-sm font-medium text-white">
+            <div className={`${team1Wins ? 'text-green-400 font-bold' : ''} text-right`}>{team1Name}</div>
+            <div className={`${team1Wins ? 'text-green-400 font-bold' : ''} text-center`}>{match.team1Score}</div>
+            <div className="text-center text-xs text-gray-300">vs</div>
+            <div className={`${team2Wins ? 'text-green-400 font-bold' : ''} text-center`}>{match.team2Score}</div>
+            <div className={`${team2Wins ? 'text-green-400 font-bold' : ''} text-left`}>{team2Name}</div>
+          </div>
         </div>
       </div>
     )
   }
 
-  const TeamBox = ({ team, className = "" }: {
-    team: string
-    className?: string
-  }) => (
-    <div className={`bg-gray-700/90 border border-gray-600 rounded-lg p-3 w-full h-14 flex items-center justify-center ${className}`}>
-      <div className="text-center text-white text-sm font-medium">
-        {team}
-      </div>
-    </div>
-  )
-
   if (isAuthLoading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-purple-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-24 w-24 border-b-2 border-purple-500 mx-auto mb-4"></div>
           <p className="text-white text-xl">Überprüfe Admin-Berechtigung...</p>
         </div>
       </div>
     )
   }
 
-  // Don't render content if not authenticated (will redirect)
   if (!isAuthenticated) {
-    console.log('🔍 Admin not authenticated, forcing redirect immediately')
-    // Force immediate redirect without waiting
-    if (typeof window !== 'undefined') {
-      window.location.href = '/admin?redirect=' + encodeURIComponent('/admin/bracket')
-    }
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-white text-xl">Weiterleitung zum Admin-Login...</div>
@@ -926,20 +272,23 @@ export default function AdminBracketPage() {
 
   return (
     <div className="min-h-screen bg-image">
-      {/* Header */}
       <header className="bg-gray-800 border-b border-gray-700">
         <div className="container mx-auto px-4 py-4">
-          <nav className="flex justify-between items-center">
+          <nav className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="text-2xl font-bold text-purple-400">
               🏆 MARVEL RIVALS TOURNAMENT BRACKET (ADMIN)
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex flex-wrap items-center gap-3">
               <div className="text-gray-300 text-sm">
                 {teams.length} Teams registriert
               </div>
-              <div className="text-green-400 text-sm font-semibold">
-                ✓ Auto-Update aktiv
-              </div>
+              <button
+                onClick={() => fetchData(false)}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors flex items-center gap-2"
+                disabled={refreshing}
+              >
+                {refreshing ? 'Aktualisiere...' : 'Manuell aktualisieren'}
+              </button>
               <button
                 onClick={resetTournament}
                 className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
@@ -957,265 +306,122 @@ export default function AdminBracketPage() {
         </div>
       </header>
 
-      <div className="w-full px-4 py-8">
-        {/* Tournament Bracket - Grouped Layout */}
-        <div className="relative bg-black/20 backdrop-blur-sm rounded-xl p-6 border border-purple-500/50 w-full">
-          {/* Lines Background Image - Absolute positioned overlay */}
-          <div className="absolute" style={{top: '175px', left: '365px', zIndex: 1}}>
-            <img 
-              src="/lines.png" 
-              alt="Bracket Lines" 
-              className="select-none pointer-events-none"
-              style={{
-                userSelect: 'none', 
-                WebkitUserSelect: 'none', 
-                MozUserSelect: 'none', 
-                msUserSelect: 'none',
-                width: 'auto',
-                height: 'auto',
-                maxWidth: 'none',
-                maxHeight: 'none'
-              }}
-              draggable={false}
-            />
+      <div className="w-full px-4 py-8 space-y-10">
+        <section className="bg-black/20 backdrop-blur-sm rounded-xl p-6 border border-purple-500/50">
+          <h2 className="text-2xl font-bold text-white mb-6">Winner Bracket</h2>
+          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
+            {WINNER_ROUND_GROUPS.map(group => (
+              <div key={group.title} className="bg-black/40 border border-white/10 rounded-xl p-4 flex flex-col gap-4">
+                <div>
+                  <h3 className="text-white font-semibold text-lg">{group.title}</h3>
+                  <p className="text-purple-200 text-sm">{group.description}</p>
+                </div>
+                <div className="flex flex-col gap-3">
+                  {group.matchIds.map(matchId => (
+                    <MatchBox key={matchId} match={getMatchById(matchId)} />
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
+        </section>
 
-          <div className="w-full relative" style={{height: '600px'}}>
-            
-            {/* Starter Bracket Container */}
-            <div className="absolute bg-black/30 rounded-lg border border-purple-500/30 p-4" style={{left: '21px', top: '135px', zIndex: 2, width: '320px'}}>
-              <div className="bg-purple-600 text-white px-4 py-2 rounded-lg font-bold text-center w-full text-sm mb-3">
-                RUNDE 1 - STARTER BRACKET
-              </div>
-              <div className="space-y-2">
-                {getMatchesByBracketAndRound('winner', 1).map((match, index) => {
-                  const teamPairs = [
-                    ['Team Alpha', 'Team Beta'],
-                    ['Team Gamma', 'Team Delta'],
-                    ['Team Echo', 'Team Foxtrot'],
-                    ['Team Golf', 'Team Hotel']
-                  ]
-                  const [team1Name, team2Name] = teamPairs[index] || ['TBD', 'TBD']
-                  
-                  // Create a complete match object with team names
-                  const enhancedMatch = {
-                    ...match,
-                    team1: match.team1 || { id: `temp-team1-${match.id}`, name: team1Name, position: 1 },
-                    team2: match.team2 || { id: `temp-team2-${match.id}`, name: team2Name, position: 2 }
-                  }
-                  
-                  return (
-                    <MatchBox
-                      key={match.id}
-                      match={enhancedMatch}
-                      className="w-full h-auto"
-                      onClick={(m) => openScoreModal(m)}
-                    />
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Upper Bracket Round 2 Container */}
-            <div className="absolute bg-black/30 rounded-lg border border-purple-500/30 p-4" style={{left: '387px', top: '55px', zIndex: 2, width: '320px'}}>
-              <div className="bg-purple-600 text-white px-4 py-2 rounded-lg font-bold text-center w-full text-sm mb-3">
-                RUNDE 2 - UPPER BRACKET
-              </div>
-              <div className="space-y-3">
-                {getMatchesByBracketAndRound('winner', 2).map((match, index) => (
-                  <MatchBox 
-                    key={match.id} 
-                    match={match} 
-                    onClick={(m) => openScoreModal(m)}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Upper Bracket Finals Container */}
-            <div className="absolute bg-black/30 rounded-lg border border-purple-500/30 p-4" style={{left: '1117px', top: '93px', zIndex: 2, width: '320px'}}>
-              <div className="bg-purple-600 text-white px-4 py-2 rounded-lg font-bold text-center w-full text-sm mb-3">
-                RUNDE 5 - UPPER BRACKET
-              </div>
-              <div>
-                {getMatchesByBracketAndRound('winner', 3).map(match => (
-                  <MatchBox 
-                    key={match.id} 
-                    match={match} 
-                    onClick={(m) => openScoreModal(m)}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Lower Bracket Round 1 Container */}
-            <div className="absolute bg-black/30 rounded-lg border border-purple-500/30 p-4" style={{left: '387px', top: '323px', zIndex: 2, width: '320px'}}>
-              <div className="bg-purple-700 text-white px-4 py-2 rounded-lg font-bold text-center w-full text-sm mb-3">
-                RUNDE 3 - LOWER BRACKET
-              </div>
-              <div className="space-y-3">
-                {getMatchesByBracketAndRound('loser', 1).map(match => (
-                  <MatchBox 
-                    key={match.id} 
-                    match={match} 
-                    onClick={(m) => openScoreModal(m)}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Lower Bracket Round 2 Container */}
-            <div className="absolute bg-black/30 rounded-lg border border-purple-500/30 p-4" style={{left: '752px', top: '323px', zIndex: 2, width: '320px'}}>
-              <div className="bg-purple-700 text-white px-4 py-2 rounded-lg font-bold text-center w-full text-sm mb-3">
-                RUNDE 4 - LOWER BRACKET
-              </div>
-              <div className="space-y-3">
-                {getMatchesByBracketAndRound('loser', 2).map(match => (
-                  <MatchBox 
-                    key={match.id} 
-                    match={match} 
-                    onClick={(m) => openScoreModal(m)}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Lower Bracket Round 3 Container */}
-            <div className="absolute bg-black/30 rounded-lg border border-purple-500/30 p-4" style={{left: '1117px', top: '361px', zIndex: 2, width: '320px'}}>
-              <div className="bg-purple-700 text-white px-4 py-2 rounded-lg font-bold text-center w-full text-sm mb-3">
-                RUNDE 6 - LOWER BRACKET
-              </div>
-              <div>
-                {getMatchesByBracketAndRound('loser', 3).map(match => (
-                  <MatchBox 
-                    key={match.id} 
-                    match={match} 
-                    onClick={(m) => openScoreModal(m)}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Lower Bracket Finals Container */}
-            <div className="absolute bg-black/30 rounded-lg border border-purple-500/30 p-4" style={{left: '1482px', top: '361px', zIndex: 2, width: '320px'}}>
-              <div className="bg-purple-700 text-white px-4 py-2 rounded-lg font-bold text-center w-full text-sm mb-3">
-                RUNDE 7 - LOWER BRACKET FINALS
-              </div>
-              <div>
-                {getMatchesByBracketAndRound('loser', 4).map(match => (
-                  <MatchBox 
-                    key={match.id} 
-                    match={match} 
-                    onClick={(m) => openScoreModal(m)}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Grand Finals Container */}
-            <div className="absolute bg-black/30 rounded-lg border border-yellow-500/50 p-4" style={{left: '1482px', top: '93px', zIndex: 2, width: '320px'}}>
-              <div className="bg-yellow-500 text-black px-4 py-2 rounded-lg font-bold text-center w-full text-sm mb-3 flex items-center justify-center">
-                RUNDE 8 - 🏆 GRAND FINALS
-              </div>
-              <div>
-                {getGrandFinal() && (
-                  <MatchBox 
-                    match={getGrandFinal()!} 
-                    onClick={(m) => openScoreModal(m)}
-                  />
-                )}
-              </div>
-            </div>
-
+        <section className="bg-black/20 backdrop-blur-sm rounded-xl p-6 border border-purple-500/50">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-white">Loser Bracket</h2>
+            <span className="text-sm text-purple-200">Jede Niederlage zählt – Double Elimination</span>
           </div>
-        </div>
+          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
+            {LOSER_ROUND_GROUPS.map(group => (
+              <div key={group.title} className="bg-black/40 border border-white/10 rounded-xl p-4 flex flex-col gap-4">
+                <div>
+                  <h3 className="text-white font-semibold text-lg">{group.title}</h3>
+                  <p className="text-purple-200 text-sm">{group.description}</p>
+                </div>
+                <div className="flex flex-col gap-3">
+                  {group.matchIds.map(matchId => (
+                    <MatchBox key={matchId} match={getMatchById(matchId)} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
 
-        {/* Teams Overview */}
-        <div className="mt-8">
+        <section>
           <h2 className="text-2xl font-bold text-white text-center mb-4">TEILNEHMENDE TEAMS</h2>
-          <div className="grid md:grid-cols-4 gap-3">
-            {teams.length >= 8 ? teams.slice(0, 8).map((team, index) => (
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            {teams.map(team => (
               <div key={team.id} className="bg-purple-600/20 backdrop-blur-sm rounded-lg p-3 border border-purple-500/50">
                 <h3 className="text-white font-semibold text-center text-base">{team.name}</h3>
                 <p className="text-purple-200 text-center text-xs">Position {team.position}</p>
               </div>
-            )) : [
-              'Team Alpha', 'Team Beta', 'Team Gamma', 'Team Delta',
-              'Team Echo', 'Team Foxtrot', 'Team Golf', 'Team Hotel'
-            ].map((teamName, index) => (
-              <div key={index} className="bg-purple-600/20 backdrop-blur-sm rounded-lg p-3 border border-purple-500/50">
-                <h3 className="text-white font-semibold text-center text-base">{teamName}</h3>
-                <p className="text-purple-200 text-center text-xs">Position {index + 1}</p>
-              </div>
             ))}
           </div>
-        </div>
+        </section>
       </div>
 
-      {/* Score Input Modal */}
       {selectedMatch && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-96 border border-gray-600">
-            <h3 className="text-xl font-bold text-white mb-4 text-center">
-              {selectedMatch.bracket === 'winner' ? 'Winner Bracket' : selectedMatch.bracket === 'loser' ? 'Loser Bracket' : 'Grand Final'} - Round {selectedMatch.round} #{selectedMatch.matchNumber}
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
+          <div className="bg-gray-900 rounded-xl p-6 w-full max-w-md border border-gray-700 space-y-4">
+            <h3 className="text-xl font-bold text-white text-center">
+              {selectedMatch.label} – {selectedMatch.roundLabel}
             </h3>
-            
             {selectedMatch.team1 && selectedMatch.team2 ? (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="block text-gray-300 font-semibold">
-                    {selectedMatch.team1.name}
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="3"
-                    value={scoreInput.team1}
-                    onChange={(e) => setScoreInput(prev => ({ ...prev, team1: parseInt(e.target.value) || 0 }))}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
+              <>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-gray-300 font-semibold mb-1">
+                      {selectedMatch.team1.name}
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max={selectedMatch.id === 'GF' ? 3 : 2}
+                      value={scoreInput.team1}
+                      onChange={(e) => setScoreInput(prev => ({ ...prev, team1: Number(e.target.value) || 0 }))}
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-700 text-white rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-300 font-semibold mb-1">
+                      {selectedMatch.team2.name}
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max={selectedMatch.id === 'GF' ? 3 : 2}
+                      value={scoreInput.team2}
+                      onChange={(e) => setScoreInput(prev => ({ ...prev, team2: Number(e.target.value) || 0 }))}
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-700 text-white rounded"
+                    />
+                  </div>
                 </div>
-                
-                <div className="space-y-2">
-                  <label className="block text-gray-300 font-semibold">
-                    {selectedMatch.team2.name}
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="3"
-                    value={scoreInput.team2}
-                    onChange={(e) => setScoreInput(prev => ({ ...prev, team2: parseInt(e.target.value) || 0 }))}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-
-                <div className="text-center text-gray-400 text-sm">
-                  Best of 3 - Erstes Team auf 2 Punkte gewinnt
-                </div>
-
-                <div className="flex space-x-3 pt-4">
+                <p className="text-gray-400 text-sm text-center">
+                  {selectedMatch.id === 'GF' ? 'Best of 5 – erstes Team auf 3 Punkte gewinnt' : 'Best of 3 – erstes Team auf 2 Punkte gewinnt'}
+                </p>
+                <div className="flex gap-3 pt-2">
                   <button
                     onClick={() => updateMatchScore(selectedMatch.id, scoreInput.team1, scoreInput.team2)}
-                    className="flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700 transition-colors font-semibold"
+                    className="flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700"
                   >
                     💾 Speichern
                   </button>
                   <button
                     onClick={() => setSelectedMatch(null)}
-                    className="flex-1 bg-red-600 text-white py-2 rounded hover:bg-red-700 transition-colors"
+                    className="flex-1 bg-red-600 text-white py-2 rounded hover:bg-red-700"
                   >
-                    ❌ Abbrechen
+                    Abbrechen
                   </button>
                 </div>
-              </div>
+              </>
             ) : (
-              <div className="text-center text-gray-400">
-                <p>Teams noch nicht verfügbar</p>
-                <p className="text-sm mt-2">Vorherige Matches müssen erst abgeschlossen werden</p>
+              <div className="text-center text-gray-400 space-y-3">
+                <p>Teams stehen noch nicht fest.</p>
+                <p className="text-sm">Schließe vorherige Matches ab, um das Ergebnis setzen zu können.</p>
                 <button
                   onClick={() => setSelectedMatch(null)}
-                  className="mt-4 bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors"
+                  className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-600"
                 >
                   Schließen
                 </button>
