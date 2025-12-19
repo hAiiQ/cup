@@ -6,10 +6,10 @@ import type {
   BracketConnection
 } from '@/lib/bracketStructure'
 
-const MATCH_WIDTH = 210
-const MATCH_HEIGHT = 85
-const COLUMN_GAP = 70
-const ROW_GAP = 28
+const MATCH_WIDTH = 168
+const MATCH_HEIGHT = 68
+const COLUMN_GAP = 56
+const ROW_GAP = 22
 
 type MatchRenderer = (match: BracketMatch | undefined, id: string) => ReactNode
 
