@@ -80,9 +80,11 @@ export default function AdminBracketPage() {
         setRefreshing(true)
       }
 
+      const requestInit: RequestInit = { credentials: 'include' }
+
       const [teamsRes, statesRes] = await Promise.all([
-        fetch('/api/admin/teams'),
-        fetch('/api/admin/bracket/matches/live-states')
+        fetch('/api/admin/teams', requestInit),
+        fetch('/api/admin/bracket/matches/live-states', requestInit)
       ])
 
       let fetchedTeams: BracketTeam[] = []
@@ -130,6 +132,7 @@ export default function AdminBracketPage() {
       const response = await fetch('/api/admin/bracket/matches/live', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           matchId: match.id,
           isLive: !match.isLive
@@ -154,6 +157,7 @@ export default function AdminBracketPage() {
       const response = await fetch('/api/admin/bracket/matches/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ matchId, team1Score, team2Score })
       })
 
@@ -179,7 +183,8 @@ export default function AdminBracketPage() {
     try {
       const response = await fetch('/api/admin/bracket/reset', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
       })
 
       if (response.ok) {
