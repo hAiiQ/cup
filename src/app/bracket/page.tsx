@@ -72,25 +72,31 @@ export default function BracketPage() {
     }
   }
 
-  // Auto-refresh every 5 seconds to get live updates from admin changes
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchData()
-    }, 5000)
+  // Minimal match display with real data
+  const MatchBox = ({ match, className = '' }: { match?: BracketMatch, className?: string }) => {
+    if (!match) {
+      return (
+        <div className={`bg-gray-900/70 border border-white/10 rounded-lg px-4 py-4 w-full h-full flex items-center justify-center text-gray-400 text-sm ${className}`}>
+          Match folgt
+        </div>
+      )
+    }
 
-    return () => clearInterval(interval)
-  }, [])
+    const team1Name = match.team1?.name || 'TBD'
+    const team2Name = match.team2?.name || 'TBD'
+    const team1Score = match.team1Score ?? 0
+    const team2Score = match.team2Score ?? 0
 
-  // Minimal match display
-  const MatchBox = ({ className = '' }: { className?: string }) => (
-    <div className={`bg-gray-900/70 border border-white/10 rounded-lg px-4 py-4 w-full h-full flex items-center justify-center ${className}`}>
-      <div className="flex flex-wrap items-center gap-3 text-white text-base font-semibold w-full justify-center text-center">
-        <span className="text-right flex-1 min-w-[140px]">TBD</span>
-        <span className="text-purple-200 whitespace-nowrap">0 - 0</span>
-        <span className="text-left flex-1 min-w-[140px]">TBD</span>
+    return (
+      <div className={`bg-gray-900/70 border border-white/10 rounded-lg px-4 py-4 w-full h-full flex items-center justify-center ${className}`}>
+        <div className="flex flex-wrap items-center gap-3 text-white text-base font-semibold w-full justify-center text-center">
+          <span className="text-right flex-1 min-w-[140px]">{team1Name}</span>
+          <span className="text-purple-200 whitespace-nowrap">{team1Score} - {team2Score}</span>
+          <span className="text-left flex-1 min-w-[140px]">{team2Name}</span>
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
 
   if (loading) {
     return (
@@ -138,7 +144,7 @@ export default function BracketPage() {
               matches={bracket}
               layout={COMBINED_BRACKET_LAYOUT}
               connections={COMBINED_BRACKET_CONNECTIONS}
-              renderMatch={() => <MatchBox className="h-full" />}
+              renderMatch={(match) => <MatchBox match={match} className="h-full" />}
               className="mx-auto"
             />
           </div>
