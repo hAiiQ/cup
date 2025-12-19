@@ -57,7 +57,7 @@ export function getAllMatchStates(): Map<string, MatchState> {
 }
 
 export function setMatchLive(matchId: string, isLive: boolean) {
-  return setMatchState(matchId, { isLive })
+  return setMatchState(matchId, { isLive, ...(isLive ? { isFinished: false } : {}) })
 }
 
 export function setMatchScore(matchId: string, team1Score: number, team2Score: number) {

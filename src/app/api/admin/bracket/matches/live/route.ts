@@ -24,6 +24,21 @@ async function verifyAdmin(request: NextRequest) {
   return admin
 }
 
+const getBracketMeta = (matchId: string) => {
+  if (matchId === 'GF') {
+    return { bracket: 'grand', round: 6 }
+  }
+
+  const roundRegex = matchId.match(/R(\d+)/)
+  const round = roundRegex ? parseInt(roundRegex[1], 10) : 1
+
+  if (matchId.startsWith('LB')) {
+    return { bracket: 'loser', round }
+  }
+
+  return { bracket: 'winner', round }
+}
+
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
 
@@ -63,12 +78,15 @@ export async function POST(request: NextRequest) {
         where: { id: matchId }
       })
 
+      const { bracket, round } = getBracketMeta(matchId)
+
       if (match) {
         // Update existing match in database
         match = await prisma.match.update({
           where: { id: matchId },
           data: { 
             isLive,
+            ...(isLive ? { isFinished: false } : {}),
             updatedAt: new Date()
           }
         })
@@ -78,9 +96,13 @@ export async function POST(request: NextRequest) {
         match = await prisma.match.create({
           data: {
             id: matchId,
-            round: 1, // Default values, will be updated later
-            bracket: 'winner',
+            round,
+            bracket,
+            matchNumber: 1,
             isLive,
+            isFinished: false,
+            team1Score: 0,
+            team2Score: 0,
             createdAt: new Date(),
             updatedAt: new Date()
           }
