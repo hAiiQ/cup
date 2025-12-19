@@ -5,12 +5,8 @@ import Link from 'next/link'
 import {
   type BracketMatch,
   type BracketTeam,
-  WINNER_BRACKET_LAYOUT,
-  LOSER_BRACKET_LAYOUT,
-  GRAND_FINAL_LAYOUT,
-  WINNER_BRACKET_CONNECTIONS,
-  LOSER_BRACKET_CONNECTIONS,
-  GRAND_FINAL_CONNECTIONS
+  COMBINED_BRACKET_LAYOUT,
+  COMBINED_BRACKET_CONNECTIONS
 } from '@/lib/bracketStructure'
 import BracketDiagram from '@/components/bracket/BracketDiagram'
 
@@ -154,65 +150,25 @@ export default function BracketPage() {
           </div>
         </div>
 
-        {/* Tournament Bracket */}
-        <div className="space-y-8">
-          <section className="bg-black/20 backdrop-blur-sm rounded-xl p-5 border border-purple-500/50">
-            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-white">Winner Bracket</h2>
-                <p className="text-purple-200">Fünf Matches zum Auftakt, danach entscheidet ein Freilos das Tempo.</p>
-              </div>
-              <span className="text-sm text-purple-200">Double Elimination • Best-of-3 außer Grand Final</span>
+        {/* Combined Tournament Bracket */}
+        <section className="bg-black/20 backdrop-blur-sm rounded-xl p-5 border border-purple-500/50">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-white">Double Elimination Tree</h2>
+              <p className="text-purple-200">Winner-, Loser- und Final-Runden in einem einzigen Turnierbaum.</p>
             </div>
-            <div className="overflow-x-auto pb-2">
-              <BracketDiagram
-                matches={bracket}
-                layout={WINNER_BRACKET_LAYOUT}
-                connections={WINNER_BRACKET_CONNECTIONS}
-                renderMatch={(match) => <MatchBox match={match} className="h-full" />}
-                className="mx-auto"
-              />
-            </div>
-          </section>
-
-          <section className="bg-black/20 backdrop-blur-sm rounded-xl p-5 border border-purple-500/50">
-            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-white">Loser Bracket</h2>
-                <p className="text-purple-200">Wer fällt, kämpft sich hier zurück – inklusive eines Freilos für das beste Ranking.</p>
-              </div>
-              <span className="text-sm text-purple-200">Jede Niederlage zählt</span>
-            </div>
-            <div className="overflow-x-auto pb-2">
-              <BracketDiagram
-                matches={bracket}
-                layout={LOSER_BRACKET_LAYOUT}
-                connections={LOSER_BRACKET_CONNECTIONS}
-                renderMatch={(match) => <MatchBox match={match} className="h-full" />}
-                className="mx-auto"
-              />
-            </div>
-          </section>
-
-          <section className="bg-black/20 backdrop-blur-sm rounded-xl p-5 border border-purple-500/50">
-            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-white">Final Stage</h2>
-                <p className="text-purple-200">Winner Final trifft Loser Final – erst danach steht der Champion fest.</p>
-              </div>
-              <span className="text-sm text-purple-200">Grand Final ist Best-of-5</span>
-            </div>
-            <div className="overflow-x-auto pb-2">
-              <BracketDiagram
-                matches={bracket}
-                layout={GRAND_FINAL_LAYOUT}
-                connections={GRAND_FINAL_CONNECTIONS}
-                renderMatch={(match) => <MatchBox match={match} className="h-full" />}
-                className="mx-auto"
-              />
-            </div>
-          </section>
-        </div>
+            <span className="text-sm text-purple-200">Alle Matches Best-of-3 • Grand Final Best-of-5</span>
+          </div>
+          <div className="overflow-x-auto pb-2">
+            <BracketDiagram
+              matches={bracket}
+              layout={COMBINED_BRACKET_LAYOUT}
+              connections={COMBINED_BRACKET_CONNECTIONS}
+              renderMatch={(match) => <MatchBox match={match} className="h-full" />}
+              className="mx-auto"
+            />
+          </div>
+        </section>
 
         {/* Teams Overview */}
         <div className="mt-8">

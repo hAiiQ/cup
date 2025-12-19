@@ -422,9 +422,40 @@ export const GRAND_FINAL_CONNECTIONS: BracketConnection[] = [
   ['LB-F', 'GF']
 ]
 
+const shiftLayout = (
+  layout: BracketNodeLayout[],
+  columnOffset: number,
+  rowOffset = 0
+): BracketNodeLayout[] =>
+  layout.map(node => ({
+    ...node,
+    column: node.column + columnOffset,
+    row: node.row + rowOffset
+  }))
+
+const LOSER_LAYOUT_OFFSET = 4
+const FINAL_COLUMN = LOSER_LAYOUT_OFFSET + 5
+
+export const COMBINED_BRACKET_LAYOUT: BracketNodeLayout[] = [
+  ...WINNER_BRACKET_LAYOUT.filter(node => node.id !== 'WB-F'),
+  ...shiftLayout(
+    LOSER_BRACKET_LAYOUT.filter(node => node.id !== 'LB-F'),
+    LOSER_LAYOUT_OFFSET
+  ),
+  { id: 'WB-F', column: FINAL_COLUMN, row: 3 },
+  { id: 'LB-F', column: FINAL_COLUMN, row: 4.5 },
+  { id: 'GF', column: FINAL_COLUMN + 1.5, row: 3.75 }
+]
+
+export const COMBINED_BRACKET_CONNECTIONS: BracketConnection[] = [
+  ...WINNER_BRACKET_CONNECTIONS,
+  ...LOSER_BRACKET_CONNECTIONS,
+  ...GRAND_FINAL_CONNECTIONS
+]
+
 const virtualTeam = (label: string): BracketTeam => ({
   id: `virtual-${label.replace(/\s+/g, '-').toLowerCase()}`,
-  name: label,
+  name: label === 'Freilos' ? 'Freilos' : 'TBD',
   position: 0
 })
 
@@ -474,13 +505,13 @@ export const buildBracketMatches = (
 
     const referencedMatch = matchLookup.get(source.matchId)
     if (!referencedMatch) {
-      return virtualTeam(`${source.kind === 'winner' ? 'Winner' : 'Loser'} ${source.matchId}`)
+      return virtualTeam('TBD')
     }
 
     const referencedState = stateMap.get(source.matchId)
     const resolvedWinnerId = referencedState?.winnerId || referencedMatch.winnerId
     if (!resolvedWinnerId) {
-      return virtualTeam(`${source.kind === 'winner' ? 'Winner' : 'Loser'} ${referencedMatch.label}`)
+      return virtualTeam('TBD')
     }
 
     if (source.kind === 'winner') {
@@ -499,7 +530,7 @@ export const buildBracketMatches = (
       }
     }
 
-    return virtualTeam(`${source.kind === 'winner' ? 'Winner' : 'Loser'} ${referencedMatch.label}`)
+    return virtualTeam('TBD')
   }
 
   MATCH_BLUEPRINTS.forEach(blueprint => {
