@@ -177,7 +177,7 @@ const MATCH_BLUEPRINTS: MatchBlueprint[] = [
     roundOrder: 3,
     sources: [
       { kind: 'winner', matchId: 'WB-R2-1' },
-      { kind: 'winner', matchId: 'WB-R2-2' }
+      { kind: 'winner', matchId: 'WB-R2-3' }
     ]
   },
   {
@@ -188,7 +188,7 @@ const MATCH_BLUEPRINTS: MatchBlueprint[] = [
     roundOrder: 4,
     sources: [
       { kind: 'winner', matchId: 'WB-R3-1' },
-      { kind: 'winner', matchId: 'WB-R2-3' }
+      { kind: 'winner', matchId: 'WB-R2-2' }
     ]
   },
   // Loser Bracket Round 1 (includes one auto advance)
@@ -248,6 +248,17 @@ const MATCH_BLUEPRINTS: MatchBlueprint[] = [
       { kind: 'loser', matchId: 'WB-R2-2' }
     ]
   },
+  {
+    id: 'LB-R2-3',
+    label: 'Loser Round 2C',
+    bracket: 'loser',
+    roundLabel: 'Loser Round 2',
+    roundOrder: 2,
+    sources: [
+      { kind: 'winner', matchId: 'LB-R1-3' },
+      { kind: 'loser', matchId: 'WB-R2-3' }
+    ]
+  },
   // Loser Bracket Round 3
   {
     id: 'LB-R3-1',
@@ -267,7 +278,7 @@ const MATCH_BLUEPRINTS: MatchBlueprint[] = [
     roundLabel: 'Loser Round 3',
     roundOrder: 3,
     sources: [
-      { kind: 'winner', matchId: 'LB-R1-3' },
+      { kind: 'winner', matchId: 'LB-R2-3' },
       { kind: 'loser', matchId: 'WB-R3-1' }
     ]
   },
@@ -344,7 +355,7 @@ export const LOSER_ROUND_GROUPS: RoundGroup[] = [
   {
     title: 'Loser Round 2',
     description: 'Neue Gegner durch die Verlierer der Winner Round 2',
-    matchIds: ['LB-R2-1', 'LB-R2-2']
+    matchIds: ['LB-R2-1', 'LB-R2-2', 'LB-R2-3']
   },
   {
     title: 'Loser Round 3',
@@ -382,16 +393,17 @@ export const LOSER_BRACKET_LAYOUT: BracketNodeLayout[] = [
   { id: 'LB-R1-3', column: 1, row: 3 },
   { id: 'LB-R2-1', column: 2, row: 1.5 },
   { id: 'LB-R2-2', column: 2, row: 2.5 },
+  { id: 'LB-R2-3', column: 2, row: 3.5 },
   { id: 'LB-R3-1', column: 3, row: 2 },
   { id: 'LB-R3-2', column: 3, row: 3.5 },
   { id: 'LB-R4', column: 4, row: 2.75 },
-  { id: 'LB-F', column: 5, row: 3 }
+  { id: 'LB-F', column: 6, row: 3 }
 ]
 
 export const GRAND_FINAL_LAYOUT: BracketNodeLayout[] = [
   { id: 'WB-F', column: 1, row: 1 },
-  { id: 'LB-F', column: 1, row: 3 },
-  { id: 'GF', column: 2, row: 2 }
+  { id: 'LB-F', column: 2, row: 3 },
+  { id: 'GF', column: 3, row: 2 }
 ]
 
 export const WINNER_BRACKET_CONNECTIONS: BracketConnection[] = [
@@ -409,9 +421,10 @@ export const WINNER_BRACKET_CONNECTIONS: BracketConnection[] = [
 export const LOSER_BRACKET_CONNECTIONS: BracketConnection[] = [
   ['LB-R1-1', 'LB-R2-1'],
   ['LB-R1-2', 'LB-R2-2'],
-  ['LB-R1-3', 'LB-R3-2'],
+  ['LB-R1-3', 'LB-R2-3'],
   ['LB-R2-1', 'LB-R3-1'],
   ['LB-R2-2', 'LB-R3-1'],
+  ['LB-R2-3', 'LB-R3-2'],
   ['LB-R3-1', 'LB-R4'],
   ['LB-R3-2', 'LB-R4'],
   ['LB-R4', 'LB-F']
@@ -443,16 +456,17 @@ const COMBINED_LOSER_LAYOUT: BracketNodeLayout[] = [
   { id: 'LB-R1-3', column: 1 + LOSER_COLUMN_OFFSET, row: LOSER_ROW_OFFSET + 3 },
   { id: 'LB-R2-1', column: 2 + LOSER_COLUMN_OFFSET, row: LOSER_ROW_OFFSET + 1.5 },
   { id: 'LB-R2-2', column: 2 + LOSER_COLUMN_OFFSET, row: LOSER_ROW_OFFSET + 2.5 },
+  { id: 'LB-R2-3', column: 2 + LOSER_COLUMN_OFFSET, row: LOSER_ROW_OFFSET + 3.5 },
   { id: 'LB-R3-1', column: 3 + LOSER_COLUMN_OFFSET, row: LOSER_ROW_OFFSET + 2 },
   { id: 'LB-R3-2', column: 3 + LOSER_COLUMN_OFFSET, row: LOSER_ROW_OFFSET + 3.5 },
   { id: 'LB-R4', column: 4 + LOSER_COLUMN_OFFSET, row: LOSER_ROW_OFFSET + 2.75 },
-  { id: 'LB-F', column: 4 + LOSER_COLUMN_OFFSET, row: LOSER_ROW_OFFSET + 3.25 }
+  { id: 'LB-F', column: 5 + LOSER_COLUMN_OFFSET, row: LOSER_ROW_OFFSET + 3.25 }
 ]
 
 export const COMBINED_BRACKET_LAYOUT: BracketNodeLayout[] = [
   ...COMBINED_WINNER_LAYOUT,
   ...COMBINED_LOSER_LAYOUT,
-  { id: 'GF', column: 6, row: LOSER_ROW_OFFSET + 1.75 }
+  { id: 'GF', column: 7, row: LOSER_ROW_OFFSET + 1.75 }
 ]
 
 const WINNER_TO_LOSER_CONNECTIONS: BracketConnection[] = [
@@ -463,6 +477,7 @@ const WINNER_TO_LOSER_CONNECTIONS: BracketConnection[] = [
   ['WB-R1-5', 'LB-R1-3'],
   ['WB-R2-1', 'LB-R2-1'],
   ['WB-R2-2', 'LB-R2-2'],
+  ['WB-R2-3', 'LB-R2-3'],
   ['WB-R3-1', 'LB-R3-2'],
   ['WB-F', 'LB-F']
 ]
