@@ -365,27 +365,27 @@ export const LOSER_ROUND_GROUPS: RoundGroup[] = [
 
 export const WINNER_BRACKET_LAYOUT: BracketNodeLayout[] = [
   { id: 'WB-R1-1', column: 1, row: 1 },
-  { id: 'WB-R1-2', column: 1, row: 3 },
-  { id: 'WB-R1-3', column: 1, row: 5 },
-  { id: 'WB-R1-4', column: 1, row: 7 },
-  { id: 'WB-R1-5', column: 1, row: 9 },
-  { id: 'WB-R2-1', column: 2, row: 2 },
-  { id: 'WB-R2-2', column: 2, row: 6 },
-  { id: 'WB-R2-3', column: 2, row: 8 },
-  { id: 'WB-R3-1', column: 3, row: 4 },
-  { id: 'WB-F', column: 4, row: 5 }
+  { id: 'WB-R1-2', column: 1, row: 2 },
+  { id: 'WB-R1-3', column: 1, row: 3 },
+  { id: 'WB-R1-4', column: 1, row: 4 },
+  { id: 'WB-R1-5', column: 1, row: 5 },
+  { id: 'WB-R2-1', column: 2, row: 1.5 },
+  { id: 'WB-R2-2', column: 2, row: 3.5 },
+  { id: 'WB-R2-3', column: 2, row: 4.5 },
+  { id: 'WB-R3-1', column: 3, row: 2.5 },
+  { id: 'WB-F', column: 4, row: 3.5 }
 ]
 
 export const LOSER_BRACKET_LAYOUT: BracketNodeLayout[] = [
   { id: 'LB-R1-1', column: 1, row: 1 },
-  { id: 'LB-R1-2', column: 1, row: 4 },
-  { id: 'LB-R1-3', column: 1, row: 7 },
-  { id: 'LB-R2-1', column: 2, row: 2 },
-  { id: 'LB-R2-2', column: 2, row: 5 },
-  { id: 'LB-R3-1', column: 3, row: 3 },
-  { id: 'LB-R3-2', column: 3, row: 7 },
-  { id: 'LB-R4', column: 4, row: 4 },
-  { id: 'LB-F', column: 5, row: 5 }
+  { id: 'LB-R1-2', column: 1, row: 2 },
+  { id: 'LB-R1-3', column: 1, row: 3 },
+  { id: 'LB-R2-1', column: 2, row: 1.5 },
+  { id: 'LB-R2-2', column: 2, row: 2.5 },
+  { id: 'LB-R3-1', column: 3, row: 2 },
+  { id: 'LB-R3-2', column: 3, row: 3.5 },
+  { id: 'LB-R4', column: 4, row: 2.75 },
+  { id: 'LB-F', column: 5, row: 3 }
 ]
 
 export const GRAND_FINAL_LAYOUT: BracketNodeLayout[] = [

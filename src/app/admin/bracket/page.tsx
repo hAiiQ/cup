@@ -332,8 +332,8 @@ export default function AdminBracketPage() {
         </div>
       </header>
 
-      <div className="w-full px-4 py-8 space-y-10">
-        <section className="bg-black/20 backdrop-blur-sm rounded-xl p-6 border border-purple-500/50">
+      <div className="w-full px-4 py-6 space-y-8 max-w-[1800px] mx-auto">
+        <section className="bg-black/20 backdrop-blur-sm rounded-xl p-5 border border-purple-500/50">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-6">
             <div>
               <h2 className="text-2xl font-bold text-white">Winner Bracket</h2>
@@ -341,17 +341,18 @@ export default function AdminBracketPage() {
             </div>
             <span className="text-sm text-purple-200">Alle Matches Best-of-3 (außer Grand Final)</span>
           </div>
-          <div className="overflow-x-auto pb-4">
+          <div className="overflow-x-auto pb-2">
             <BracketDiagram
               matches={bracket}
               layout={WINNER_BRACKET_LAYOUT}
               connections={WINNER_BRACKET_CONNECTIONS}
               renderMatch={(match) => <MatchBox match={match} className="h-full" />}
+              className="mx-auto"
             />
           </div>
         </section>
 
-        <section className="bg-black/20 backdrop-blur-sm rounded-xl p-6 border border-purple-500/50">
+        <section className="bg-black/20 backdrop-blur-sm rounded-xl p-5 border border-purple-500/50">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-6">
             <div>
               <h2 className="text-2xl font-bold text-white">Loser Bracket</h2>
@@ -359,17 +360,18 @@ export default function AdminBracketPage() {
             </div>
             <span className="text-sm text-purple-200">Double Elimination = Zweite Chance</span>
           </div>
-          <div className="overflow-x-auto pb-4">
+          <div className="overflow-x-auto pb-2">
             <BracketDiagram
               matches={bracket}
               layout={LOSER_BRACKET_LAYOUT}
               connections={LOSER_BRACKET_CONNECTIONS}
               renderMatch={(match) => <MatchBox match={match} className="h-full" />}
+              className="mx-auto"
             />
           </div>
         </section>
 
-        <section className="bg-black/20 backdrop-blur-sm rounded-xl p-6 border border-purple-500/50">
+        <section className="bg-black/20 backdrop-blur-sm rounded-xl p-5 border border-purple-500/50">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-6">
             <div>
               <h2 className="text-2xl font-bold text-white">Final Stage</h2>
@@ -377,12 +379,13 @@ export default function AdminBracketPage() {
             </div>
             <span className="text-sm text-purple-200">Grand Final Best-of-5</span>
           </div>
-          <div className="overflow-x-auto pb-4">
+          <div className="overflow-x-auto pb-2">
             <BracketDiagram
               matches={bracket}
               layout={GRAND_FINAL_LAYOUT}
               connections={GRAND_FINAL_CONNECTIONS}
               renderMatch={(match) => <MatchBox match={match} className="h-full" />}
+              className="mx-auto"
             />
           </div>
         </section>
