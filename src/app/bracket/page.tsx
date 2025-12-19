@@ -90,7 +90,7 @@ export default function BracketPage() {
     return team?.name || fallback
   }
 
-  // Read-only MatchBox component (same as admin but without onClick)
+  // Read-only MatchBox component (simplified display)
   const MatchBox = ({ 
     match, 
     className = ""
@@ -100,68 +100,24 @@ export default function BracketPage() {
   }) => {
     if (!match) {
       return (
-        <div className={`bg-gray-700/90 border border-gray-600 rounded-lg p-3 w-full h-16 flex items-center justify-center ${className}`}>
-          <div className="text-gray-400 text-sm">Kein Match</div>
+        <div className={`bg-gray-800/80 border border-white/10 rounded-lg p-3 w-full h-full flex items-center justify-center text-gray-400 text-sm ${className}`}>
+          Match folgt
         </div>
       )
     }
 
     const team1Name = getTeamName(match.team1, 'TBD')
     const team2Name = getTeamName(match.team2, 'TBD')
-    const isLive = match.isLive || false // Live Status kommt jetzt aus der Datenbank
-    const statusClass = match.autoAdvance
-      ? 'border-sky-400/80 bg-sky-900/20'
-      : match.isFinished
-        ? 'border-green-500 bg-green-900/20'
-        : isLive
-          ? 'border-yellow-500 bg-yellow-900/20'
-          : ''
-    
-    // Determine winner and styling based on scoring rules
-    // Grand Final: First to 3 points wins, All other matches: First to 2 points wins
-    const isGrandFinal = match.id === 'GF'
-    const winningScore = isGrandFinal ? 3 : 2
-    
-    const team1IsWinner = match.isFinished && match.team1Score >= winningScore
-    const team2IsWinner = match.isFinished && match.team2Score >= winningScore
-    
-    const team1Style = team1IsWinner ? "text-green-400 font-bold" : 
-                      team2IsWinner ? "text-gray-400" : "text-white"
-    const team2Style = team2IsWinner ? "text-green-400 font-bold" : 
-                      team1IsWinner ? "text-gray-400" : "text-white"
+    const team1Score = match.team1Score ?? 0
+    const team2Score = match.team2Score ?? 0
 
     return (
-      <div className={`bg-gray-700/90 border border-gray-600 rounded-lg p-4 w-full flex flex-col gap-3 ${statusClass} ${className}`}>
-        <div className="flex items-center justify-between text-xs uppercase tracking-wide text-purple-200">
-          <span>{match.roundLabel}</span>
-          <div className="flex items-center gap-2">
-            {match.autoAdvance && (
-              <span className="text-cyan-200 font-semibold">AUTO</span>
-            )}
-            {isLive && <span className="text-yellow-300 font-semibold">LIVE</span>}
-          </div>
+      <div className={`bg-gray-900/70 border border-white/10 rounded-lg px-3 py-4 w-full h-full flex items-center justify-center ${className}`}>
+        <div className="flex items-center gap-3 text-white text-sm font-semibold w-full justify-center">
+          <span className="truncate text-right max-w-[120px]">{team1Name}</span>
+          <span className="text-purple-200 whitespace-nowrap">{team1Score} - {team2Score}</span>
+          <span className="truncate text-left max-w-[120px]">{team2Name}</span>
         </div>
-        <div className="text-center text-sm font-semibold text-white">{match.label}</div>
-        <div className="text-center text-sm font-medium w-full">
-          {match.team1 && match.team2 ? (
-            <div className="space-y-1">
-              <div className="grid grid-cols-5 gap-1 items-center w-full max-w-xs mx-auto">
-                <div className={`${team1Style} text-right`}>{team1Name}</div>
-                <div className={`${team1Style} font-bold text-center`}>{match.team1Score}</div>
-                <div className="text-white text-center font-medium">vs</div>
-                <div className={`${team2Style} font-bold text-center`}>{match.team2Score}</div>
-                <div className={`${team2Style} text-left`}>{team2Name}</div>
-              </div>
-            </div>
-          ) : (
-            <div className="text-white">{team1Name} vs {team2Name}</div>
-          )}
-        </div>
-        {match.autoAdvance && (
-          <div className="text-center text-xs text-cyan-200 font-medium">
-            Team rückt dank Freilos automatisch weiter
-          </div>
-        )}
       </div>
     )
   }
