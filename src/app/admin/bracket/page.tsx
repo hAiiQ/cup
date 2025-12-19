@@ -330,11 +330,7 @@ export default function AdminBracketPage() {
 
       <div className="w-full px-4 py-6 space-y-8 max-w-[1800px] mx-auto">
         <section className="bg-black/20 backdrop-blur-sm rounded-xl p-5 border border-purple-500/50">
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-bold text-white">Double Elimination Tree</h2>
-              <p className="text-purple-200">Winner-Bracket oben, Loser-Bracket unten – alles in einem Board steuerbar.</p>
-            </div>
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end mb-6">
             <span className="text-sm text-purple-200">Betätige ein Match direkt in der Grafik um Scores/Livestatus zu setzen.</span>
           </div>
           <div className="overflow-x-auto pb-2">

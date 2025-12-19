@@ -396,13 +396,13 @@ export const LOSER_BRACKET_LAYOUT: BracketNodeLayout[] = [
   { id: 'LB-R2-3', column: 2, row: 3.5 },
   { id: 'LB-R3-1', column: 3, row: 2 },
   { id: 'LB-R3-2', column: 3, row: 3.5 },
-  { id: 'LB-R4', column: 4, row: 2.75 },
-  { id: 'LB-F', column: 6, row: 3 }
+  { id: 'LB-R4', column: 4, row: 3.25 },
+  { id: 'LB-F', column: 6, row: 2.5 }
 ]
 
 export const GRAND_FINAL_LAYOUT: BracketNodeLayout[] = [
   { id: 'WB-F', column: 1, row: 1 },
-  { id: 'LB-F', column: 2, row: 3 },
+  { id: 'LB-F', column: 2, row: 2.5 },
   { id: 'GF', column: 3, row: 2 }
 ]
 
@@ -459,8 +459,8 @@ const COMBINED_LOSER_LAYOUT: BracketNodeLayout[] = [
   { id: 'LB-R2-3', column: 2 + LOSER_COLUMN_OFFSET, row: LOSER_ROW_OFFSET + 3.5 },
   { id: 'LB-R3-1', column: 3 + LOSER_COLUMN_OFFSET, row: LOSER_ROW_OFFSET + 2 },
   { id: 'LB-R3-2', column: 3 + LOSER_COLUMN_OFFSET, row: LOSER_ROW_OFFSET + 3.5 },
-  { id: 'LB-R4', column: 4 + LOSER_COLUMN_OFFSET, row: LOSER_ROW_OFFSET + 2.75 },
-  { id: 'LB-F', column: 5 + LOSER_COLUMN_OFFSET, row: LOSER_ROW_OFFSET + 3.25 }
+  { id: 'LB-R4', column: 4 + LOSER_COLUMN_OFFSET, row: LOSER_ROW_OFFSET + 3.25 },
+  { id: 'LB-F', column: 5 + LOSER_COLUMN_OFFSET, row: LOSER_ROW_OFFSET + 2.5 }
 ]
 
 export const COMBINED_BRACKET_LAYOUT: BracketNodeLayout[] = [

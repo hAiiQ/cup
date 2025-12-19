@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getAllMatchStates } from '@/lib/matchState'
+import { getAllMatchStates, determineWinnerSlot } from '@/lib/matchState'
 import { prisma } from '@/lib/prisma'
 
 export async function GET() {
@@ -30,13 +30,14 @@ export async function GET() {
     
     // Add database states
     for (const dbMatch of dbMatches) {
+      const derivedWinner = determineWinnerSlot(dbMatch.id, dbMatch.team1Score, dbMatch.team2Score)
       states.push({
         matchId: dbMatch.id,
         isLive: dbMatch.isLive,
         team1Score: dbMatch.team1Score,
         team2Score: dbMatch.team2Score,
         isFinished: dbMatch.isFinished,
-        winnerId: dbMatch.winnerId,
+        winnerId: derivedWinner,
         lastUpdated: dbMatch.updatedAt.getTime(),
         source: 'database'
       })

@@ -14,6 +14,22 @@ export interface MatchState {
 // In-memory storage for match states
 const matchStates: Map<string, MatchState> = new Map()
 
+const getWinningScore = (matchId: string): number => (matchId === 'GF' ? 3 : 2)
+
+export function determineWinnerSlot(matchId: string, team1Score: number, team2Score: number): 'team1' | 'team2' | undefined {
+  const winningScore = getWinningScore(matchId)
+
+  if (team1Score >= winningScore && team1Score > team2Score) {
+    return 'team1'
+  }
+
+  if (team2Score >= winningScore && team2Score > team1Score) {
+    return 'team2'
+  }
+
+  return undefined
+}
+
 export function getMatchState(matchId: string): MatchState {
   return matchStates.get(matchId) || {
     isLive: false,
@@ -48,13 +64,9 @@ export function setMatchScore(matchId: string, team1Score: number, team2Score: n
   // Determine if match is finished based on score rules
   // Grand Final: First to 3 points wins
   // All other matches: First to 2 points wins
-  const isGrandFinal = matchId === 'GF'
-  const winningScore = isGrandFinal ? 3 : 2
-  
-  const isFinished = team1Score >= winningScore || team2Score >= winningScore
-  const winnerId = isFinished ? 
-    (team1Score >= winningScore ? 'team1' : 'team2') : 
-    undefined
+  const winningScore = getWinningScore(matchId)
+  const winnerId = determineWinnerSlot(matchId, team1Score, team2Score)
+  const isFinished = Boolean(winnerId)
   
   console.log(`🏆 Match ${matchId}: ${team1Score}-${team2Score}, Winning score: ${winningScore}, Finished: ${isFinished}, Winner: ${winnerId}`)
   
@@ -65,4 +77,9 @@ export function setMatchScore(matchId: string, team1Score: number, team2Score: n
     winnerId,
     isLive: !isFinished // Stop live when finished
   })
+}
+
+export function clearMatchStates() {
+  matchStates.clear()
+  console.log('🧹 Cleared all in-memory match states')
 }

@@ -152,11 +152,7 @@ export default function BracketPage() {
 
         {/* Combined Tournament Bracket */}
         <section className="bg-black/20 backdrop-blur-sm rounded-xl p-5 border border-purple-500/50">
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-bold text-white">Double Elimination Tree</h2>
-              <p className="text-purple-200">Winner-, Loser- und Final-Runden in einem einzigen Turnierbaum.</p>
-            </div>
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end mb-6">
             <span className="text-sm text-purple-200">Alle Matches Best-of-3 • Grand Final Best-of-5</span>
           </div>
           <div className="overflow-x-auto pb-2">
