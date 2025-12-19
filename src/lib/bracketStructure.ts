@@ -422,6 +422,7 @@ export const GRAND_FINAL_CONNECTIONS: BracketConnection[] = [
   ['LB-F', 'GF']
 ]
 const LOSER_ROW_OFFSET = 6
+const LOSER_COLUMN_OFFSET = 1
 
 const COMBINED_WINNER_LAYOUT: BracketNodeLayout[] = [
   { id: 'WB-R1-1', column: 1, row: 1 },
@@ -437,21 +438,21 @@ const COMBINED_WINNER_LAYOUT: BracketNodeLayout[] = [
 ]
 
 const COMBINED_LOSER_LAYOUT: BracketNodeLayout[] = [
-  { id: 'LB-R1-1', column: 1, row: LOSER_ROW_OFFSET + 1 },
-  { id: 'LB-R1-2', column: 1, row: LOSER_ROW_OFFSET + 2 },
-  { id: 'LB-R1-3', column: 1, row: LOSER_ROW_OFFSET + 3 },
-  { id: 'LB-R2-1', column: 2, row: LOSER_ROW_OFFSET + 1.5 },
-  { id: 'LB-R2-2', column: 2, row: LOSER_ROW_OFFSET + 2.5 },
-  { id: 'LB-R3-1', column: 3, row: LOSER_ROW_OFFSET + 2 },
-  { id: 'LB-R3-2', column: 3, row: LOSER_ROW_OFFSET + 3.5 },
-  { id: 'LB-R4', column: 4, row: LOSER_ROW_OFFSET + 2.75 },
-  { id: 'LB-F', column: 4, row: LOSER_ROW_OFFSET + 3.25 }
+  { id: 'LB-R1-1', column: 1 + LOSER_COLUMN_OFFSET, row: LOSER_ROW_OFFSET + 1 },
+  { id: 'LB-R1-2', column: 1 + LOSER_COLUMN_OFFSET, row: LOSER_ROW_OFFSET + 2 },
+  { id: 'LB-R1-3', column: 1 + LOSER_COLUMN_OFFSET, row: LOSER_ROW_OFFSET + 3 },
+  { id: 'LB-R2-1', column: 2 + LOSER_COLUMN_OFFSET, row: LOSER_ROW_OFFSET + 1.5 },
+  { id: 'LB-R2-2', column: 2 + LOSER_COLUMN_OFFSET, row: LOSER_ROW_OFFSET + 2.5 },
+  { id: 'LB-R3-1', column: 3 + LOSER_COLUMN_OFFSET, row: LOSER_ROW_OFFSET + 2 },
+  { id: 'LB-R3-2', column: 3 + LOSER_COLUMN_OFFSET, row: LOSER_ROW_OFFSET + 3.5 },
+  { id: 'LB-R4', column: 4 + LOSER_COLUMN_OFFSET, row: LOSER_ROW_OFFSET + 2.75 },
+  { id: 'LB-F', column: 4 + LOSER_COLUMN_OFFSET, row: LOSER_ROW_OFFSET + 3.25 }
 ]
 
 export const COMBINED_BRACKET_LAYOUT: BracketNodeLayout[] = [
   ...COMBINED_WINNER_LAYOUT,
   ...COMBINED_LOSER_LAYOUT,
-  { id: 'GF', column: 5, row: LOSER_ROW_OFFSET + 1.75 }
+  { id: 'GF', column: 6, row: LOSER_ROW_OFFSET + 1.75 }
 ]
 
 const WINNER_TO_LOSER_CONNECTIONS: BracketConnection[] = [
