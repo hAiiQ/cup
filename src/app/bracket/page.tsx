@@ -108,8 +108,12 @@ export default function BracketPage() {
     const team1Score = match.team1Score ?? 0
     const team2Score = match.team2Score ?? 0
 
+    const containerClass = match.isFinished
+      ? 'bg-green-900/70 border-green-500/60'
+      : 'bg-gray-900/70 border-white/10'
+
     return (
-      <div className={`bg-gray-900/70 border border-white/10 rounded-lg px-3 py-4 w-full h-full flex flex-col justify-center ${className}`}>
+      <div className={`${containerClass} rounded-lg px-3 py-4 w-full h-full flex flex-col justify-center ${className}`}>
         {match.isLive && (
           <div className="text-[11px] uppercase text-center text-red-300 font-bold mb-1 animate-pulse">
             Live Match
