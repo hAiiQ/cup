@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import type { ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   buildBracketMatches,
@@ -39,6 +40,12 @@ export default function AdminBracketPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isAuthLoading, setIsAuthLoading] = useState(true)
+  const [selectedMatch, setSelectedMatch] = useState<BracketMatch | null>(null)
+  const [scoreInputs, setScoreInputs] = useState({ team1: '0', team2: '0' })
+  const [panelMessage, setPanelMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [liveMutationLoading, setLiveMutationLoading] = useState(false)
+  const [scoreMutationLoading, setScoreMutationLoading] = useState(false)
+  const selectedMatchIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     checkAdminAuth()
@@ -102,6 +109,17 @@ export default function AdminBracketPage() {
 
       const matches = buildBracketMatches(normalizedTeams, stateMap)
       setBracket(matches)
+
+      if (selectedMatchIdRef.current) {
+        const refreshed = matches.find(match => match.id === selectedMatchIdRef.current)
+        if (refreshed) {
+          setSelectedMatch(refreshed)
+          setScoreInputs({
+            team1: String(refreshed.team1Score ?? 0),
+            team2: String(refreshed.team2Score ?? 0)
+          })
+        }
+      }
     } catch (error) {
       console.error('Error fetching bracket data:', error)
     } finally {
@@ -137,7 +155,118 @@ export default function AdminBracketPage() {
     }
   }
 
-  const MatchBox = ({ match, className = '' }: { match?: BracketMatch, className?: string }) => {
+  const handleMatchSelect = (match?: BracketMatch) => {
+    if (!match) {
+      return
+    }
+
+    selectedMatchIdRef.current = match.id
+    setSelectedMatch(match)
+    setScoreInputs({
+      team1: String(match.team1Score ?? 0),
+      team2: String(match.team2Score ?? 0)
+    })
+    setPanelMessage(null)
+  }
+
+  const clearMatchSelection = () => {
+    selectedMatchIdRef.current = null
+    setSelectedMatch(null)
+    setPanelMessage(null)
+  }
+
+  const handleScoreInputChange = (team: 'team1' | 'team2', event: ChangeEvent<HTMLInputElement>) => {
+    const sanitized = event.target.value.replace(/[^0-9]/g, '')
+    setScoreInputs(prev => ({
+      ...prev,
+      [team]: sanitized
+    }))
+  }
+
+  const toggleMatchLive = async () => {
+    if (!selectedMatch) {
+      return
+    }
+
+    setLiveMutationLoading(true)
+    setPanelMessage(null)
+
+    try {
+      const response = await fetch('/api/admin/bracket/matches/live', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          matchId: selectedMatch.id,
+          isLive: !selectedMatch.isLive
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Live-Status konnte nicht gespeichert werden')
+      }
+
+      setPanelMessage({
+        type: 'success',
+        text: !selectedMatch.isLive ? 'Match wurde als LIVE markiert.' : 'Match wurde gestoppt.'
+      })
+      await fetchData(false)
+    } catch (error) {
+      console.error('Error toggling live status:', error)
+      setPanelMessage({ type: 'error', text: 'Live-Status konnte nicht aktualisiert werden.' })
+    } finally {
+      setLiveMutationLoading(false)
+    }
+  }
+
+  const saveMatchScore = async () => {
+    if (!selectedMatch) {
+      return
+    }
+
+    const team1Score = parseInt(scoreInputs.team1 || '0', 10)
+    const team2Score = parseInt(scoreInputs.team2 || '0', 10)
+
+    setScoreMutationLoading(true)
+    setPanelMessage(null)
+
+    try {
+      const response = await fetch('/api/admin/bracket/matches/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          matchId: selectedMatch.id,
+          team1Score,
+          team2Score
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Match-Ergebnis konnte nicht gespeichert werden')
+      }
+
+      setPanelMessage({ type: 'success', text: 'Match-Ergebnis gespeichert.' })
+      await fetchData(false)
+    } catch (error) {
+      console.error('Error saving match score:', error)
+      setPanelMessage({ type: 'error', text: 'Match-Ergebnis konnte nicht gespeichert werden.' })
+    } finally {
+      setScoreMutationLoading(false)
+    }
+  }
+
+  const MatchBox = ({
+    match,
+    className = '',
+    onSelect,
+    isSelected
+  }: {
+    match?: BracketMatch,
+    className?: string,
+    onSelect?: (match: BracketMatch) => void,
+    isSelected?: boolean
+  }) => {
     if (!match) {
       return (
         <div className={`bg-gray-900/60 border border-dashed border-white/15 rounded-lg p-4 text-center text-gray-400 text-sm ${className}`}>
@@ -152,7 +281,23 @@ export default function AdminBracketPage() {
     const team2Wins = match.isFinished && match.winnerId === 'team2'
 
     return (
-      <div className={`bg-gray-900/75 border border-white/10 rounded-lg px-3 py-4 w-full h-full flex flex-col justify-center shadow-lg ${className}`}>
+      <button
+        type="button"
+        onClick={() => onSelect?.(match)}
+        className={`bg-gray-900/75 border ${isSelected ? 'border-purple-400 ring-2 ring-purple-500/60' : 'border-white/10 hover:border-purple-400/70'} rounded-lg px-3 py-4 w-full h-full flex flex-col justify-center shadow-lg transition-all duration-200 text-left ${className}`}
+        aria-pressed={isSelected}
+      >
+        <div className="flex items-center justify-between text-[11px] uppercase tracking-wide text-purple-200/80 mb-2">
+          {match.isLive ? (
+            <span className="text-red-300 font-bold animate-pulse">LIVE</span>
+          ) : match.isFinished ? (
+            <span className="text-green-300 font-semibold">Ergebnis gespeichert</span>
+          ) : (
+            <span className="text-white/50">Bereit</span>
+          )}
+          {isSelected && <span className="text-cyan-300 font-semibold">Ausgewählt</span>}
+        </div>
+
         <div className="flex items-center justify-center gap-3 text-white text-sm font-bold w-full">
           <span className={`flex-1 min-w-0 truncate text-right ${team1Wins ? 'text-green-400' : ''}`}>{team1Name}</span>
           <span className={`flex-none w-16 text-center whitespace-nowrap text-purple-200 ${match.isLive ? 'text-yellow-300' : ''}`}>
@@ -164,7 +309,7 @@ export default function AdminBracketPage() {
         {match.autoAdvance && (
           <p className="text-xs text-center text-cyan-200 mt-2">Freilos – Team rückt automatisch weiter</p>
         )}
-      </div>
+      </button>
     )
   }
 
@@ -239,10 +384,119 @@ export default function AdminBracketPage() {
               matches={bracket}
               layout={COMBINED_BRACKET_LAYOUT}
               connections={COMBINED_BRACKET_CONNECTIONS}
-              renderMatch={(match) => <MatchBox match={match} className="h-full" />}
+              renderMatch={(match) => (
+                <MatchBox
+                  match={match}
+                  className="h-full"
+                  onSelect={handleMatchSelect}
+                  isSelected={Boolean(match && selectedMatch?.id === match.id)}
+                />
+              )}
               className="mx-auto"
             />
           </div>
+        </section>
+
+        <section className="bg-black/25 backdrop-blur-sm rounded-xl p-5 border border-purple-500/40">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-white">Match-Control Panel</h2>
+              <p className="text-purple-200 text-sm">Klicke ein Match im Bracket an, um Live-Status und Score zu steuern.</p>
+            </div>
+            {selectedMatch && (
+              <button
+                onClick={clearMatchSelection}
+                className="self-start md:self-auto px-4 py-2 rounded bg-gray-700 text-white text-sm hover:bg-gray-600 transition-colors"
+              >
+                Auswahl zurücksetzen
+              </button>
+            )}
+          </div>
+
+          {!selectedMatch && (
+            <div className="mt-6 text-center text-purple-200 text-sm">
+              Kein Match ausgewählt. Bitte wähle eine Begegnung im Bracket aus, um sie zu steuern.
+            </div>
+          )}
+
+          {selectedMatch && (
+            <div className="mt-6 grid gap-6 lg:grid-cols-2">
+              <div className="space-y-4">
+                <div className="bg-gray-900/60 border border-white/10 rounded-lg p-4">
+                  <p className="text-xs uppercase text-white/50 mb-1">Team 1</p>
+                  <p className="text-lg font-semibold text-white mb-3">{selectedMatch.team1?.name || 'TBD'}</p>
+                  <input
+                    type="number"
+                    min="0"
+                    value={scoreInputs.team1}
+                    onChange={(event) => handleScoreInputChange('team1', event)}
+                    className="w-full rounded bg-black/40 border border-white/10 px-3 py-2 text-white focus:outline-none focus:border-purple-400"
+                  />
+                </div>
+
+                <div className="bg-gray-900/60 border border-white/10 rounded-lg p-4">
+                  <p className="text-xs uppercase text-white/50 mb-1">Team 2</p>
+                  <p className="text-lg font-semibold text-white mb-3">{selectedMatch.team2?.name || 'TBD'}</p>
+                  <input
+                    type="number"
+                    min="0"
+                    value={scoreInputs.team2}
+                    onChange={(event) => handleScoreInputChange('team2', event)}
+                    className="w-full rounded bg-black/40 border border-white/10 px-3 py-2 text-white focus:outline-none focus:border-purple-400"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {panelMessage && (
+                  <div
+                    className={`rounded-lg px-4 py-3 text-sm ${panelMessage.type === 'success' ? 'bg-green-600/20 text-green-200 border border-green-500/40' : 'bg-red-600/20 text-red-200 border border-red-500/40'}`}
+                  >
+                    {panelMessage.text}
+                  </div>
+                )}
+
+                <div className="bg-gray-900/60 border border-white/10 rounded-lg p-4 space-y-3">
+                  <div className="flex flex-wrap items-center gap-2 text-sm">
+                    <span className="px-2 py-1 rounded bg-black/40 text-white/70 uppercase tracking-wide text-xs">
+                      {selectedMatch.isLive ? 'Live' : selectedMatch.isFinished ? 'Beendet' : 'Bereit'}
+                    </span>
+                    {selectedMatch.winnerId && (
+                      <span className="px-2 py-1 rounded bg-green-500/20 text-green-200 text-xs font-semibold">
+                        Gewinner: {selectedMatch.winnerId === 'team1' ? (selectedMatch.team1?.name || 'Team 1') : (selectedMatch.team2?.name || 'Team 2')}
+                      </span>
+                    )}
+                    {selectedMatch.autoAdvance && (
+                      <span className="px-2 py-1 rounded bg-cyan-500/20 text-cyan-200 text-xs font-semibold">
+                        Freilos
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid gap-2">
+                    <button
+                      onClick={toggleMatchLive}
+                      disabled={liveMutationLoading}
+                      className={`w-full px-4 py-2 rounded text-white font-semibold transition-colors ${selectedMatch.isLive ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} ${liveMutationLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    >
+                      {liveMutationLoading ? 'Speichere...' : selectedMatch.isLive ? 'Match stoppen' : 'Match starten'}
+                    </button>
+                    <button
+                      onClick={saveMatchScore}
+                      disabled={scoreMutationLoading}
+                      className={`w-full px-4 py-2 rounded bg-purple-600 text-white font-semibold hover:bg-purple-700 transition-colors ${scoreMutationLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    >
+                      {scoreMutationLoading ? 'Speichere...' : 'Ergebnis speichern'}
+                    </button>
+                  </div>
+
+                  <p className="text-xs text-white/60">
+                    Hinweis: Matches enden automatisch, sobald ein Team das benötigte Punktelimit erreicht (Best-of-3, Grand Final Best-of-5). Gewinner werden automatisch im Bracket weitergetragen.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
 
         <section>
