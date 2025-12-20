@@ -232,7 +232,7 @@ const MATCH_BLUEPRINTS: MatchBlueprint[] = [
     roundLabel: 'Loser Round 2',
     roundOrder: 2,
     sources: [
-      { kind: 'winner', matchId: 'LB-R1-2' },
+      { kind: 'winner', matchId: 'LB-R1-3' },
       { kind: 'loser', matchId: 'WB-R2-2' }
     ]
   },
@@ -243,8 +243,8 @@ const MATCH_BLUEPRINTS: MatchBlueprint[] = [
     roundLabel: 'Loser Round 2',
     roundOrder: 2,
     sources: [
-      { kind: 'winner', matchId: 'LB-R1-3' },
-      { kind: 'loser', matchId: 'WB-R2-3' }
+      { kind: 'winner', matchId: 'LB-R1-2' },
+      { kind: 'bye', label: 'Freilos' }
     ]
   },
   // Loser Bracket Round 3
