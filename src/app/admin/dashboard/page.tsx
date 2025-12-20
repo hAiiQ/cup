@@ -54,6 +54,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('users')
   const [deletingUser, setDeletingUser] = useState<string | null>(null)
+  const [resettingTeams, setResettingTeams] = useState(false)
   const router = useRouter()
   const resolvedTeamOptions = teamOptions.length > 0
     ? [...teamOptions].sort((a, b) => a.position - b.position)
@@ -261,6 +262,43 @@ export default function AdminDashboard() {
     }
   }
 
+  const resetTeams = async () => {
+    if (resettingTeams) {
+      return
+    }
+
+    if (!confirm('Möchtest du wirklich alle Teams löschen und neu anlegen?')) {
+      return
+    }
+
+    const customNameInput = window.prompt('Optional: Wie sollen die neuen Teams heißen? (Leer lassen für Team 1–10)', '')
+    const trimmedName = customNameInput?.trim() || undefined
+
+    setResettingTeams(true)
+
+    try {
+      const response = await fetch('/api/admin/teams/reset', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(trimmedName ? { name: trimmedName } : {}),
+      })
+
+      if (response.ok) {
+        await fetchData()
+        alert('Teams wurden erfolgreich zurückgesetzt.')
+      } else {
+        const data = await response.json().catch(() => ({}))
+        alert(data.error || 'Fehler beim Zurücksetzen der Teams')
+      }
+    } catch (error) {
+      alert('Ein Fehler ist aufgetreten beim Zurücksetzen der Teams')
+    } finally {
+      setResettingTeams(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -352,7 +390,7 @@ export default function AdminDashboard() {
             {/* Quick Actions */}
             <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
               <h2 className="text-2xl font-semibold text-white mb-4">Schnellzugriff</h2>
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid md:grid-cols-3 gap-4">
                 <Link
                   href="/admin/wheel"
                   className="bg-purple-600 text-white p-4 rounded-lg hover:bg-purple-700 transition-colors text-center"
@@ -369,6 +407,18 @@ export default function AdminDashboard() {
                   <div className="font-semibold">Tournament Bracket</div>
                   <div className="text-sm opacity-80">Matches verwalten</div>
                 </Link>
+                <button
+                  type="button"
+                  onClick={resetTeams}
+                  disabled={resettingTeams}
+                  className="bg-red-600 text-white p-4 rounded-lg hover:bg-red-700 transition-colors text-center disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <div className="text-2xl mb-2">🧼</div>
+                  <div className="font-semibold">Teams zurücksetzen</div>
+                  <div className="text-sm opacity-80">
+                    {resettingTeams ? 'Setze Teams neu auf...' : 'Alle 10 Plätze säubern'}
+                  </div>
+                </button>
               </div>
             </div>
           </div>

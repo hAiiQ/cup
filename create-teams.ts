@@ -15,57 +15,12 @@ async function createTeams() {
       position: index + 1
     }))
 
-    for (const team of teams) {
-      await prisma.team.create({
-        data: team
-      })
-    }
+    await prisma.team.createMany({ data: teams })
 
-    // Create initial quarter-final matches with teams
-    await prisma.match.deleteMany() // Clear existing matches
+    // Reset matches for a clean bracket slate
+    await prisma.match.deleteMany()
 
-    const initialMatches = [
-      {
-        id: 'wb-qf-1',
-        bracket: 'winner',
-        round: 1,
-        matchNumber: 1,
-        team1Id: 'team-alpha',
-        team2Id: 'team-beta'
-      },
-      {
-        id: 'wb-qf-2',
-        bracket: 'winner',
-        round: 1,
-        matchNumber: 2,
-        team1Id: 'team-gamma',
-        team2Id: 'team-delta'
-      },
-      {
-        id: 'wb-qf-3',
-        bracket: 'winner',
-        round: 1,
-        matchNumber: 3,
-        team1Id: 'team-echo',
-        team2Id: 'team-foxtrot'
-      },
-      {
-        id: 'wb-qf-4',
-        bracket: 'winner',
-        round: 1,
-        matchNumber: 4,
-        team1Id: 'team-golf',
-        team2Id: 'team-hotel'
-      }
-    ]
-
-    for (const match of initialMatches) {
-      await prisma.match.create({
-        data: match
-      })
-    }
-
-    console.log('✅ Teams and initial matches created successfully!')
+    console.log('✅ Teams recreated and matches cleared!')
     console.log('Teams:', teams.map(t => t.name).join(', '))
     
   } catch (error) {
