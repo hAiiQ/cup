@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getAllMatchStates, MatchState } from '@/lib/matchState'
+import { getAllMatchStates, determineWinnerSlot, type MatchState } from '@/lib/matchState'
 import { prisma } from '@/lib/prisma'
 import { buildBracketMatches, ensureTenTeams, type BracketTeam } from '@/lib/bracketStructure'
 
@@ -43,12 +43,16 @@ export async function GET() {
     // Add database states first (higher priority) if available
     if (dbMatches.length > 0) {
       for (const dbMatch of dbMatches) {
+        const team1Score = dbMatch.team1Score || 0
+        const team2Score = dbMatch.team2Score || 0
+        const derivedWinner = determineWinnerSlot(dbMatch.id, team1Score, team2Score)
+
         combinedStates.set(dbMatch.id, {
           isLive: dbMatch.isLive,
-          team1Score: dbMatch.team1Score || 0,
-          team2Score: dbMatch.team2Score || 0,
+          team1Score,
+          team2Score,
           isFinished: dbMatch.isFinished || false,
-          winnerId: dbMatch.winnerId,
+          winnerId: dbMatch.winnerId || derivedWinner,
           lastUpdated: dbMatch.updatedAt?.getTime() || Date.now(),
           source: 'database'
         })
