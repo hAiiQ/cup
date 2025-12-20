@@ -497,6 +497,8 @@ export default function AdminDashboard() {
                               <option value="Team Zeta">Team Zeta</option>
                               <option value="Team Eta">Team Eta</option>
                               <option value="Team Theta">Team Theta</option>
+                              <option value="Team Hotel">Team Hotel</option>
+                              <option value="Team Indigo">Team Indigo</option>
                             </select>
                           </div>
                         </td>
