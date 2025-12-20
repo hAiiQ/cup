@@ -13,11 +13,6 @@ import {
 import type { MatchState } from '@/lib/matchState'
 import BracketDiagram from '@/components/bracket/BracketDiagram'
 
-interface ScoreInput {
-  team1: number
-  team2: number
-}
-
 const createStateMap = (states: any[]): Map<string, MatchState> => {
   const map = new Map<string, MatchState>()
 
@@ -42,9 +37,6 @@ export default function AdminBracketPage() {
   const [bracket, setBracket] = useState<BracketMatch[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [scoreDrafts, setScoreDrafts] = useState<Record<string, ScoreInput>>({})
-  const [savingMatchId, setSavingMatchId] = useState<string | null>(null)
-  const [liveToggleMatchId, setLiveToggleMatchId] = useState<string | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isAuthLoading, setIsAuthLoading] = useState(true)
 
@@ -110,15 +102,6 @@ export default function AdminBracketPage() {
 
       const matches = buildBracketMatches(normalizedTeams, stateMap)
       setBracket(matches)
-
-      const drafts: Record<string, ScoreInput> = {}
-      matches.forEach(match => {
-        drafts[match.id] = {
-          team1: match.team1Score ?? 0,
-          team2: match.team2Score ?? 0
-        }
-      })
-      setScoreDrafts(drafts)
     } catch (error) {
       console.error('Error fetching bracket data:', error)
     } finally {
@@ -127,67 +110,6 @@ export default function AdminBracketPage() {
       } else {
         setRefreshing(false)
       }
-    }
-  }
-
-  const toggleLiveStatus = async (match: BracketMatch) => {
-    if (match.autoAdvance) {
-      return
-    }
-
-    try {
-      setLiveToggleMatchId(match.id)
-      const response = await fetch('/api/admin/bracket/matches/live', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          matchId: match.id,
-          isLive: !match.isLive
-        })
-      })
-
-      if (response.ok) {
-        const result = await response.json()
-        alert(`✅ ${result.message || (match.isLive ? 'Match gestoppt' : 'Match gestartet')}`)
-        await fetchData(false)
-      } else {
-        alert('Fehler beim Aktualisieren des Live-Status')
-      }
-    } catch (error) {
-      console.error('Error toggling live status:', error)
-      alert('Fehler beim Aktualisieren des Live-Status')
-    } finally {
-      setLiveToggleMatchId(null)
-    }
-  }
-
-  const updateMatchScore = async (matchId: string, team1Score: number, team2Score: number) => {
-    try {
-      setSavingMatchId(matchId)
-      const response = await fetch('/api/admin/bracket/matches/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ matchId, team1Score, team2Score })
-      })
-
-      if (response.ok) {
-        const result = await response.json()
-        alert(`✅ ${result.message || 'Match-Score gespeichert!'}`)
-        setScoreDrafts(prev => ({
-          ...prev,
-          [matchId]: { team1: team1Score, team2: team2Score }
-        }))
-        await fetchData(false)
-      } else {
-        alert('Fehler beim Speichern des Ergebnisses')
-      }
-    } catch (error) {
-      console.error('Error updating match:', error)
-      alert('Ein Fehler ist aufgetreten')
-    } finally {
-      setSavingMatchId(null)
     }
   }
 
@@ -215,22 +137,6 @@ export default function AdminBracketPage() {
     }
   }
 
-  const handleScoreDraftChange = (
-    matchId: string,
-    field: keyof ScoreInput,
-    value: number,
-    maxScore: number
-  ) => {
-    const clampedValue = Math.max(0, Math.min(maxScore, value))
-    setScoreDrafts(prev => ({
-      ...prev,
-      [matchId]: {
-        ...(prev[matchId] ?? { team1: 0, team2: 0 }),
-        [field]: clampedValue
-      }
-    }))
-  }
-
   const MatchBox = ({ match, className = '' }: { match?: BracketMatch, className?: string }) => {
     if (!match) {
       return (
@@ -244,14 +150,6 @@ export default function AdminBracketPage() {
     const team2Name = match.team2?.name || 'TBD'
     const team1Wins = match.isFinished && match.winnerId === 'team1'
     const team2Wins = match.isFinished && match.winnerId === 'team2'
-    const isTogglingLive = liveToggleMatchId === match.id
-    const maxScore = match.id === 'GF' ? 3 : 2
-    const scoreDraft = scoreDrafts[match.id] ?? {
-      team1: match.team1Score ?? 0,
-      team2: match.team2Score ?? 0
-    }
-    const canEditScores = Boolean(match.team1 && match.team2 && !match.autoAdvance)
-    const isSavingScores = savingMatchId === match.id
 
     return (
       <div className={`bg-gray-900/75 border border-white/10 rounded-lg px-3 py-4 w-full h-full flex flex-col gap-3 shadow-lg ${className}`}>
@@ -261,17 +159,6 @@ export default function AdminBracketPage() {
             {match.autoAdvance && <span className="text-cyan-300 font-semibold">Freilos</span>}
             {match.isLive && !match.autoAdvance && <span className="text-red-400 font-semibold">Live</span>}
             {match.isFinished && !match.autoAdvance && <span className="text-green-400 font-semibold">Finished</span>}
-            {!match.autoAdvance && (
-              <button
-                className={`px-2 py-1 rounded text-[10px] font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                  match.isLive ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
-                }`}
-                onClick={() => toggleLiveStatus(match)}
-                disabled={isTogglingLive}
-              >
-                {isTogglingLive ? '...' : match.isLive ? 'Stop' : 'Start'}
-              </button>
-            )}
           </div>
         </div>
 
@@ -290,52 +177,9 @@ export default function AdminBracketPage() {
         {match.autoAdvance ? (
           <p className="text-xs text-center text-cyan-200">Freilos – Team rückt automatisch weiter</p>
         ) : (
-          <div className="space-y-3">
-            {canEditScores ? (
-              <>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div>
-                    <label className="block text-gray-300 text-xs font-semibold mb-1">{team1Name}</label>
-                    <input
-                      type="number"
-                      min={0}
-                      max={maxScore}
-                      value={scoreDraft.team1}
-                      onChange={(e) => handleScoreDraftChange(match.id, 'team1', Number(e.target.value) || 0, maxScore)}
-                      className="w-full px-2 py-1.5 bg-gray-800 border border-gray-700 text-white text-sm rounded"
-                      disabled={!canEditScores}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-300 text-xs font-semibold mb-1">{team2Name}</label>
-                    <input
-                      type="number"
-                      min={0}
-                      max={maxScore}
-                      value={scoreDraft.team2}
-                      onChange={(e) => handleScoreDraftChange(match.id, 'team2', Number(e.target.value) || 0, maxScore)}
-                      className="w-full px-2 py-1.5 bg-gray-800 border border-gray-700 text-white text-sm rounded"
-                      disabled={!canEditScores}
-                    />
-                  </div>
-                </div>
-                <button
-                  onClick={() => updateMatchScore(match.id, scoreDraft.team1, scoreDraft.team2)}
-                  className="w-full bg-green-600 text-white py-1.5 rounded text-sm font-semibold hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={isSavingScores}
-                >
-                  {isSavingScores ? 'Speichere...' : '💾 Scores speichern'}
-                </button>
-                <p className="text-[11px] text-gray-400 text-center">
-                  {maxScore === 3 ? 'Best of 5 – erstes Team auf 3 Punkte gewinnt' : 'Best of 3 – erstes Team auf 2 Punkte gewinnt'}
-                </p>
-              </>
-            ) : (
-              <p className="text-xs text-center text-yellow-200">
-                Teams stehen noch nicht fest – Scores können noch nicht gesetzt werden.
-              </p>
-            )}
-          </div>
+          <p className="text-[11px] text-gray-400 text-center">
+            Scores und Live-Status werden aktuell extern verwaltet.
+          </p>
         )}
       </div>
     )
@@ -407,7 +251,7 @@ export default function AdminBracketPage() {
       <div className="w-full px-4 py-6 space-y-8 max-w-[1800px] mx-auto">
         <section className="bg-black/20 backdrop-blur-sm rounded-xl p-5 border border-purple-500/50">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end mb-6">
-            <span className="text-sm text-purple-200">Betätige ein Match direkt in der Grafik um Scores/Livestatus zu setzen.</span>
+            <span className="text-sm text-purple-200">Anzeige ist derzeit schreibgeschützt – Änderungen laufen außerhalb dieses Panels.</span>
           </div>
           <div className="overflow-x-auto pb-2">
             <BracketDiagram
