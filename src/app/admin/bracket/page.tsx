@@ -155,11 +155,7 @@ export default function AdminBracketPage() {
       <div className={`bg-gray-900/75 border border-white/10 rounded-lg px-3 py-4 w-full h-full flex flex-col gap-3 shadow-lg ${className}`}>
         <div className="flex items-center justify-between text-[11px] uppercase tracking-wide text-purple-200">
           <span className="truncate pr-2">{match.roundLabel}</span>
-          <div className="flex items-center gap-2">
-            {match.autoAdvance && <span className="text-cyan-300 font-semibold">Freilos</span>}
-            {match.isLive && !match.autoAdvance && <span className="text-red-400 font-semibold">Live</span>}
-            {match.isFinished && !match.autoAdvance && <span className="text-green-400 font-semibold">Finished</span>}
-          </div>
+          {match.autoAdvance && <span className="text-cyan-300 font-semibold">Freilos</span>}
         </div>
 
         <div className="text-sm font-semibold text-white/80">{match.label}</div>
@@ -174,12 +170,8 @@ export default function AdminBracketPage() {
           </div>
         </div>
 
-        {match.autoAdvance ? (
+        {match.autoAdvance && (
           <p className="text-xs text-center text-cyan-200">Freilos – Team rückt automatisch weiter</p>
-        ) : (
-          <p className="text-[11px] text-gray-400 text-center">
-            Scores und Live-Status werden aktuell extern verwaltet.
-          </p>
         )}
       </div>
     )
@@ -250,9 +242,7 @@ export default function AdminBracketPage() {
 
       <div className="w-full px-4 py-6 space-y-8 max-w-[1800px] mx-auto">
         <section className="bg-black/20 backdrop-blur-sm rounded-xl p-5 border border-purple-500/50">
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end mb-6">
-            <span className="text-sm text-purple-200">Anzeige ist derzeit schreibgeschützt – Änderungen laufen außerhalb dieses Panels.</span>
-          </div>
+          <div className="mb-6" />
           <div className="overflow-x-auto pb-2">
             <BracketDiagram
               matches={bracket}
