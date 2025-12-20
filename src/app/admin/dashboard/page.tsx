@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { formatTierShortLabel, resolveTierKey, TIER_SELECT_OPTIONS, type TierKey } from '@/lib/tierConfig'
+import { DEFAULT_TEAM_NAMES } from '@/lib/teamDefaults'
 
 const TIER_BADGE_CLASSES: Record<TierKey, string> = {
   tier1: 'bg-blue-600 text-white',
@@ -36,8 +37,15 @@ interface User {
   } | null
 }
 
+interface AdminTeam {
+  id: string
+  name: string
+  position: number
+}
+
 export default function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([])
+  const [teamOptions, setTeamOptions] = useState<AdminTeam[]>([])
   const [stats, setStats] = useState({
     totalUsers: 0,
     verifiedUsers: 0,
@@ -47,6 +55,13 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('users')
   const [deletingUser, setDeletingUser] = useState<string | null>(null)
   const router = useRouter()
+  const resolvedTeamOptions = teamOptions.length > 0
+    ? [...teamOptions].sort((a, b) => a.position - b.position)
+    : DEFAULT_TEAM_NAMES.map((name, index) => ({
+        id: `default-${index + 1}`,
+        name,
+        position: index + 1
+      }))
 
   useEffect(() => {
     fetchData()
@@ -54,13 +69,14 @@ export default function AdminDashboard() {
 
   const fetchData = async () => {
     try {
-      const [usersRes, statsRes] = await Promise.all([
+      const [usersRes, statsRes, teamsRes] = await Promise.all([
         fetch('/api/admin/users'),
-        fetch('/api/admin/stats')
+        fetch('/api/admin/stats'),
+        fetch('/api/admin/teams')
       ])
 
       // Check if admin is authenticated
-      if (usersRes.status === 401 || statsRes.status === 401) {
+      if (usersRes.status === 401 || statsRes.status === 401 || teamsRes.status === 401) {
         console.log('Admin not authenticated, redirecting to login...')
         router.push('/admin')
         return
@@ -81,10 +97,19 @@ export default function AdminDashboard() {
         console.error('Failed to fetch stats:', statsRes.status)
         setStats({ totalUsers: 0, verifiedUsers: 0, unverifiedUsers: 0 })
       }
+
+      if (teamsRes.ok) {
+        const teamsData = await teamsRes.json()
+        setTeamOptions(teamsData.teams || [])
+      } else {
+        console.error('Failed to fetch teams:', teamsRes.status)
+        setTeamOptions([])
+      }
     } catch (error) {
       console.error('Error fetching data:', error)
       setUsers([])
       setStats({ totalUsers: 0, verifiedUsers: 0, unverifiedUsers: 0 })
+      setTeamOptions([])
     } finally {
       setLoading(false)
     }
@@ -489,16 +514,11 @@ export default function AdminDashboard() {
                               className="bg-gray-700 border border-gray-600 rounded text-xs text-white px-2 py-1 focus:outline-none focus:border-blue-500"
                             >
                               <option value="">Kein Team</option>
-                              <option value="Team Alpha">Team Alpha</option>
-                              <option value="Team Beta">Team Beta</option>
-                              <option value="Team Gamma">Team Gamma</option>
-                              <option value="Team Delta">Team Delta</option>
-                              <option value="Team Epsilon">Team Epsilon</option>
-                              <option value="Team Zeta">Team Zeta</option>
-                              <option value="Team Eta">Team Eta</option>
-                              <option value="Team Theta">Team Theta</option>
-                              <option value="Team Hotel">Team Hotel</option>
-                              <option value="Team Indigo">Team Indigo</option>
+                              {resolvedTeamOptions.map((team) => (
+                                <option key={team.id} value={team.name}>
+                                  {team.name}
+                                </option>
+                              ))}
                             </select>
                           </div>
                         </td>

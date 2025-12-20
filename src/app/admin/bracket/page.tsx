@@ -42,9 +42,11 @@ export default function AdminBracketPage() {
   const [isAuthLoading, setIsAuthLoading] = useState(true)
   const [selectedMatch, setSelectedMatch] = useState<BracketMatch | null>(null)
   const [scoreInputs, setScoreInputs] = useState({ team1: '0', team2: '0' })
+  const [renameInputs, setRenameInputs] = useState({ team1: '', team2: '' })
   const [panelMessage, setPanelMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [liveMutationLoading, setLiveMutationLoading] = useState(false)
   const [scoreMutationLoading, setScoreMutationLoading] = useState(false)
+  const [teamRenameLoading, setTeamRenameLoading] = useState<'team1' | 'team2' | null>(null)
   const selectedMatchIdRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -118,6 +120,10 @@ export default function AdminBracketPage() {
             team1: String(refreshed.team1Score ?? 0),
             team2: String(refreshed.team2Score ?? 0)
           })
+          setRenameInputs({
+            team1: refreshed.team1?.name || '',
+            team2: refreshed.team2?.name || ''
+          })
         }
       }
     } catch (error) {
@@ -166,12 +172,17 @@ export default function AdminBracketPage() {
       team1: String(match.team1Score ?? 0),
       team2: String(match.team2Score ?? 0)
     })
+    setRenameInputs({
+      team1: match.team1?.name || '',
+      team2: match.team2?.name || ''
+    })
     setPanelMessage(null)
   }
 
   const clearMatchSelection = () => {
     selectedMatchIdRef.current = null
     setSelectedMatch(null)
+    setRenameInputs({ team1: '', team2: '' })
     setPanelMessage(null)
   }
 
@@ -181,6 +192,60 @@ export default function AdminBracketPage() {
       ...prev,
       [team]: sanitized
     }))
+  }
+
+  const handleRenameInputChange = (team: 'team1' | 'team2', event: ChangeEvent<HTMLInputElement>) => {
+    setRenameInputs(prev => ({
+      ...prev,
+      [team]: event.target.value
+    }))
+  }
+
+  const saveTeamRename = async (teamKey: 'team1' | 'team2') => {
+    if (!selectedMatch) {
+      return
+    }
+
+    const targetTeam = teamKey === 'team1' ? selectedMatch.team1 : selectedMatch.team2
+    if (!targetTeam?.id) {
+      setPanelMessage({ type: 'error', text: 'Kein echtes Team für diesen Slot vorhanden.' })
+      return
+    }
+
+    if (targetTeam.id.startsWith('placeholder') || targetTeam.id.startsWith('virtual-')) {
+      setPanelMessage({ type: 'error', text: 'Dieser Slot muss zunächst mit einem Team besetzt werden.' })
+      return
+    }
+
+    const desiredName = (renameInputs[teamKey] || '').trim()
+    if (!desiredName) {
+      setPanelMessage({ type: 'error', text: 'Teamname darf nicht leer sein.' })
+      return
+    }
+
+    setTeamRenameLoading(teamKey)
+    setPanelMessage(null)
+
+    try {
+      const response = await fetch('/api/admin/teams', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ teamId: targetTeam.id, name: desiredName })
+      })
+
+      if (!response.ok) {
+        throw new Error('Teamname konnte nicht gespeichert werden')
+      }
+
+      setPanelMessage({ type: 'success', text: 'Teamname aktualisiert.' })
+      await fetchData(false)
+    } catch (error) {
+      console.error('Error renaming team:', error)
+      setPanelMessage({ type: 'error', text: 'Teamname konnte nicht gespeichert werden.' })
+    } finally {
+      setTeamRenameLoading(null)
+    }
   }
 
   const toggleMatchLive = async () => {
@@ -493,6 +558,47 @@ export default function AdminBracketPage() {
                   <p className="text-xs text-white/60">
                     Hinweis: Matches enden automatisch, sobald ein Team das benötigte Punktelimit erreicht (Best-of-3, Grand Final Best-of-5). Gewinner werden automatisch im Bracket weitergetragen.
                   </p>
+                </div>
+
+                <div className="bg-gray-900/60 border border-white/10 rounded-lg p-4 space-y-4">
+                  <h3 className="text-white font-semibold text-lg">Teamnamen bearbeiten</h3>
+                  {[{ key: 'team1' as const, label: 'Team 1', team: selectedMatch.team1 }, { key: 'team2' as const, label: 'Team 2', team: selectedMatch.team2 }].map(({ key, label, team }) => {
+                    const isLoading = teamRenameLoading === key
+                    const teamId = team?.id || ''
+                    const disabled = !teamId || teamId.startsWith('placeholder') || teamId.startsWith('virtual-')
+
+                    return (
+                      <div key={key} className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <p className="text-white/80">{label}</p>
+                          {team?.name && (
+                            <span className="text-xs text-white/50">Aktuell: {team.name}</span>
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                          <input
+                            type="text"
+                            value={renameInputs[key]}
+                            onChange={(event) => handleRenameInputChange(key, event)}
+                            maxLength={40}
+                            disabled={disabled}
+                            placeholder={team?.name || 'Noch kein Team'}
+                            className="flex-1 rounded bg-black/40 border border-white/10 px-3 py-2 text-white focus:outline-none focus:border-purple-400 disabled:opacity-40"
+                          />
+                          <button
+                            onClick={() => saveTeamRename(key)}
+                            disabled={disabled || isLoading || !(renameInputs[key] || '').trim()}
+                            className={`px-4 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${isLoading ? 'opacity-60' : ''}`}
+                          >
+                            {isLoading ? 'Speichere...' : 'Speichern'}
+                          </button>
+                        </div>
+                        {disabled && (
+                          <p className="text-xs text-white/40">Dieser Slot ist noch nicht mit einem Team belegt.</p>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             </div>

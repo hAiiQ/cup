@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import { DEFAULT_TEAM_NAMES } from './src/lib/teamDefaults'
 
 const prisma = new PrismaClient()
 
@@ -8,18 +9,11 @@ async function createTeams() {
     await prisma.team.deleteMany()
     
     // Create the tournament teams (10 slots)
-    const teams = [
-      { id: 'team-alpha', name: 'Team Alpha', position: 1 },
-      { id: 'team-beta', name: 'Team Beta', position: 2 },
-      { id: 'team-gamma', name: 'Team Gamma', position: 3 },
-      { id: 'team-delta', name: 'Team Delta', position: 4 },
-      { id: 'team-epsilon', name: 'Team Epsilon', position: 5 },
-      { id: 'team-zeta', name: 'Team Zeta', position: 6 },
-      { id: 'team-eta', name: 'Team Eta', position: 7 },
-      { id: 'team-theta', name: 'Team Theta', position: 8 },
-      { id: 'team-hotel', name: 'Team Hotel', position: 9 },
-      { id: 'team-indigo', name: 'Team Indigo', position: 10 }
-    ]
+    const teams = DEFAULT_TEAM_NAMES.map((name, index) => ({
+      id: `team-${index + 1}`,
+      name,
+      position: index + 1
+    }))
 
     for (const team of teams) {
       await prisma.team.create({

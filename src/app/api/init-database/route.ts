@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { DEFAULT_TEAM_NAMES } from '@/lib/teamDefaults'
 import bcrypt from 'bcryptjs'
 
 // Force dynamic rendering
@@ -85,9 +86,7 @@ export async function POST(request: NextRequest) {
     console.log('✅ Admin user created');
     
     // Create teams
-    const teams = ['Team Alpha', 'Team Beta', 'Team Gamma', 'Team Delta', 'Team Epsilon', 'Team Zeta', 'Team Eta', 'Team Theta'];
-    
-    for (const teamName of teams) {
+    for (const teamName of DEFAULT_TEAM_NAMES) {
       await prisma.$executeRaw`
         INSERT INTO "Team" (id, name) 
         VALUES (gen_random_uuid()::text, ${teamName})
