@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { MAX_TEAMS, getDefaultTeamName } from '@/lib/teamDefaults'
+import { MAX_TEAMS, getDefaultTeamName, normalizeTeamName } from '@/lib/teamDefaults'
 
 interface TeamMember {
   id: string
@@ -34,11 +34,16 @@ const createPlaceholderTeam = (position: number): Team => ({
 const ensureFullTeamList = (inputTeams: Team[] = []): Team[] => {
   const normalized = inputTeams
     .filter(Boolean)
-    .map((team, index) => ({
-      ...team,
-      position: typeof team.position === 'number' && team.position > 0 ? team.position : index + 1,
-      members: Array.isArray(team.members) ? team.members : []
-    }))
+    .map((team, index) => {
+      const position = typeof team.position === 'number' && team.position > 0 ? team.position : index + 1
+
+      return {
+        ...team,
+        name: normalizeTeamName(position, team.name),
+        position,
+        members: Array.isArray(team.members) ? team.members : []
+      }
+    })
 
   const seenPositions = new Set(normalized.map(team => team.position))
 

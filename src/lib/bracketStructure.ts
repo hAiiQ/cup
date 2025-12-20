@@ -1,5 +1,5 @@
 import type { MatchState } from '@/lib/matchState'
-import { DEFAULT_TEAM_NAMES } from '@/lib/teamDefaults'
+import { MAX_TEAMS, getDefaultTeamName, normalizeTeamName } from '@/lib/teamDefaults'
 
 export interface BracketTeam {
   id: string
@@ -485,18 +485,28 @@ const virtualTeam = (label: string): BracketTeam => ({
 
 const placeholderTeam = (position: number): BracketTeam => ({
   id: `placeholder-${position}`,
-  name: DEFAULT_TEAM_NAMES[position - 1] || `Team ${position}`,
+  name: getDefaultTeamName(position),
   position
 })
 
 export const ensureTenTeams = (teams: BracketTeam[] = []): BracketTeam[] => {
   const normalized = [...teams]
     .filter(Boolean)
-    .map(team => ({ ...team }))
+    .map((team, index) => {
+      const position = typeof team.position === 'number' && team.position > 0
+        ? team.position
+        : index + 1
+
+      return {
+        ...team,
+        position,
+        name: normalizeTeamName(position, team.name)
+      }
+    })
 
   const seenPositions = new Set(normalized.map(team => team.position))
 
-  for (let position = 1; position <= 10; position++) {
+  for (let position = 1; position <= MAX_TEAMS; position++) {
     if (!seenPositions.has(position)) {
       normalized.push(placeholderTeam(position))
     }
@@ -504,7 +514,7 @@ export const ensureTenTeams = (teams: BracketTeam[] = []): BracketTeam[] => {
 
   return normalized
     .sort((a, b) => a.position - b.position)
-    .slice(0, 10)
+    .slice(0, MAX_TEAMS)
 }
 
 export const buildBracketMatches = (

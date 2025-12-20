@@ -7,16 +7,18 @@ async function createTeams() {
     // Delete existing teams first
     await prisma.team.deleteMany()
     
-    // Create the 8 teams
+    // Create the tournament teams (10 slots)
     const teams = [
       { id: 'team-alpha', name: 'Team Alpha', position: 1 },
       { id: 'team-beta', name: 'Team Beta', position: 2 },
       { id: 'team-gamma', name: 'Team Gamma', position: 3 },
       { id: 'team-delta', name: 'Team Delta', position: 4 },
-      { id: 'team-echo', name: 'Team Echo', position: 5 },
-      { id: 'team-foxtrot', name: 'Team Foxtrot', position: 6 },
-      { id: 'team-golf', name: 'Team Golf', position: 7 },
-      { id: 'team-hotel', name: 'Team Hotel', position: 8 }
+      { id: 'team-epsilon', name: 'Team Epsilon', position: 5 },
+      { id: 'team-zeta', name: 'Team Zeta', position: 6 },
+      { id: 'team-eta', name: 'Team Eta', position: 7 },
+      { id: 'team-theta', name: 'Team Theta', position: 8 },
+      { id: 'team-hotel', name: 'Team Hotel', position: 9 },
+      { id: 'team-indigo', name: 'Team Indigo', position: 10 }
     ]
 
     for (const team of teams) {

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { DEFAULT_TEAM_NAMES } from '@/lib/teamDefaults'
 
 
 // Force dynamic rendering
@@ -22,17 +23,13 @@ export async function GET() {
       console.log('⚠️ No teams found, creating default teams...')
       
       // Create default teams if none exist
-      const defaultTeams = [
-        'Team Alpha', 'Team Beta', 'Team Gamma', 'Team Delta',
-        'Team Echo', 'Team Foxtrot', 'Team Golf', 'Team Hotel',
-        'Team Indigo', 'Team Jade'
-      ]
+      const defaultTeams = DEFAULT_TEAM_NAMES
       
       for (let i = 0; i < defaultTeams.length; i++) {
         await prisma.team.create({
           data: {
             name: defaultTeams[i],
-            position: i
+            position: i + 1
           }
         })
       }

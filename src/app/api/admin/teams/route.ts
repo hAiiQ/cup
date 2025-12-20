@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
+import { DEFAULT_TEAM_NAMES } from '@/lib/teamDefaults'
 
 // Helper function to verify admin
 async function verifyAdmin(request: NextRequest) {
@@ -62,16 +63,15 @@ export async function GET(request: NextRequest) {
       console.log('⚠️ Teams fetch failed, using sample teams:', error)
       
       // Ultimate fallback: Sample teams for display
-      const sampleTeams = [
-        { id: 'alpha', name: 'Team Alpha', position: 1, members: [], createdAt: new Date(), updatedAt: new Date(), imageUrl: null },
-        { id: 'beta', name: 'Team Beta', position: 2, members: [], createdAt: new Date(), updatedAt: new Date(), imageUrl: null },
-        { id: 'gamma', name: 'Team Gamma', position: 3, members: [], createdAt: new Date(), updatedAt: new Date(), imageUrl: null },
-        { id: 'delta', name: 'Team Delta', position: 4, members: [], createdAt: new Date(), updatedAt: new Date(), imageUrl: null },
-        { id: 'echo', name: 'Team Echo', position: 5, members: [], createdAt: new Date(), updatedAt: new Date(), imageUrl: null },
-        { id: 'foxtrot', name: 'Team Foxtrot', position: 6, members: [], createdAt: new Date(), updatedAt: new Date(), imageUrl: null },
-        { id: 'golf', name: 'Team Golf', position: 7, members: [], createdAt: new Date(), updatedAt: new Date(), imageUrl: null },
-        { id: 'hotel', name: 'Team Hotel', position: 8, members: [], createdAt: new Date(), updatedAt: new Date(), imageUrl: null }
-      ]
+      const sampleTeams = DEFAULT_TEAM_NAMES.slice(0, 8).map((name, index) => ({
+        id: name.toLowerCase().replace(/\s+/g, '-'),
+        name,
+        position: index + 1,
+        members: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        imageUrl: null
+      }))
 
       console.log('⚠️ Using sample teams fallback')
       return NextResponse.json({ teams: sampleTeams })

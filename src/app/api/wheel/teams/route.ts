@@ -1,39 +1,78 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { MAX_TEAMS, getDefaultTeamName } from '@/lib/teamDefaults'
+import { MAX_TEAMS, getDefaultTeamName, normalizeTeamName } from '@/lib/teamDefaults'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
 
 const ensureDefaultTeamsExist = async () => {
   const existingTeams = await prisma.team.findMany({
-    select: { position: true }
+    select: { id: true, name: true, position: true }
   })
 
-  const takenPositions = new Set(
-    existingTeams
-      .map(team => team.position)
-      .filter((position): position is number => typeof position === 'number' && position > 0)
-  )
+  const positionMap = new Map<number, { id: string; name: string | null }>()
+  const invalidTeams: { id: string; name: string | null; position: number | null }[] = []
+
+  existingTeams.forEach(team => {
+    if (typeof team.position === 'number' && team.position >= 1 && team.position <= MAX_TEAMS) {
+      if (!positionMap.has(team.position)) {
+        positionMap.set(team.position, { id: team.id, name: team.name })
+      } else {
+        invalidTeams.push({ id: team.id, name: team.name, position: team.position })
+      }
+    } else {
+      invalidTeams.push({ id: team.id, name: team.name, position: team.position ?? 0 })
+    }
+  })
 
   const missingPositions: number[] = []
   for (let position = 1; position <= MAX_TEAMS; position++) {
-    if (!takenPositions.has(position)) {
+    if (!positionMap.has(position)) {
       missingPositions.push(position)
     }
   }
 
-  if (missingPositions.length === 0) {
-    return
-  }
+  for (const team of invalidTeams) {
+    const nextPosition = missingPositions.shift()
+    if (!nextPosition) {
+      break
+    }
 
-  for (const position of missingPositions) {
-    await prisma.team.create({
+    await prisma.team.update({
+      where: { id: team.id },
       data: {
-        name: getDefaultTeamName(position),
-        position
+        position: nextPosition,
+        name: getDefaultTeamName(nextPosition)
       }
     })
+
+    positionMap.set(nextPosition, { id: team.id, name: getDefaultTeamName(nextPosition) })
+  }
+
+  if (missingPositions.length > 0) {
+    for (const position of missingPositions) {
+      const created = await prisma.team.create({
+        data: {
+          name: getDefaultTeamName(position),
+          position
+        }
+      })
+
+      positionMap.set(position, { id: created.id, name: created.name })
+    }
+  }
+
+  for (let position = 1; position <= MAX_TEAMS; position++) {
+    const team = positionMap.get(position)
+    if (!team) continue
+
+    const normalizedName = normalizeTeamName(position, team.name)
+    if (normalizedName !== team.name) {
+      await prisma.team.update({
+        where: { id: team.id },
+        data: { name: normalizedName }
+      })
+    }
   }
 }
 

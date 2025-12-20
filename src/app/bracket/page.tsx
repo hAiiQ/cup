@@ -9,6 +9,7 @@ import {
   COMBINED_BRACKET_CONNECTIONS
 } from '@/lib/bracketStructure'
 import BracketDiagram from '@/components/bracket/BracketDiagram'
+import { DEFAULT_TEAM_NAMES } from '@/lib/teamDefaults'
 
 export default function BracketPage() {
   const [bracket, setBracket] = useState<BracketMatch[]>([])
@@ -177,7 +178,7 @@ export default function BracketPage() {
               </div>
             )) : (
               // Fallback teams if no teams are loaded
-              ['Team Alpha', 'Team Beta', 'Team Gamma', 'Team Delta', 'Team Echo', 'Team Foxtrot', 'Team Golf', 'Team Hotel', 'Team Indigo', 'Team Jade'].map((teamName, index) => (
+              DEFAULT_TEAM_NAMES.map((teamName, index) => (
                 <div key={index} className="bg-purple-600/20 backdrop-blur-sm rounded-lg p-3 border border-purple-500/50">
                   <h3 className="text-white font-semibold text-center text-base">{teamName}</h3>
                   <p className="text-purple-200 text-center text-xs">Position {index + 1}</p>
