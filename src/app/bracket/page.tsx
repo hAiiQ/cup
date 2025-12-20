@@ -107,22 +107,20 @@ export default function BracketPage() {
     const team2Name = getTeamName(match.team2, 'TBD')
     const team1Score = match.team1Score ?? 0
     const team2Score = match.team2Score ?? 0
-
-    const containerClass = match.isFinished
-      ? 'bg-green-900/70 border-green-500/60'
-      : 'bg-gray-900/70 border-white/10'
+    const team1Wins = match.isFinished && match.winnerId === 'team1'
+    const team2Wins = match.isFinished && match.winnerId === 'team2'
 
     return (
-      <div className={`${containerClass} rounded-lg px-3 py-4 w-full h-full flex flex-col justify-center ${className}`}>
+      <div className={`bg-gray-900/70 border border-white/10 rounded-lg px-3 py-4 w-full h-full flex flex-col justify-center ${className}`}>
         {match.isLive && (
           <div className="text-[11px] uppercase text-center text-red-300 font-bold mb-1 animate-pulse">
             Live Match
           </div>
         )}
         <div className="flex items-center gap-3 text-white text-sm font-semibold w-full justify-center">
-          <span className="flex-1 min-w-0 truncate text-right">{team1Name}</span>
+          <span className={`flex-1 min-w-0 truncate text-right ${team1Wins ? 'text-green-400' : ''}`}>{team1Name}</span>
           <span className={`flex-none w-16 text-center whitespace-nowrap ${match.isLive ? 'text-yellow-300' : 'text-purple-200'}`}>{team1Score} - {team2Score}</span>
-          <span className="flex-1 min-w-0 truncate text-left">{team2Name}</span>
+          <span className={`flex-1 min-w-0 truncate text-left ${team2Wins ? 'text-green-400' : ''}`}>{team2Name}</span>
         </div>
       </div>
     )

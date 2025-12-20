@@ -345,16 +345,11 @@ export default function AdminBracketPage() {
     const team1Wins = match.isFinished && match.winnerId === 'team1'
     const team2Wins = match.isFinished && match.winnerId === 'team2'
 
-    const isFinished = match.isFinished
-    const buttonBase = isFinished
-      ? 'bg-green-900/80 border-green-500/60'
-      : 'bg-gray-900/75 border-white/10'
-
     return (
       <button
         type="button"
         onClick={() => onSelect?.(match)}
-        className={`${buttonBase} ${isSelected ? 'ring-2 ring-purple-500/60 border-purple-400' : 'hover:border-purple-400/70'} rounded-lg px-3 py-4 w-full h-full flex flex-col justify-center shadow-lg transition-all duration-200 text-left ${className}`}
+        className={`bg-gray-900/75 border ${isSelected ? 'border-purple-400 ring-2 ring-purple-500/60' : 'border-white/10 hover:border-purple-400/70'} rounded-lg px-3 py-4 w-full h-full flex flex-col justify-center shadow-lg transition-all duration-200 text-left ${className}`}
         aria-pressed={isSelected}
       >
         <div className="flex items-center justify-between text-[11px] uppercase tracking-wide text-purple-200/80 mb-2">
