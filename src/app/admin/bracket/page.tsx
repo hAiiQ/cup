@@ -152,26 +152,17 @@ export default function AdminBracketPage() {
     const team2Wins = match.isFinished && match.winnerId === 'team2'
 
     return (
-      <div className={`bg-gray-900/75 border border-white/10 rounded-lg px-3 py-4 w-full h-full flex flex-col gap-3 shadow-lg ${className}`}>
-        <div className="flex items-center justify-between text-[11px] uppercase tracking-wide text-purple-200">
-          <span className="truncate pr-2">{match.roundLabel}</span>
-          {match.autoAdvance && <span className="text-cyan-300 font-semibold">Freilos</span>}
-        </div>
-
-        <div className="text-sm font-semibold text-white/80">{match.label}</div>
-
-        <div className="bg-gray-950/70 border border-white/5 rounded-lg px-3 py-3">
-          <div className="flex items-center justify-center gap-3 text-white text-sm font-bold w-full">
-            <span className={`truncate text-right max-w-[120px] ${team1Wins ? 'text-green-400' : ''}`}>{team1Name}</span>
-            <span className={`whitespace-nowrap text-purple-200 ${match.isLive ? 'text-yellow-300' : ''}`}>
-              {(match.team1Score ?? 0)} - {(match.team2Score ?? 0)}
-            </span>
-            <span className={`truncate text-left max-w-[120px] ${team2Wins ? 'text-green-400' : ''}`}>{team2Name}</span>
-          </div>
+      <div className={`bg-gray-900/75 border border-white/10 rounded-lg px-3 py-4 w-full h-full flex flex-col justify-center shadow-lg ${className}`}>
+        <div className="flex items-center justify-center gap-3 text-white text-sm font-bold w-full">
+          <span className={`truncate text-right max-w-[120px] ${team1Wins ? 'text-green-400' : ''}`}>{team1Name}</span>
+          <span className={`whitespace-nowrap text-purple-200 ${match.isLive ? 'text-yellow-300' : ''}`}>
+            {(match.team1Score ?? 0)} - {(match.team2Score ?? 0)}
+          </span>
+          <span className={`truncate text-left max-w-[120px] ${team2Wins ? 'text-green-400' : ''}`}>{team2Name}</span>
         </div>
 
         {match.autoAdvance && (
-          <p className="text-xs text-center text-cyan-200">Freilos – Team rückt automatisch weiter</p>
+          <p className="text-xs text-center text-cyan-200 mt-2">Freilos – Team rückt automatisch weiter</p>
         )}
       </div>
     )
