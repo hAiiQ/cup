@@ -65,18 +65,6 @@ export interface RoundGroup {
   matchIds: string[]
 }
 
-const DEFAULT_TEAM_NAMES = [
-  'Team Alpha',
-  'Team Beta',
-  'Team Gamma',
-  'Team Delta',
-  'Team Echo',
-  'Team Foxtrot',
-  'Team Golf',
-  'Team Hotel',
-  'Team Indigo',
-  'Team Jade'
-]
 const MATCH_BLUEPRINTS: MatchBlueprint[] = [
   // Winner Bracket Round 1 (all 10 teams play)
   {
