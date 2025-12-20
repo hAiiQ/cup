@@ -1,4 +1,5 @@
 import type { MatchState } from '@/lib/matchState'
+import { DEFAULT_TEAM_NAMES } from '@/lib/teamDefaults'
 
 export interface BracketTeam {
   id: string
@@ -76,7 +77,6 @@ const DEFAULT_TEAM_NAMES = [
   'Team Indigo',
   'Team Jade'
 ]
-
 const MATCH_BLUEPRINTS: MatchBlueprint[] = [
   // Winner Bracket Round 1 (all 10 teams play)
   {

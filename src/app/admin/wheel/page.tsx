@@ -19,6 +19,7 @@ interface Team {
   id: string
   name: string
   memberCount: number
+  position?: number
 }
 
 export default function WheelPage() {
@@ -93,9 +94,13 @@ export default function WheelPage() {
         const usersData = await usersResponse.json()
         const teamsData = await teamsResponse.json()
         
-        console.log('✅ Data loaded:', { users: usersData.length, teams: teamsData.length })
+        const sortedTeams: Team[] = Array.isArray(teamsData)
+          ? [...teamsData].sort((a, b) => (a.position ?? 999) - (b.position ?? 999))
+          : []
+
+        console.log('✅ Data loaded:', { users: usersData.length, teams: sortedTeams.length })
         setUsers(usersData)
-        setTeams(teamsData)
+        setTeams(sortedTeams)
       } else {
         console.error('❌ Failed to fetch data:', { 
           usersStatus: usersResponse.status, 

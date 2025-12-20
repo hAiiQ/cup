@@ -110,9 +110,9 @@ export default function BracketPage() {
     return (
       <div className={`bg-gray-900/70 border border-white/10 rounded-lg px-3 py-4 w-full h-full flex items-center justify-center ${className}`}>
         <div className="flex items-center gap-3 text-white text-sm font-semibold w-full justify-center">
-          <span className="truncate text-right max-w-[120px]">{team1Name}</span>
-          <span className="text-purple-200 whitespace-nowrap">{team1Score} - {team2Score}</span>
-          <span className="truncate text-left max-w-[120px]">{team2Name}</span>
+          <span className="flex-1 min-w-0 truncate text-right">{team1Name}</span>
+          <span className="flex-none w-16 text-center text-purple-200 whitespace-nowrap">{team1Score} - {team2Score}</span>
+          <span className="flex-1 min-w-0 truncate text-left">{team2Name}</span>
         </div>
       </div>
     )

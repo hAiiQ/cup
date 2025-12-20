@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { MAX_TEAMS, getDefaultTeamName } from '@/lib/teamDefaults'
 
 interface TeamMember {
   id: string
@@ -21,6 +22,35 @@ interface Team {
   position: number
   imageUrl?: string
   members: TeamMember[]
+}
+
+const createPlaceholderTeam = (position: number): Team => ({
+  id: `placeholder-${position}`,
+  name: getDefaultTeamName(position),
+  position,
+  members: []
+})
+
+const ensureFullTeamList = (inputTeams: Team[] = []): Team[] => {
+  const normalized = inputTeams
+    .filter(Boolean)
+    .map((team, index) => ({
+      ...team,
+      position: typeof team.position === 'number' && team.position > 0 ? team.position : index + 1,
+      members: Array.isArray(team.members) ? team.members : []
+    }))
+
+  const seenPositions = new Set(normalized.map(team => team.position))
+
+  for (let position = 1; position <= MAX_TEAMS; position++) {
+    if (!seenPositions.has(position)) {
+      normalized.push(createPlaceholderTeam(position))
+    }
+  }
+
+  return normalized
+    .sort((a, b) => a.position - b.position)
+    .slice(0, MAX_TEAMS)
 }
 
 export default function TeamsPage() {
@@ -44,7 +74,8 @@ export default function TeamsPage() {
       console.log('📥 API Response:', data)
       
       if (response.ok) {
-        setTeams(data.teams || [])
+        const normalizedTeams = ensureFullTeamList(data.teams || [])
+        setTeams(normalizedTeams)
       } else {
         console.error('❌ API Error:', data.error)
         setError(data.error || 'Fehler beim Laden der Teams')
@@ -98,7 +129,6 @@ export default function TeamsPage() {
     }
   }
 
-  const MAX_TEAMS = 10
   const TEAM_SIZE = 6
   const totalPlayers = teams.reduce((sum, team) => sum + team.members.length, 0)
   const verifiedPlayers = teams.reduce((sum, team) => sum + team.members.filter(m => m.isVerified).length, 0)

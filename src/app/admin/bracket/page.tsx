@@ -154,11 +154,11 @@ export default function AdminBracketPage() {
     return (
       <div className={`bg-gray-900/75 border border-white/10 rounded-lg px-3 py-4 w-full h-full flex flex-col justify-center shadow-lg ${className}`}>
         <div className="flex items-center justify-center gap-3 text-white text-sm font-bold w-full">
-          <span className={`truncate text-right max-w-[120px] ${team1Wins ? 'text-green-400' : ''}`}>{team1Name}</span>
-          <span className={`whitespace-nowrap text-purple-200 ${match.isLive ? 'text-yellow-300' : ''}`}>
+          <span className={`flex-1 min-w-0 truncate text-right ${team1Wins ? 'text-green-400' : ''}`}>{team1Name}</span>
+          <span className={`flex-none w-16 text-center whitespace-nowrap text-purple-200 ${match.isLive ? 'text-yellow-300' : ''}`}>
             {(match.team1Score ?? 0)} - {(match.team2Score ?? 0)}
           </span>
-          <span className={`truncate text-left max-w-[120px] ${team2Wins ? 'text-green-400' : ''}`}>{team2Name}</span>
+          <span className={`flex-1 min-w-0 truncate text-left ${team2Wins ? 'text-green-400' : ''}`}>{team2Name}</span>
         </div>
 
         {match.autoAdvance && (

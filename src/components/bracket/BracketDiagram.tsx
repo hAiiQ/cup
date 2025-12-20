@@ -6,7 +6,7 @@ import type {
   BracketConnection
 } from '@/lib/bracketStructure'
 
-const MATCH_WIDTH = 168
+const MATCH_WIDTH = 360
 const MATCH_HEIGHT = 68
 const COLUMN_GAP = 56
 const ROW_GAP = 22
