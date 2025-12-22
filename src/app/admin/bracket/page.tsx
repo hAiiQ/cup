@@ -138,8 +138,6 @@ export default function AdminBracketPage() {
         }))
       }
 
-      setTeams(fetchedTeams)
-
       let stateMap = new Map<string, MatchState>()
       if (statesRes.ok) {
         const statePayload = await statesRes.json()
@@ -157,10 +155,15 @@ export default function AdminBracketPage() {
         }
       }
 
+      const limitedTeams = fetchedTeams
+        .filter((team) => team.position <= persistedSettings.teamSlots)
+        .slice(0, persistedSettings.teamSlots)
+
+      setTeams(limitedTeams)
       setBracketSettings(persistedSettings)
       setSettingsDraft(persistedSettings)
 
-      const bracketResult = buildBracketMatches(fetchedTeams, stateMap, {
+      const bracketResult = buildBracketMatches(limitedTeams, stateMap, {
         mode: persistedSettings.mode,
         slotCount: persistedSettings.teamSlots
       })

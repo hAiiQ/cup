@@ -7,9 +7,11 @@ import type {
 } from '@/lib/bracketStructure'
 
 const MATCH_WIDTH = 360
-const MATCH_HEIGHT = 68
-const COLUMN_GAP = 56
-const ROW_GAP = 22
+const MATCH_HEIGHT = 72
+const COLUMN_GAP = 110
+const ROW_GAP = 30
+const CONNECTOR_COLOR = 'rgba(230,233,255,0.3)'
+const CONNECTOR_WIDTH = 2.5
 
 type MatchRenderer = (match: BracketMatch | undefined, id: string) => ReactNode
 
@@ -25,6 +27,28 @@ const getBoxPosition = (node: BracketNodeLayout) => ({
   left: (node.column - 1) * (MATCH_WIDTH + COLUMN_GAP),
   top: (node.row - 1) * (MATCH_HEIGHT + ROW_GAP)
 })
+
+const createConnectorPath = (from: { left: number; top: number }, to: { left: number; top: number }): string => {
+  const startX = from.left + MATCH_WIDTH
+  const startY = from.top + MATCH_HEIGHT / 2
+  const endX = to.left
+  const endY = to.top + MATCH_HEIGHT / 2
+  const horizontalDistance = Math.max(endX - startX, 1)
+  const rawOffset = Math.max(horizontalDistance * 0.35, 30)
+  const maxOffset = Math.max(horizontalDistance - 12, 12)
+  const safeOffset = Math.min(rawOffset, maxOffset)
+
+  const controlOffset = safeOffset <= 0 ? horizontalDistance / 2 : safeOffset
+  const cp1X = startX + controlOffset
+  const cp2X = endX - controlOffset
+
+  if (cp2X <= cp1X) {
+    const fallback = horizontalDistance / 2
+    return `M${startX},${startY} C${startX + fallback},${startY} ${endX - fallback},${endY} ${endX},${endY}`
+  }
+
+  return `M${startX},${startY} C${cp1X},${startY} ${cp2X},${endY} ${endX},${endY}`
+}
 
 const BracketDiagram = ({
   matches,
@@ -83,21 +107,15 @@ const BracketDiagram = ({
               return null
             }
 
-            const startX = from.left + MATCH_WIDTH
-            const startY = from.top + MATCH_HEIGHT / 2
-            const endX = to.left
-            const endY = to.top + MATCH_HEIGHT / 2
-            const midX = startX + (endX - startX) / 2
-
-            const pathD = `M${startX},${startY} L${midX},${startY} L${midX},${endY} L${endX},${endY}`
+            const pathD = createConnectorPath(from, to)
 
             return (
               <path
                 key={`${fromId}-${toId}`}
                 d={pathD}
                 fill="none"
-                stroke="rgba(255,255,255,0.25)"
-                strokeWidth={2}
+                stroke={CONNECTOR_COLOR}
+                strokeWidth={CONNECTOR_WIDTH}
                 strokeLinecap="round"
               />
             )

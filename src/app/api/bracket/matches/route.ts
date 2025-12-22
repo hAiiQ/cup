@@ -72,6 +72,9 @@ export async function GET() {
     })
     
     console.log(`📊 Combined states: ${combinedStates.size} total matches (${dbMatches.length} from DB, ${memoryStates.size} from memory)`)
+
+    const settings = await getBracketSettings()
+    const requestedSlots = Math.min(Math.max(settings.teamSlots, 2), MAX_TEAMS)
     
     // Load teams and build bracket
     let dbTeams: BracketTeam[] = []
@@ -79,7 +82,7 @@ export async function GET() {
       console.log('🔍 Fetching teams for bracket...')
       const teamsFromDB = await prisma.team.findMany({
         orderBy: { position: 'asc' },
-        take: MAX_TEAMS
+        take: requestedSlots
       })
 
       dbTeams = teamsFromDB.map(team => ({
@@ -88,15 +91,14 @@ export async function GET() {
         position: team.position || 0
       }))
 
-      console.log(`📋 Loaded ${dbTeams.length} teams from database`)
+      console.log(`📋 Loaded ${dbTeams.length} teams from database (limit: ${requestedSlots})`)
     } catch (error) {
       console.log('💡 Database fetch error, falling back to placeholder teams:', error)
     }
 
-    const settings = await getBracketSettings()
     const bracketResult = buildBracketMatches(dbTeams, combinedStates, {
       mode: settings.mode,
-      slotCount: settings.teamSlots
+      slotCount: requestedSlots
     })
 
     console.log(`✅ Generated ${bracketResult.matches.length} matches for a ${bracketResult.slotCount}-slot bracket (${settings.mode}) [requested ${bracketResult.requestedSlotCount}]`)
