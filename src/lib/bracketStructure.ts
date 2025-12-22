@@ -59,11 +59,19 @@ export interface BracketNodeLayout {
 
 export type BracketConnection = [string, string]
 
+export type BracketMode = 'single' | 'double'
+
 export interface BracketBuildResult {
   matches: BracketMatch[]
   layout: BracketNodeLayout[]
   connections: BracketConnection[]
   slotCount: number
+  mode: BracketMode
+}
+
+export interface BracketBuildOptions {
+  mode?: BracketMode
+  slotCount?: number
 }
 
 const MIN_BRACKET_TEAMS = 2
@@ -254,6 +262,56 @@ const createLoserRounds = (winnerRounds: MatchBlueprint[][]): MatchBlueprint[][]
   return rounds
 }
 
+const createSingleEliminationRounds = (slotCount: number): MatchBlueprint[][] => {
+  const rounds: MatchBlueprint[][] = []
+  const totalRounds = Math.log2(slotCount)
+  const seedOrder = createSeedOrder(slotCount)
+
+  for (let roundIndex = 0; roundIndex < totalRounds; roundIndex++) {
+    const matchesInRound = slotCount / Math.pow(2, roundIndex + 1)
+    const isFinal = roundIndex === totalRounds - 1
+    const roundMatches: MatchBlueprint[] = []
+
+    for (let matchIndex = 0; matchIndex < matchesInRound; matchIndex++) {
+      let sources: [ParticipantSource, ParticipantSource]
+
+      if (roundIndex === 0) {
+        const seedA = seedOrder[matchIndex * 2]
+        const seedB = seedOrder[matchIndex * 2 + 1]
+        sources = [
+          { kind: 'seed', position: seedA },
+          { kind: 'seed', position: seedB }
+        ]
+      } else {
+        const previousRound = rounds[roundIndex - 1]
+        const sourceA = previousRound[matchIndex * 2]
+        const sourceB = previousRound[matchIndex * 2 + 1]
+        sources = [
+          { kind: 'winner', matchId: sourceA.id },
+          { kind: 'winner', matchId: sourceB.id }
+        ]
+      }
+
+      const id = isFinal ? GRAND_FINAL_ID : `SE-R${roundIndex + 1}-M${matchIndex + 1}`
+      const roundLabel = isFinal ? 'Grand Final' : `Winner Round ${roundIndex + 1}`
+      const label = isFinal ? 'Grand Final' : `${roundLabel} Match ${matchIndex + 1}`
+
+      roundMatches.push({
+        id,
+        label,
+        bracket: isFinal ? 'grand' : 'winner',
+        roundLabel,
+        roundOrder: roundIndex + 1,
+        sources
+      })
+    }
+
+    rounds.push(roundMatches)
+  }
+
+  return rounds
+}
+
 const buildConnections = (
   winnerRounds: MatchBlueprint[][],
   loserRounds: MatchBlueprint[][],
@@ -272,6 +330,22 @@ const buildConnections = (
   winnerRounds.forEach((round) => round.forEach(addConnections))
   loserRounds.forEach((round) => round.forEach(addConnections))
   addConnections(grandFinal)
+
+  return connections
+}
+
+const buildSingleConnections = (rounds: MatchBlueprint[][]): BracketConnection[] => {
+  const connections: BracketConnection[] = []
+
+  rounds.forEach((round) => {
+    round.forEach((match) => {
+      match.sources.forEach((source) => {
+        if (source.kind === 'winner') {
+          connections.push([source.matchId, match.id])
+        }
+      })
+    })
+  })
 
   return connections
 }
@@ -335,7 +409,35 @@ const buildLayouts = (
   return layout
 }
 
-const prepareTeams = (inputTeams: BracketTeam[]) => {
+const buildSingleLayout = (rounds: MatchBlueprint[][]): BracketNodeLayout[] => {
+  const layout: BracketNodeLayout[] = []
+  const rowPositions = new Map<string, number>()
+
+  rounds.forEach((round, roundIndex) => {
+    round.forEach((match, matchIndex) => {
+      const sourceRows = match.sources
+        .filter((source): source is ParticipantSourceMatch => source.kind === 'winner')
+        .map((source) => rowPositions.get(source.matchId))
+        .filter((value): value is number => typeof value === 'number')
+
+      const row = sourceRows.length > 0
+        ? sourceRows.reduce((sum, value) => sum + value, 0) / sourceRows.length
+        : matchIndex + 1
+
+      layout.push({
+        id: match.id,
+        column: roundIndex + 1,
+        row
+      })
+
+      rowPositions.set(match.id, row)
+    })
+  })
+
+  return layout
+}
+
+const prepareTeams = (inputTeams: BracketTeam[], desiredSlotCount?: number) => {
   const sanitized = inputTeams
     .filter(Boolean)
     .map((team, index) => {
@@ -349,7 +451,10 @@ const prepareTeams = (inputTeams: BracketTeam[]) => {
     .sort((a, b) => a.position - b.position)
 
   const realTeams = sanitized.filter((team) => !isPlaceholderTeam(team))
-  const slotCount = clampSlotCount(realTeams.length || MIN_BRACKET_TEAMS)
+  const slotBaseline = desiredSlotCount && desiredSlotCount >= MIN_BRACKET_TEAMS
+    ? desiredSlotCount
+    : realTeams.length || MIN_BRACKET_TEAMS
+  const slotCount = clampSlotCount(slotBaseline)
   const teamsWithPlaceholders = ensureTeamSlots(sanitized, slotCount)
 
   const teams = teamsWithPlaceholders.map((team) => {
@@ -492,11 +597,11 @@ export const ensureTeamSlots = (teams: BracketTeam[] = [], slotCount: number = M
   return Array.from(byPosition.values()).sort((a, b) => a.position - b.position)
 }
 
-export const buildBracketMatches = (
-  inputTeams: BracketTeam[] = [],
-  stateMap: Map<string, MatchState> = new Map()
+const buildDoubleEliminationBracket = (
+  teams: BracketTeam[],
+  stateMap: Map<string, MatchState>,
+  slotCount: number
 ): BracketBuildResult => {
-  const { teams, slotCount } = prepareTeams(inputTeams)
   const winnerRounds = createWinnerRounds(slotCount)
   const loserRounds = createLoserRounds(winnerRounds)
   const winnerFinalRound = winnerRounds[winnerRounds.length - 1]
@@ -527,6 +632,42 @@ export const buildBracketMatches = (
     matches,
     layout,
     connections,
-    slotCount
+    slotCount,
+    mode: 'double'
   }
+}
+
+const buildSingleEliminationBracket = (
+  teams: BracketTeam[],
+  stateMap: Map<string, MatchState>,
+  slotCount: number
+): BracketBuildResult => {
+  const rounds = createSingleEliminationRounds(slotCount)
+  const blueprints = rounds.flat()
+  const matches = buildMatchesFromBlueprints(blueprints, teams, stateMap)
+  const layout = buildSingleLayout(rounds)
+  const connections = buildSingleConnections(rounds)
+
+  return {
+    matches,
+    layout,
+    connections,
+    slotCount,
+    mode: 'single'
+  }
+}
+
+export const buildBracketMatches = (
+  inputTeams: BracketTeam[] = [],
+  stateMap: Map<string, MatchState> = new Map(),
+  options: BracketBuildOptions = {}
+): BracketBuildResult => {
+  const desiredMode: BracketMode = options.mode === 'single' ? 'single' : 'double'
+  const { teams, slotCount } = prepareTeams(inputTeams, options.slotCount)
+
+  if (desiredMode === 'single') {
+    return buildSingleEliminationBracket(teams, stateMap, slotCount)
+  }
+
+  return buildDoubleEliminationBracket(teams, stateMap, slotCount)
 }

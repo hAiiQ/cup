@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getAllMatchStates, determineWinnerSlot, type MatchState } from '@/lib/matchState'
 import { prisma } from '@/lib/prisma'
 import { buildBracketMatches, type BracketTeam } from '@/lib/bracketStructure'
+import { getBracketSettings } from '@/lib/bracketSettings'
 import { MAX_TEAMS } from '@/lib/teamDefaults'
 
 // Force dynamic rendering
@@ -92,15 +93,21 @@ export async function GET() {
       console.log('💡 Database fetch error, falling back to placeholder teams:', error)
     }
 
-    const { matches, layout, connections, slotCount } = buildBracketMatches(dbTeams, combinedStates)
+    const settings = await getBracketSettings()
+    const bracketResult = buildBracketMatches(dbTeams, combinedStates, {
+      mode: settings.mode,
+      slotCount: settings.teamSlots
+    })
 
-    console.log(`✅ Generated ${matches.length} matches for a ${slotCount}-slot bracket`)
+    console.log(`✅ Generated ${bracketResult.matches.length} matches for a ${bracketResult.slotCount}-slot bracket (${settings.mode})`)
     
     return NextResponse.json({
-      matches,
-      layout,
-      connections,
-      slotCount,
+      matches: bracketResult.matches,
+      layout: bracketResult.layout,
+      connections: bracketResult.connections,
+      slotCount: bracketResult.slotCount,
+      mode: bracketResult.mode,
+      settings,
       teams: dbTeams,
       lastUpdated: new Date().toISOString(),
       adminControlled: combinedStates.size > 0,
@@ -117,7 +124,8 @@ export async function GET() {
         teams: [],
         layout: [],
         connections: [],
-        slotCount: 0
+        slotCount: 0,
+        mode: 'double'
       },
       { status: 500 }
     )

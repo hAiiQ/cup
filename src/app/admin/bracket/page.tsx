@@ -7,6 +7,7 @@ import {
   buildBracketMatches,
   type BracketConnection,
   type BracketMatch,
+  type BracketMode,
   type BracketNodeLayout,
   type BracketTeam
 } from '@/lib/bracketStructure'
@@ -31,6 +32,33 @@ const createStateMap = (states: any[]): Map<string, MatchState> => {
   return map
 }
 
+type BracketSettingsState = {
+  mode: BracketMode
+  teamSlots: number
+}
+
+const SLOT_OPTIONS = [2, 4, 8, 16] as const
+
+const clampTeamSlots = (value: number): number => {
+  const sanitized = Math.max(2, Math.min(16, Number(value) || 2))
+  for (const slot of SLOT_OPTIONS) {
+    if (sanitized <= slot) {
+      return slot
+    }
+  }
+  return SLOT_OPTIONS[SLOT_OPTIONS.length - 1]
+}
+
+const DEFAULT_BRACKET_SETTINGS: BracketSettingsState = {
+  mode: 'double',
+  teamSlots: SLOT_OPTIONS[SLOT_OPTIONS.length - 1]
+}
+
+const MODE_LABELS: Record<BracketMode, string> = {
+  single: 'Single Elimination',
+  double: 'Double Elimination'
+}
+
 export default function AdminBracketPage() {
   const router = useRouter()
   const [teams, setTeams] = useState<BracketTeam[]>([])
@@ -50,6 +78,12 @@ export default function AdminBracketPage() {
   const [scoreMutationLoading, setScoreMutationLoading] = useState(false)
   const [teamRenameLoading, setTeamRenameLoading] = useState<'team1' | 'team2' | null>(null)
   const selectedMatchIdRef = useRef<string | null>(null)
+  const [bracketSettings, setBracketSettings] = useState<BracketSettingsState>(() => ({ ...DEFAULT_BRACKET_SETTINGS }))
+  const [settingsDraft, setSettingsDraft] = useState<BracketSettingsState>(() => ({ ...DEFAULT_BRACKET_SETTINGS }))
+  const [settingsSaving, setSettingsSaving] = useState(false)
+  const [settingsAlert, setSettingsAlert] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const settingsChanged = settingsDraft.mode !== bracketSettings.mode || settingsDraft.teamSlots !== bracketSettings.teamSlots
+  const modeOptions: BracketMode[] = ['double', 'single']
 
   useEffect(() => {
     checkAdminAuth()
@@ -87,9 +121,10 @@ export default function AdminBracketPage() {
 
       const requestInit: RequestInit = { credentials: 'include' }
 
-      const [teamsRes, statesRes] = await Promise.all([
+      const [teamsRes, statesRes, settingsRes] = await Promise.all([
         fetch('/api/admin/teams', requestInit),
-        fetch('/api/admin/bracket/matches/live-states', requestInit)
+        fetch('/api/admin/bracket/matches/live-states', requestInit),
+        fetch('/api/admin/bracket/settings', requestInit)
       ])
 
       let fetchedTeams: BracketTeam[] = []
@@ -110,7 +145,24 @@ export default function AdminBracketPage() {
         stateMap = createStateMap(statePayload.states || [])
       }
 
-      const bracketResult = buildBracketMatches(fetchedTeams, stateMap)
+      let persistedSettings: BracketSettingsState = { ...DEFAULT_BRACKET_SETTINGS }
+      if (settingsRes.ok) {
+        const settingsPayload = await settingsRes.json()
+        if (settingsPayload?.settings) {
+          persistedSettings = {
+            mode: settingsPayload.settings.mode === 'single' ? 'single' : 'double',
+            teamSlots: clampTeamSlots(settingsPayload.settings.teamSlots)
+          }
+        }
+      }
+
+      setBracketSettings(persistedSettings)
+      setSettingsDraft(persistedSettings)
+
+      const bracketResult = buildBracketMatches(fetchedTeams, stateMap, {
+        mode: persistedSettings.mode,
+        slotCount: persistedSettings.teamSlots
+      })
       setBracket(bracketResult.matches)
       setLayout(bracketResult.layout)
       setConnections(bracketResult.connections)
@@ -138,6 +190,54 @@ export default function AdminBracketPage() {
       } else {
         setRefreshing(false)
       }
+    }
+  }
+
+  const handleModeSelect = (mode: BracketMode) => {
+    setSettingsDraft((prev) => ({ ...prev, mode }))
+    setSettingsAlert(null)
+  }
+
+  const handleSlotSelect = (value: number) => {
+    setSettingsDraft((prev) => ({ ...prev, teamSlots: clampTeamSlots(value) }))
+    setSettingsAlert(null)
+  }
+
+  const saveBracketSettings = async () => {
+    if (!settingsChanged || settingsSaving) {
+      return
+    }
+
+    setSettingsSaving(true)
+    setSettingsAlert(null)
+
+    try {
+      const response = await fetch('/api/admin/bracket/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(settingsDraft)
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to save bracket settings')
+      }
+
+      const payload = await response.json()
+      const updatedSettings: BracketSettingsState = {
+        mode: payload?.settings?.mode === 'single' ? 'single' : 'double',
+        teamSlots: clampTeamSlots(payload?.settings?.teamSlots ?? settingsDraft.teamSlots)
+      }
+
+      setBracketSettings(updatedSettings)
+      setSettingsDraft(updatedSettings)
+      setSettingsAlert({ type: 'success', text: 'Einstellungen gespeichert. Bracket wird aktualisiert...' })
+      await fetchData(false)
+    } catch (error) {
+      console.error('Error saving bracket settings:', error)
+      setSettingsAlert({ type: 'error', text: 'Einstellungen konnten nicht gespeichert werden.' })
+    } finally {
+      setSettingsSaving(false)
     }
   }
 
@@ -419,7 +519,7 @@ export default function AdminBracketPage() {
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <div className="text-gray-300 text-sm">
-                {teams.length} Teams aktiv · {slotCount > 0 ? `${slotCount}-Slot Bracket` : 'Bracket wird vorbereitet'}
+                {teams.length} Teams aktiv · {slotCount > 0 ? `${slotCount}-Slot Bracket` : 'Bracket wird vorbereitet'} · {MODE_LABELS[bracketSettings.mode]}
               </div>
               <button
                 onClick={() => fetchData(false)}
@@ -446,6 +546,78 @@ export default function AdminBracketPage() {
       </header>
 
       <div className="w-full px-4 py-6 space-y-8 max-w-[1800px] mx-auto">
+        <section className="bg-black/30 backdrop-blur-sm rounded-xl p-5 border border-purple-500/60">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-white">Bracket Einstellungen</h2>
+              <p className="text-purple-200 text-sm">Wähle Eliminierungsmodus und Teamslots, bevor Matches generiert werden.</p>
+            </div>
+            <div className="text-sm text-white/70">
+              Aktiv: {MODE_LABELS[bracketSettings.mode]} • {bracketSettings.teamSlots} Slots
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-6 lg:grid-cols-3">
+            <div className="space-y-3">
+              <p className="text-white/80 text-sm font-semibold">Turniermodus</p>
+              <div className="flex flex-wrap gap-3">
+                {modeOptions.map((mode) => {
+                  const active = settingsDraft.mode === mode
+                  return (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => handleModeSelect(mode)}
+                      className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-colors ${active ? 'bg-purple-600 text-white border-purple-400 shadow-lg' : 'bg-black/40 text-white/70 border-white/15 hover:border-purple-300/70'}`}
+                    >
+                      {MODE_LABELS[mode]}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-white/80 text-sm font-semibold">Team Slots</p>
+              <div className="flex flex-wrap gap-3">
+                {SLOT_OPTIONS.map((slot) => {
+                  const active = settingsDraft.teamSlots === slot
+                  return (
+                    <button
+                      key={slot}
+                      type="button"
+                      onClick={() => handleSlotSelect(slot)}
+                      className={`px-3 py-2 rounded-lg border text-sm font-semibold transition-colors ${active ? 'bg-cyan-600 text-white border-cyan-300 shadow-lg' : 'bg-black/40 text-white/70 border-white/15 hover:border-cyan-300/70'}`}
+                    >
+                      {slot} Slots
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="text-xs text-white/50">Slots werden auf die nächste Zweierpotenz zwischen 2 und 16 begrenzt.</p>
+            </div>
+
+            <div className="space-y-4 bg-gray-900/50 border border-white/10 rounded-lg p-4">
+              {settingsAlert ? (
+                <div className={`text-sm px-3 py-2 rounded ${settingsAlert.type === 'success' ? 'bg-green-500/20 text-green-200 border border-green-400/40' : 'bg-red-500/20 text-red-200 border border-red-400/40'}`}>
+                  {settingsAlert.text}
+                </div>
+              ) : (
+                <p className="text-xs text-white/60">Speichere Änderungen, damit Bracket und Öffi-Ansicht automatisch neu generiert werden.</p>
+              )}
+
+              <button
+                type="button"
+                onClick={saveBracketSettings}
+                disabled={!settingsChanged || settingsSaving}
+                className={`w-full px-4 py-3 rounded font-semibold text-white transition-colors ${settingsChanged ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-700 cursor-not-allowed'} ${settingsSaving ? 'opacity-60' : ''}`}
+              >
+                {settingsSaving ? 'Speichere...' : 'Einstellungen speichern & anwenden'}
+              </button>
+            </div>
+          </div>
+        </section>
+
         <section className="bg-black/20 backdrop-blur-sm rounded-xl p-5 border border-purple-500/50">
           <div className="mb-6" />
           <div className="overflow-x-auto pb-2">
