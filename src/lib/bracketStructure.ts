@@ -350,7 +350,14 @@ const prepareTeams = (inputTeams: BracketTeam[]) => {
 
   const realTeams = sanitized.filter((team) => !isPlaceholderTeam(team))
   const slotCount = clampSlotCount(realTeams.length || MIN_BRACKET_TEAMS)
-  const teams = ensureTeamSlots(sanitized, slotCount)
+  const teamsWithPlaceholders = ensureTeamSlots(sanitized, slotCount)
+
+  const teams = teamsWithPlaceholders.map((team) => {
+    if (team.id.startsWith('placeholder')) {
+      return virtualTeam('Freilos', team.position)
+    }
+    return team
+  })
 
   return { teams, slotCount }
 }
