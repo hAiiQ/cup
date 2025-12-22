@@ -34,20 +34,16 @@ const createConnectorPath = (from: { left: number; top: number }, to: { left: nu
   const endX = to.left
   const endY = to.top + MATCH_HEIGHT / 2
   const horizontalDistance = Math.max(endX - startX, 1)
-  const rawOffset = Math.max(horizontalDistance * 0.35, 30)
-  const maxOffset = Math.max(horizontalDistance - 12, 12)
-  const safeOffset = Math.min(rawOffset, maxOffset)
 
-  const controlOffset = safeOffset <= 0 ? horizontalDistance / 2 : safeOffset
-  const cp1X = startX + controlOffset
-  const cp2X = endX - controlOffset
+  const desiredPivot = Math.max(Math.min(horizontalDistance / 2, COLUMN_GAP), 40)
+  const maxPivotX = endX - 24
+  const pivotX = Math.min(startX + desiredPivot, maxPivotX)
 
-  if (cp2X <= cp1X) {
-    const fallback = horizontalDistance / 2
-    return `M${startX},${startY} C${startX + fallback},${startY} ${endX - fallback},${endY} ${endX},${endY}`
+  if (pivotX <= startX || pivotX >= endX) {
+    return `M${startX},${startY} L${endX},${endY}`
   }
 
-  return `M${startX},${startY} C${cp1X},${startY} ${cp2X},${endY} ${endX},${endY}`
+  return `M${startX},${startY} H${pivotX} V${endY} H${endX}`
 }
 
 const BracketDiagram = ({
