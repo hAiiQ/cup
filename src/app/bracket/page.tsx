@@ -150,7 +150,7 @@ export default function BracketPage() {
           
           <div className="text-center">
             <p className="text-purple-200 mb-2">
-              {teams.length > 0 ? `${teams.length} Teams • Single Elimination (${slotCount || '?'} Slots)` : 'Teams werden geladen...'}
+              {teams.length > 0 ? `${teams.length} Teams • Double Elimination (${slotCount || '?'} Slots)` : 'Teams werden geladen...'}
             </p>
             <div className="text-sm text-purple-300 flex items-center justify-center gap-4">
               🔄 Live Updates alle 3 Sekunden

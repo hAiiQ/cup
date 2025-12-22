@@ -13,7 +13,7 @@ export interface ParticipantSourceSeed {
 }
 
 export interface ParticipantSourceMatch {
-  kind: 'winner'
+  kind: 'winner' | 'loser'
   matchId: string
 }
 
@@ -24,7 +24,7 @@ export interface ParticipantSourceBye {
 
 export type ParticipantSource = ParticipantSourceSeed | ParticipantSourceMatch | ParticipantSourceBye
 
-export type BracketType = 'winner' | 'grand'
+export type BracketType = 'winner' | 'loser' | 'grand'
 
 export interface MatchBlueprint {
   id: string
@@ -59,7 +59,7 @@ export interface BracketNodeLayout {
 
 export type BracketConnection = [string, string]
 
-export interface BuildBracketResult {
+export interface BracketBuildResult {
   matches: BracketMatch[]
   layout: BracketNodeLayout[]
   connections: BracketConnection[]
@@ -67,7 +67,9 @@ export interface BuildBracketResult {
 }
 
 const MIN_BRACKET_TEAMS = 2
-const FINAL_MATCH_ID = 'GF'
+const GRAND_FINAL_ID = 'GF'
+const WINNER_FINAL_ID = 'WB-F'
+const LOSER_FINAL_ID = 'LB-F'
 
 const virtualTeam = (label: string, seedPosition?: number): BracketTeam => ({
   id: `virtual-${label.replace(/\s+/g, '-').toLowerCase()}${seedPosition ? `-${seedPosition}` : ''}`,
@@ -109,34 +111,17 @@ const createSeedOrder = (slotCount: number): number[] => {
   return result
 }
 
-const getRoundLabel = (teamsRemaining: number): string => {
-  if (teamsRemaining === 2) {
-    return 'Grand Final'
-  }
-  if (teamsRemaining === 4) {
-    return 'Semifinal'
-  }
-  if (teamsRemaining === 8) {
-    return 'Quarterfinal'
-  }
-  return `Round of ${teamsRemaining}`
-}
-
-const createBlueprint = (slotCount: number) => {
+const createWinnerRounds = (slotCount: number): MatchBlueprint[][] => {
   const rounds: MatchBlueprint[][] = []
   const totalRounds = Math.log2(slotCount)
   const seedOrder = createSeedOrder(slotCount)
 
   for (let roundIndex = 0; roundIndex < totalRounds; roundIndex++) {
     const matchesInRound = slotCount / Math.pow(2, roundIndex + 1)
-    const teamsRemaining = matchesInRound * 2
-    const roundLabel = getRoundLabel(teamsRemaining)
     const isFinal = roundIndex === totalRounds - 1
     const roundMatches: MatchBlueprint[] = []
 
     for (let matchIndex = 0; matchIndex < matchesInRound; matchIndex++) {
-      const id = isFinal ? FINAL_MATCH_ID : `R${roundIndex + 1}-M${matchIndex + 1}`
-      const label = isFinal ? 'Grand Final' : `${roundLabel} Match ${matchIndex + 1}`
       let sources: [ParticipantSource, ParticipantSource]
 
       if (roundIndex === 0) {
@@ -156,10 +141,14 @@ const createBlueprint = (slotCount: number) => {
         ]
       }
 
+      const id = isFinal ? WINNER_FINAL_ID : `WB-R${roundIndex + 1}-M${matchIndex + 1}`
+      const roundLabel = isFinal ? 'Winner Final' : `Winner Round ${roundIndex + 1}`
+      const label = isFinal ? 'Winner Final' : `${roundLabel} Match ${matchIndex + 1}`
+
       roundMatches.push({
         id,
         label,
-        bracket: isFinal ? 'grand' : 'winner',
+        bracket: 'winner',
         roundLabel,
         roundOrder: roundIndex + 1,
         sources
@@ -169,50 +158,298 @@ const createBlueprint = (slotCount: number) => {
     rounds.push(roundMatches)
   }
 
-  return {
-    rounds,
-    matches: rounds.flat()
-  }
+  return rounds
 }
 
-const buildLayout = (rounds: MatchBlueprint[][]) => {
-  const layout: BracketNodeLayout[] = []
-  const connections: BracketConnection[] = []
-  const rowPositions = new Map<string, number>()
+const createLoserRounds = (winnerRounds: MatchBlueprint[][]): MatchBlueprint[][] => {
+  const rounds: MatchBlueprint[][] = []
+  const totalWinnerRounds = winnerRounds.length
 
-  rounds.forEach((round, roundIndex) => {
-    round.forEach((match, matchIndex) => {
-      if (roundIndex === 0) {
-        rowPositions.set(match.id, matchIndex + 1)
-      } else {
-        const sourceRows = match.sources
-          .filter((source): source is ParticipantSourceMatch => source.kind === 'winner')
-          .map((source) => rowPositions.get(source.matchId))
-          .filter((value): value is number => typeof value === 'number')
-
-        if (sourceRows.length > 0) {
-          const average = sourceRows.reduce((sum, value) => sum + value, 0) / sourceRows.length
-          rowPositions.set(match.id, average)
-        } else {
-          rowPositions.set(match.id, matchIndex + 1)
-        }
+  if (totalWinnerRounds === 1) {
+    rounds.push([
+      {
+        id: LOSER_FINAL_ID,
+        label: 'Loser Final',
+        bracket: 'loser',
+        roundLabel: 'Loser Final',
+        roundOrder: 1,
+        sources: [
+          { kind: 'loser', matchId: winnerRounds[0][0].id },
+          { kind: 'bye', label: 'Freilos' }
+        ]
       }
+    ])
+    return rounds
+  }
 
-      layout.push({
-        id: match.id,
-        column: roundIndex + 1,
-        row: rowPositions.get(match.id) ?? roundIndex + 1
-      })
+  let loserRoundCounter = 0
+  let previousMajor: MatchBlueprint[] | null = null
 
-      match.sources.forEach((source) => {
-        if (source.kind === 'winner') {
-          connections.push([source.matchId, match.id])
-        }
+  for (let stage = 1; stage <= totalWinnerRounds - 1; stage++) {
+    loserRoundCounter += 1
+    const eliminationMatches: MatchBlueprint[] = []
+
+    if (stage === 1) {
+      const firstRound = winnerRounds[0]
+      for (let index = 0; index < firstRound.length; index += 2) {
+        const matchA = firstRound[index]
+        const matchB = firstRound[index + 1]
+        eliminationMatches.push({
+          id: `LB-R${loserRoundCounter}-M${eliminationMatches.length + 1}`,
+          label: `Loser Round ${loserRoundCounter} Match ${eliminationMatches.length + 1}`,
+          bracket: 'loser',
+          roundLabel: `Loser Round ${loserRoundCounter}`,
+          roundOrder: loserRoundCounter,
+          sources: [
+            { kind: 'loser', matchId: matchA.id },
+            { kind: 'loser', matchId: matchB.id }
+          ]
+        })
+      }
+    } else if (previousMajor) {
+      for (let index = 0; index < previousMajor.length; index += 2) {
+        const matchA = previousMajor[index]
+        const matchB = previousMajor[index + 1]
+        eliminationMatches.push({
+          id: `LB-R${loserRoundCounter}-M${eliminationMatches.length + 1}`,
+          label: `Loser Round ${loserRoundCounter} Match ${eliminationMatches.length + 1}`,
+          bracket: 'loser',
+          roundLabel: `Loser Round ${loserRoundCounter}`,
+          roundOrder: loserRoundCounter,
+          sources: [
+            { kind: 'winner', matchId: matchA.id },
+            { kind: 'winner', matchId: matchB.id }
+          ]
+        })
+      }
+    }
+
+    rounds.push(eliminationMatches)
+
+    loserRoundCounter += 1
+    const droppingRound = winnerRounds[stage]
+    const majorMatches: MatchBlueprint[] = []
+
+    eliminationMatches.forEach((elimMatch, index) => {
+      const droppingMatch = droppingRound[index]
+      const isFinalStage = stage === totalWinnerRounds - 1
+      const id = isFinalStage ? LOSER_FINAL_ID : `LB-R${loserRoundCounter}-M${index + 1}`
+      majorMatches.push({
+        id,
+        label: isFinalStage ? 'Loser Final' : `Loser Round ${loserRoundCounter} Match ${index + 1}`,
+        bracket: 'loser',
+        roundLabel: isFinalStage ? 'Loser Final' : `Loser Round ${loserRoundCounter}`,
+        roundOrder: loserRoundCounter,
+        sources: [
+          { kind: 'winner', matchId: elimMatch.id },
+          { kind: 'loser', matchId: droppingMatch.id }
+        ]
       })
     })
+
+    rounds.push(majorMatches)
+    previousMajor = majorMatches
+  }
+
+  return rounds
+}
+
+const buildConnections = (
+  winnerRounds: MatchBlueprint[][],
+  loserRounds: MatchBlueprint[][],
+  grandFinal: MatchBlueprint
+): BracketConnection[] => {
+  const connections: BracketConnection[] = []
+
+  const addConnections = (match: MatchBlueprint) => {
+    match.sources.forEach((source) => {
+      if (source.kind === 'winner' || source.kind === 'loser') {
+        connections.push([source.matchId, match.id])
+      }
+    })
+  }
+
+  winnerRounds.forEach((round) => round.forEach(addConnections))
+  loserRounds.forEach((round) => round.forEach(addConnections))
+  addConnections(grandFinal)
+
+  return connections
+}
+
+const buildLayouts = (
+  winnerRounds: MatchBlueprint[][],
+  loserRounds: MatchBlueprint[][],
+  grandFinal: MatchBlueprint
+): BracketNodeLayout[] => {
+  const layout: BracketNodeLayout[] = []
+  const relativeRowMap = new Map<string, number>()
+  const actualRowMap = new Map<string, number>()
+
+  const assignRounds = (
+    rounds: MatchBlueprint[][],
+    columnStart: number,
+    rowOffset: number
+  ) => {
+    rounds.forEach((round, roundIndex) => {
+      round.forEach((match, matchIndex) => {
+        const sourceRows = match.sources
+          .map((source) => relativeRowMap.get(source.matchId))
+          .filter((value): value is number => typeof value === 'number')
+
+        let relativeRow: number
+        if (sourceRows.length > 0) {
+          relativeRow = sourceRows.reduce((sum, value) => sum + value, 0) / sourceRows.length
+        } else {
+          relativeRow = matchIndex * 2 + 1
+        }
+
+        const actualRow = relativeRow + rowOffset
+        const column = columnStart + roundIndex
+
+        layout.push({ id: match.id, column, row: actualRow })
+        relativeRowMap.set(match.id, relativeRow)
+        actualRowMap.set(match.id, actualRow)
+      })
+    })
+  }
+
+  assignRounds(winnerRounds, 1, 0)
+  const winnerRows = winnerRounds.flat().map((match) => actualRowMap.get(match.id) || 0)
+  const winnerMaxRow = winnerRows.length > 0 ? Math.max(...winnerRows) : 0
+
+  const loserRowOffset = winnerMaxRow + 2
+  const loserColumnStart = winnerRounds.length + 1
+  assignRounds(loserRounds, loserColumnStart, loserRowOffset)
+
+  const grandFinalColumn = loserColumnStart + loserRounds.length + 1
+  const grandFinalSourceRows = grandFinal.sources
+    .map((source) => actualRowMap.get(source.matchId))
+    .filter((value): value is number => typeof value === 'number')
+
+  const grandFinalRow = grandFinalSourceRows.length > 0
+    ? grandFinalSourceRows.reduce((sum, value) => sum + value, 0) / grandFinalSourceRows.length
+    : Math.max(1, winnerMaxRow / 2)
+
+  layout.push({ id: grandFinal.id, column: grandFinalColumn, row: grandFinalRow })
+
+  return layout
+}
+
+const prepareTeams = (inputTeams: BracketTeam[]) => {
+  const sanitized = inputTeams
+    .filter(Boolean)
+    .map((team, index) => {
+      const position = typeof team.position === 'number' && team.position > 0 ? team.position : index + 1
+      return {
+        ...team,
+        position,
+        name: normalizeTeamName(position, team.name)
+      }
+    })
+    .sort((a, b) => a.position - b.position)
+
+  const realTeams = sanitized.filter((team) => !isPlaceholderTeam(team))
+  const slotCount = clampSlotCount(realTeams.length || MIN_BRACKET_TEAMS)
+  const teams = ensureTeamSlots(sanitized, slotCount)
+
+  return { teams, slotCount }
+}
+
+const buildMatchesFromBlueprints = (
+  blueprints: MatchBlueprint[],
+  teams: BracketTeam[],
+  stateMap: Map<string, MatchState>
+): BracketMatch[] => {
+  const positionMap = new Map<number, BracketTeam>()
+  teams.forEach((team) => positionMap.set(team.position, team))
+
+  const builtMatches: BracketMatch[] = []
+  const matchLookup = new Map<string, BracketMatch>()
+
+  const resolveSource = (source: ParticipantSource): BracketTeam => {
+    if (source.kind === 'seed') {
+      return positionMap.get(source.position) || placeholderTeam(source.position)
+    }
+
+    if (source.kind === 'bye') {
+      return virtualTeam(source.label || 'Freilos')
+    }
+
+    const referencedMatch = matchLookup.get(source.matchId)
+    if (!referencedMatch) {
+      return virtualTeam('TBD')
+    }
+
+    const referencedState = stateMap.get(source.matchId)
+    const resolvedWinnerId = referencedState?.winnerId || referencedMatch.winnerId
+
+    if (!resolvedWinnerId) {
+      return virtualTeam('TBD')
+    }
+
+    if (source.kind === 'winner') {
+      if (resolvedWinnerId === 'team1') {
+        return referencedMatch.team1 || virtualTeam('TBD')
+      }
+      if (resolvedWinnerId === 'team2') {
+        return referencedMatch.team2 || virtualTeam('TBD')
+      }
+      return virtualTeam('TBD')
+    }
+
+    if (resolvedWinnerId === 'team1') {
+      return referencedMatch.team2 || virtualTeam('TBD')
+    }
+    if (resolvedWinnerId === 'team2') {
+      return referencedMatch.team1 || virtualTeam('TBD')
+    }
+
+    return virtualTeam('TBD')
+  }
+
+  blueprints.forEach((blueprint) => {
+    const team1 = resolveSource(blueprint.sources[0])
+    const team2 = resolveSource(blueprint.sources[1])
+    const state = stateMap.get(blueprint.id)
+
+    const match: BracketMatch = {
+      id: blueprint.id,
+      label: blueprint.label,
+      bracket: blueprint.bracket,
+      roundLabel: blueprint.roundLabel,
+      roundOrder: blueprint.roundOrder,
+      team1,
+      team2,
+      team1Score: state?.team1Score ?? 0,
+      team2Score: state?.team2Score ?? 0,
+      isLive: state?.isLive ?? false,
+      isFinished: state?.isFinished ?? false,
+      winnerId: state?.winnerId
+    }
+
+    let autoAdvanceWinner: 'team1' | 'team2' | undefined
+    if (!state?.winnerId) {
+      if (isFreilosTeam(team1) && !isFreilosTeam(team2)) {
+        autoAdvanceWinner = 'team2'
+      } else if (isFreilosTeam(team2) && !isFreilosTeam(team1)) {
+        autoAdvanceWinner = 'team1'
+      }
+    }
+
+    if (autoAdvanceWinner) {
+      const winningScore = blueprint.id === GRAND_FINAL_ID ? 3 : 2
+      match.autoAdvance = true
+      match.isFinished = true
+      match.winnerId = autoAdvanceWinner
+      match.team1Score = autoAdvanceWinner === 'team1' ? winningScore : 0
+      match.team2Score = autoAdvanceWinner === 'team2' ? winningScore : 0
+    }
+
+    matchLookup.set(blueprint.id, match)
+    builtMatches.push(match)
   })
 
-  return { layout, connections }
+  return builtMatches
 }
 
 export const ensureTeamSlots = (teams: BracketTeam[] = [], slotCount: number = MAX_TEAMS): BracketTeam[] => {
@@ -251,112 +488,36 @@ export const ensureTeamSlots = (teams: BracketTeam[] = [], slotCount: number = M
 export const buildBracketMatches = (
   inputTeams: BracketTeam[] = [],
   stateMap: Map<string, MatchState> = new Map()
-): BuildBracketResult => {
-  const sanitizedTeams = inputTeams
-    .filter(Boolean)
-    .map((team, index) => {
-      const position = typeof team.position === 'number' && team.position > 0 ? team.position : index + 1
-      return {
-        ...team,
-        position,
-        name: normalizeTeamName(position, team.name)
-      }
-    })
-    .sort((a, b) => a.position - b.position)
-
-  const realTeams = sanitizedTeams.filter((team) => !isPlaceholderTeam(team))
-  const slotCount = clampSlotCount(realTeams.length || MIN_BRACKET_TEAMS)
-
-  if (realTeams.length > MAX_TEAMS) {
-    console.warn(`Warning: only the first ${MAX_TEAMS} teams are used for the bracket.`)
+): BracketBuildResult => {
+  const { teams, slotCount } = prepareTeams(inputTeams)
+  const winnerRounds = createWinnerRounds(slotCount)
+  const loserRounds = createLoserRounds(winnerRounds)
+  const winnerFinalRound = winnerRounds[winnerRounds.length - 1]
+  const loserFinalRound = loserRounds[loserRounds.length - 1]
+  const grandFinal: MatchBlueprint = {
+    id: GRAND_FINAL_ID,
+    label: 'Grand Final',
+    bracket: 'grand',
+    roundLabel: 'Grand Final',
+    roundOrder: winnerRounds.length + loserRounds.length + 1,
+    sources: [
+      { kind: 'winner', matchId: winnerFinalRound[0].id },
+      { kind: 'winner', matchId: loserFinalRound[0].id }
+    ]
   }
 
-  const teams = ensureTeamSlots(sanitizedTeams, slotCount)
-  const positionMap = new Map<number, BracketTeam>()
-  teams.forEach((team) => positionMap.set(team.position, team))
+  const blueprints = [
+    ...winnerRounds.flat(),
+    ...loserRounds.flat(),
+    grandFinal
+  ]
 
-  const { rounds, matches: blueprints } = createBlueprint(slotCount)
-  const { layout, connections } = buildLayout(rounds)
-
-  const builtMatches: BracketMatch[] = []
-  const matchLookup = new Map<string, BracketMatch>()
-
-  const resolveSource = (source: ParticipantSource): BracketTeam => {
-    if (source.kind === 'seed') {
-      const team = positionMap.get(source.position)
-      if (!team || isPlaceholderTeam(team)) {
-        return virtualTeam('Freilos', source.position)
-      }
-      return team
-    }
-
-    if (source.kind === 'bye') {
-      return virtualTeam(source.label || 'Freilos')
-    }
-
-    const referencedMatch = matchLookup.get(source.matchId)
-    if (!referencedMatch) {
-      return virtualTeam('TBD')
-    }
-
-    const referencedState = stateMap.get(source.matchId)
-    const resolvedWinnerId = referencedState?.winnerId || referencedMatch.winnerId
-
-    if (resolvedWinnerId === 'team1') {
-      return referencedMatch.team1 || virtualTeam('TBD')
-    }
-
-    if (resolvedWinnerId === 'team2') {
-      return referencedMatch.team2 || virtualTeam('TBD')
-    }
-
-    return virtualTeam('TBD')
-  }
-
-  blueprints.forEach((blueprint) => {
-    const team1 = resolveSource(blueprint.sources[0])
-    const team2 = resolveSource(blueprint.sources[1])
-    const state = stateMap.get(blueprint.id)
-
-    const match: BracketMatch = {
-      id: blueprint.id,
-      label: blueprint.label,
-      bracket: blueprint.bracket,
-      roundLabel: blueprint.roundLabel,
-      roundOrder: blueprint.roundOrder,
-      team1,
-      team2,
-      team1Score: state?.team1Score ?? 0,
-      team2Score: state?.team2Score ?? 0,
-      isLive: state?.isLive ?? false,
-      isFinished: state?.isFinished ?? false,
-      winnerId: state?.winnerId
-    }
-
-    let autoAdvanceWinner: 'team1' | 'team2' | undefined
-    if (!state?.winnerId) {
-      if (isFreilosTeam(team1) && !isFreilosTeam(team2)) {
-        autoAdvanceWinner = 'team2'
-      } else if (isFreilosTeam(team2) && !isFreilosTeam(team1)) {
-        autoAdvanceWinner = 'team1'
-      }
-    }
-
-    if (autoAdvanceWinner) {
-      const winningScore = blueprint.id === FINAL_MATCH_ID ? 3 : 2
-      match.autoAdvance = true
-      match.isFinished = true
-      match.winnerId = autoAdvanceWinner
-      match.team1Score = autoAdvanceWinner === 'team1' ? winningScore : 0
-      match.team2Score = autoAdvanceWinner === 'team2' ? winningScore : 0
-    }
-
-    matchLookup.set(blueprint.id, match)
-    builtMatches.push(match)
-  })
+  const matches = buildMatchesFromBlueprints(blueprints, teams, stateMap)
+  const layout = buildLayouts(winnerRounds, loserRounds, grandFinal)
+  const connections = buildConnections(winnerRounds, loserRounds, grandFinal)
 
   return {
-    matches: builtMatches,
+    matches,
     layout,
     connections,
     slotCount
