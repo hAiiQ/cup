@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import {
+  type BracketConnection,
   type BracketMatch,
-  type BracketTeam,
-  COMBINED_BRACKET_LAYOUT,
-  COMBINED_BRACKET_CONNECTIONS
+  type BracketNodeLayout,
+  type BracketTeam
 } from '@/lib/bracketStructure'
 import BracketDiagram from '@/components/bracket/BracketDiagram'
 import { DEFAULT_TEAM_NAMES } from '@/lib/teamDefaults'
@@ -14,6 +14,9 @@ import { DEFAULT_TEAM_NAMES } from '@/lib/teamDefaults'
 export default function BracketPage() {
   const [bracket, setBracket] = useState<BracketMatch[]>([])
   const [teams, setTeams] = useState<BracketTeam[]>([])
+  const [layout, setLayout] = useState<BracketNodeLayout[]>([])
+  const [connections, setConnections] = useState<BracketConnection[]>([])
+  const [slotCount, setSlotCount] = useState(0)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -37,9 +40,11 @@ export default function BracketPage() {
         console.log(`🎮 Admin controlled matches: ${data.adminControlled ? 'YES' : 'NO'}`)
         
         // Set teams from the matches API response
-        if (data.teams && data.teams.length > 0) {
+        if (Array.isArray(data.teams) && data.teams.length > 0) {
           setTeams(data.teams)
-          console.log(`📋 Teams loaded: ${data.teams.map((t: Team) => t.name).join(', ')}`)
+          console.log(`📋 Teams loaded: ${data.teams.map((t: BracketTeam) => t.name).join(', ')}`)
+        } else {
+          setTeams([])
         }
         
         // Set matches
@@ -58,29 +63,30 @@ export default function BracketPage() {
           console.log('⚠️ No matches in response')
           setBracket([])
         }
+
+        setLayout(Array.isArray(data.layout) ? data.layout : [])
+        setConnections(Array.isArray(data.connections) ? data.connections : [])
+        setSlotCount(typeof data.slotCount === 'number' ? data.slotCount : 0)
       } else {
         console.error('❌ Failed to fetch bracket data:', matchesRes.status)
         setBracket([])
         setTeams([])
+        setLayout([])
+        setConnections([])
+        setSlotCount(0)
       }
       
     } catch (error) {
       console.error('❌ Error fetching bracket data:', error)
       setBracket([])
       setTeams([])
+      setLayout([])
+      setConnections([])
+      setSlotCount(0)
     } finally {
       setLoading(false)
     }
   }
-
-  // Auto-refresh every 5 seconds to get live updates from admin changes
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchData()
-    }, 5000)
-
-    return () => clearInterval(interval)
-  }, [])
 
   // Helper function to get team name or fallback
   const getTeamName = (team?: BracketTeam, fallback: string = 'TBD') => {
@@ -144,7 +150,7 @@ export default function BracketPage() {
           
           <div className="text-center">
             <p className="text-purple-200 mb-2">
-              {teams.length > 0 ? `${teams.length} Teams • Double Elimination Format` : 'Teams werden geladen...'}
+              {teams.length > 0 ? `${teams.length} Teams • Single Elimination (${slotCount || '?'} Slots)` : 'Teams werden geladen...'}
             </p>
             <div className="text-sm text-purple-300 flex items-center justify-center gap-4">
               🔄 Live Updates alle 3 Sekunden
@@ -164,13 +170,17 @@ export default function BracketPage() {
             <span className="text-sm text-purple-200">Alle Matches Best-of-3 • Grand Final Best-of-5</span>
           </div>
           <div className="overflow-x-auto pb-2">
-            <BracketDiagram
-              matches={bracket}
-              layout={COMBINED_BRACKET_LAYOUT}
-              connections={COMBINED_BRACKET_CONNECTIONS}
-              renderMatch={(match) => <MatchBox match={match} className="h-full" />}
-              className="mx-auto"
-            />
+            {layout.length > 0 ? (
+              <BracketDiagram
+                matches={bracket}
+                layout={layout}
+                connections={connections}
+                renderMatch={(match) => <MatchBox match={match} className="h-full" />}
+                className="mx-auto"
+              />
+            ) : (
+              <div className="text-center text-purple-200 py-10">Bracket wird vorbereitet...</div>
+            )}
           </div>
         </section>
 
@@ -185,7 +195,7 @@ export default function BracketPage() {
               </div>
             )) : (
               // Fallback teams if no teams are loaded
-              DEFAULT_TEAM_NAMES.map((teamName, index) => (
+              DEFAULT_TEAM_NAMES.slice(0, slotCount || DEFAULT_TEAM_NAMES.length).map((teamName, index) => (
                 <div key={index} className="bg-purple-600/20 backdrop-blur-sm rounded-lg p-3 border border-purple-500/50">
                   <h3 className="text-white font-semibold text-center text-base">{teamName}</h3>
                   <p className="text-purple-200 text-center text-xs">Position {index + 1}</p>

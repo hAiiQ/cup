@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getAllMatchStates, determineWinnerSlot, type MatchState } from '@/lib/matchState'
 import { prisma } from '@/lib/prisma'
-import { buildBracketMatches, ensureTenTeams, type BracketTeam } from '@/lib/bracketStructure'
+import { buildBracketMatches, type BracketTeam } from '@/lib/bracketStructure'
+import { MAX_TEAMS } from '@/lib/teamDefaults'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -74,10 +75,10 @@ export async function GET() {
     // Load teams and build bracket
     let dbTeams: BracketTeam[] = []
     try {
-      console.log('🔍 Fetching teams for 10-team bracket...')
+      console.log('🔍 Fetching teams for bracket...')
       const teamsFromDB = await prisma.team.findMany({
         orderBy: { position: 'asc' },
-        take: 10
+        take: MAX_TEAMS
       })
 
       dbTeams = teamsFromDB.map(team => ({
@@ -91,14 +92,16 @@ export async function GET() {
       console.log('💡 Database fetch error, falling back to placeholder teams:', error)
     }
 
-    const preparedTeams = ensureTenTeams(dbTeams)
-    const matches = buildBracketMatches(preparedTeams, combinedStates)
+    const { matches, layout, connections, slotCount } = buildBracketMatches(dbTeams, combinedStates)
 
-    console.log(`✅ Generated ${matches.length} matches for 10-team bracket`)
+    console.log(`✅ Generated ${matches.length} matches for a ${slotCount}-slot bracket`)
     
     return NextResponse.json({
       matches,
-      teams: preparedTeams,
+      layout,
+      connections,
+      slotCount,
+      teams: dbTeams,
       lastUpdated: new Date().toISOString(),
       adminControlled: combinedStates.size > 0,
       persistentMatches: dbMatches.length,
@@ -111,7 +114,10 @@ export async function GET() {
       { 
         error: 'Failed to fetch bracket matches',
         matches: [],
-        teams: []
+        teams: [],
+        layout: [],
+        connections: [],
+        slotCount: 0
       },
       { status: 500 }
     )

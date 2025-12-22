@@ -5,10 +5,9 @@ import type { ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   buildBracketMatches,
-  ensureTenTeams,
-  COMBINED_BRACKET_LAYOUT,
-  COMBINED_BRACKET_CONNECTIONS,
+  type BracketConnection,
   type BracketMatch,
+  type BracketNodeLayout,
   type BracketTeam
 } from '@/lib/bracketStructure'
 import type { MatchState } from '@/lib/matchState'
@@ -36,6 +35,9 @@ export default function AdminBracketPage() {
   const router = useRouter()
   const [teams, setTeams] = useState<BracketTeam[]>([])
   const [bracket, setBracket] = useState<BracketMatch[]>([])
+  const [layout, setLayout] = useState<BracketNodeLayout[]>([])
+  const [connections, setConnections] = useState<BracketConnection[]>([])
+  const [slotCount, setSlotCount] = useState<number>(0)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -100,8 +102,7 @@ export default function AdminBracketPage() {
         }))
       }
 
-      const normalizedTeams = ensureTenTeams(fetchedTeams)
-      setTeams(normalizedTeams)
+      setTeams(fetchedTeams)
 
       let stateMap = new Map<string, MatchState>()
       if (statesRes.ok) {
@@ -109,11 +110,14 @@ export default function AdminBracketPage() {
         stateMap = createStateMap(statePayload.states || [])
       }
 
-      const matches = buildBracketMatches(normalizedTeams, stateMap)
-      setBracket(matches)
+      const bracketResult = buildBracketMatches(fetchedTeams, stateMap)
+      setBracket(bracketResult.matches)
+      setLayout(bracketResult.layout)
+      setConnections(bracketResult.connections)
+      setSlotCount(bracketResult.slotCount)
 
       if (selectedMatchIdRef.current) {
-        const refreshed = matches.find(match => match.id === selectedMatchIdRef.current)
+        const refreshed = bracketResult.matches.find(match => match.id === selectedMatchIdRef.current)
         if (refreshed) {
           setSelectedMatch(refreshed)
           setScoreInputs({
@@ -415,7 +419,7 @@ export default function AdminBracketPage() {
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <div className="text-gray-300 text-sm">
-                {teams.length} Teams registriert
+                {teams.length} Teams aktiv · {slotCount > 0 ? `${slotCount}-Slot Bracket` : 'Bracket wird vorbereitet'}
               </div>
               <button
                 onClick={() => fetchData(false)}
@@ -447,8 +451,8 @@ export default function AdminBracketPage() {
           <div className="overflow-x-auto pb-2">
             <BracketDiagram
               matches={bracket}
-              layout={COMBINED_BRACKET_LAYOUT}
-              connections={COMBINED_BRACKET_CONNECTIONS}
+              layout={layout}
+              connections={connections}
               renderMatch={(match) => (
                 <MatchBox
                   match={match}

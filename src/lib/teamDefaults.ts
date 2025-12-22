@@ -1,4 +1,4 @@
-const TEAM_SLOTS = 10
+const TEAM_SLOTS = 16
 
 export const DEFAULT_TEAM_NAMES = Array.from({ length: TEAM_SLOTS }, (_, index) => `Team ${index + 1}`)
 
