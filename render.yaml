@@ -1,6 +1,7 @@
 services:
   - type: web
     name: path-of-gambit
+    autoDeploy: true
     env: node
     buildCommand: |
       echo "🚀 Starting build process..."
