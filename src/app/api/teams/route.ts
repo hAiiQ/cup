@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { DEFAULT_TEAM_NAMES } from '@/lib/teamDefaults'
+import { getBracketSettings } from '@/lib/bracketSettings'
 
 
 // Force dynamic rendering
@@ -14,6 +15,8 @@ export async function GET() {
     // Test database connection first
     await prisma.$connect()
     console.log('✅ Database connection successful')
+    const settings = await getBracketSettings()
+    const slotLimit = settings.teamSlots
     
     // Erst prüfen ob Teams existieren
     const teamsCount = await prisma.team.count()
@@ -23,7 +26,7 @@ export async function GET() {
       console.log('⚠️ No teams found, creating default teams...')
       
       // Create default teams if none exist
-      const defaultTeams = DEFAULT_TEAM_NAMES
+      const defaultTeams = DEFAULT_TEAM_NAMES.slice(0, slotLimit || DEFAULT_TEAM_NAMES.length)
       
       for (let i = 0; i < defaultTeams.length; i++) {
         await prisma.team.create({
@@ -56,7 +59,8 @@ export async function GET() {
       },
       orderBy: {
         position: 'asc'
-      }
+      },
+      take: slotLimit
     })
 
     console.log(`✅ Successfully fetched ${teams.length} teams with members`)
@@ -81,7 +85,8 @@ export async function GET() {
       }))
     }))
     
-    return NextResponse.json({ teams: transformedTeams })  } catch (error) {
+    return NextResponse.json({ teams: transformedTeams, teamSlots: slotLimit })
+  } catch (error) {
     console.error('❌ Teams fetch error:', error)
     console.error('Error details:', {
       message: error instanceof Error ? error.message : 'Unknown error',

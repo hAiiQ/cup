@@ -37,21 +37,18 @@ type BracketSettingsState = {
   teamSlots: number
 }
 
-const SLOT_OPTIONS = [2, 4, 8, 16] as const
+const MIN_TEAM_SLOTS = 2
+const MAX_TEAM_SLOTS = 16
 
 const clampTeamSlots = (value: number): number => {
-  const sanitized = Math.max(2, Math.min(16, Number(value) || 2))
-  for (const slot of SLOT_OPTIONS) {
-    if (sanitized <= slot) {
-      return slot
-    }
-  }
-  return SLOT_OPTIONS[SLOT_OPTIONS.length - 1]
+  const numericValue = Number.isFinite(value) ? value : Number(value)
+  const fallback = Number.isFinite(numericValue) ? numericValue : MIN_TEAM_SLOTS
+  return Math.min(Math.max(Math.floor(fallback), MIN_TEAM_SLOTS), MAX_TEAM_SLOTS)
 }
 
 const DEFAULT_BRACKET_SETTINGS: BracketSettingsState = {
   mode: 'double',
-  teamSlots: SLOT_OPTIONS[SLOT_OPTIONS.length - 1]
+  teamSlots: MAX_TEAM_SLOTS
 }
 
 const MODE_LABELS: Record<BracketMode, string> = {
@@ -84,6 +81,10 @@ export default function AdminBracketPage() {
   const [settingsAlert, setSettingsAlert] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const settingsChanged = settingsDraft.mode !== bracketSettings.mode || settingsDraft.teamSlots !== bracketSettings.teamSlots
   const modeOptions: BracketMode[] = ['double', 'single']
+  const configuredSlotCount = bracketSettings.teamSlots
+  const autoFreilosCount = slotCount > 0 && configuredSlotCount > 0
+    ? Math.max(slotCount - configuredSlotCount, 0)
+    : 0
 
   useEffect(() => {
     checkAdminAuth()
@@ -198,7 +199,7 @@ export default function AdminBracketPage() {
     setSettingsAlert(null)
   }
 
-  const handleSlotSelect = (value: number) => {
+  const handleSlotValueChange = (value: number) => {
     setSettingsDraft((prev) => ({ ...prev, teamSlots: clampTeamSlots(value) }))
     setSettingsAlert(null)
   }
@@ -519,7 +520,7 @@ export default function AdminBracketPage() {
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <div className="text-gray-300 text-sm">
-                {teams.length} Teams aktiv · {slotCount > 0 ? `${slotCount}-Slot Bracket` : 'Bracket wird vorbereitet'} · {MODE_LABELS[bracketSettings.mode]}
+                {teams.length} Teams aktiv · Konfiguriert: {configuredSlotCount} Slots · Bracket Seeds: {slotCount > 0 ? slotCount : '...'} · {MODE_LABELS[bracketSettings.mode]}
               </div>
               <button
                 onClick={() => fetchData(false)}
@@ -553,7 +554,7 @@ export default function AdminBracketPage() {
               <p className="text-purple-200 text-sm">Wähle Eliminierungsmodus und Teamslots, bevor Matches generiert werden.</p>
             </div>
             <div className="text-sm text-white/70">
-              Aktiv: {MODE_LABELS[bracketSettings.mode]} • {bracketSettings.teamSlots} Slots
+              Aktiv: {MODE_LABELS[bracketSettings.mode]} • {configuredSlotCount} Slots (Seeds: {slotCount || '...'})
             </div>
           </div>
 
@@ -579,22 +580,34 @@ export default function AdminBracketPage() {
 
             <div className="space-y-3">
               <p className="text-white/80 text-sm font-semibold">Team Slots</p>
-              <div className="flex flex-wrap gap-3">
-                {SLOT_OPTIONS.map((slot) => {
-                  const active = settingsDraft.teamSlots === slot
-                  return (
-                    <button
-                      key={slot}
-                      type="button"
-                      onClick={() => handleSlotSelect(slot)}
-                      className={`px-3 py-2 rounded-lg border text-sm font-semibold transition-colors ${active ? 'bg-cyan-600 text-white border-cyan-300 shadow-lg' : 'bg-black/40 text-white/70 border-white/15 hover:border-cyan-300/70'}`}
-                    >
-                      {slot} Slots
-                    </button>
-                  )
-                })}
+              <div className="space-y-4">
+                <input
+                  type="range"
+                  min={MIN_TEAM_SLOTS}
+                  max={MAX_TEAM_SLOTS}
+                  value={settingsDraft.teamSlots}
+                  onChange={(event) => handleSlotValueChange(Number(event.target.value))}
+                  className="w-full accent-cyan-400"
+                />
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    min={MIN_TEAM_SLOTS}
+                    max={MAX_TEAM_SLOTS}
+                    value={settingsDraft.teamSlots}
+                    onChange={(event) => handleSlotValueChange(Number(event.target.value))}
+                    className="w-24 rounded bg-black/40 border border-white/15 px-3 py-2 text-white focus:outline-none focus:border-cyan-400"
+                  />
+                  <span className="text-white/70 text-sm">Slots (min {MIN_TEAM_SLOTS} · max {MAX_TEAM_SLOTS})</span>
+                </div>
               </div>
-              <p className="text-xs text-white/50">Slots werden auf die nächste Zweierpotenz zwischen 2 und 16 begrenzt.</p>
+              <p className="text-xs text-white/50">
+                {slotCount > 0
+                  ? autoFreilosCount > 0
+                    ? `${autoFreilosCount} Freilos-Slots werden automatisch vergeben, damit das ${slotCount}-Slot Bracket funktioniert.`
+                    : 'Keine Freilos-Slots nötig. Bracket läuft ohne automatische Byes.'
+                  : 'Slots werden automatisch auf gültige Werte begrenzt.'}
+              </p>
             </div>
 
             <div className="space-y-4 bg-gray-900/50 border border-white/10 rounded-lg p-4">

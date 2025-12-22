@@ -23,13 +23,7 @@ const clampTeamSlots = (value?: number | null) => {
     return DEFAULT_SETTINGS.teamSlots
   }
 
-  const limited = Math.min(Math.max(Math.floor(numericValue), MIN_TEAM_SLOTS), MAX_TEAMS)
-  let power = 1
-  while (power < limited) {
-    power *= 2
-  }
-
-  return Math.min(power, MAX_TEAMS)
+  return Math.min(Math.max(Math.floor(numericValue), MIN_TEAM_SLOTS), MAX_TEAMS)
 }
 
 const normalizeMode = (mode?: string | null): BracketMode => {

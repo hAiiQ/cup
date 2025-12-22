@@ -31,7 +31,8 @@ const createPlaceholderTeam = (position: number): Team => ({
   members: []
 })
 
-const ensureFullTeamList = (inputTeams: Team[] = []): Team[] => {
+const ensureFullTeamList = (inputTeams: Team[] = [], slotLimit: number = MAX_TEAMS): Team[] => {
+  const targetSlots = Math.min(Math.max(Math.floor(slotLimit) || MAX_TEAMS, 1), MAX_TEAMS)
   const normalized = inputTeams
     .filter(Boolean)
     .map((team, index) => {
@@ -47,7 +48,7 @@ const ensureFullTeamList = (inputTeams: Team[] = []): Team[] => {
 
   const seenPositions = new Set(normalized.map(team => team.position))
 
-  for (let position = 1; position <= MAX_TEAMS; position++) {
+  for (let position = 1; position <= targetSlots; position++) {
     if (!seenPositions.has(position)) {
       normalized.push(createPlaceholderTeam(position))
     }
@@ -55,11 +56,20 @@ const ensureFullTeamList = (inputTeams: Team[] = []): Team[] => {
 
   return normalized
     .sort((a, b) => a.position - b.position)
-    .slice(0, MAX_TEAMS)
+    .slice(0, targetSlots)
+}
+
+const clampSlotLimit = (value?: number): number => {
+  const numericValue = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(numericValue)) {
+    return MAX_TEAMS
+  }
+  return Math.min(Math.max(Math.floor(numericValue), 2), MAX_TEAMS)
 }
 
 export default function TeamsPage() {
   const [teams, setTeams] = useState<Team[]>([])
+  const [teamSlots, setTeamSlots] = useState(MAX_TEAMS)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -79,7 +89,9 @@ export default function TeamsPage() {
       console.log('📥 API Response:', data)
       
       if (response.ok) {
-        const normalizedTeams = ensureFullTeamList(data.teams || [])
+        const slotLimit = clampSlotLimit(data.teamSlots)
+        setTeamSlots(slotLimit)
+        const normalizedTeams = ensureFullTeamList(data.teams || [], slotLimit)
         setTeams(normalizedTeams)
       } else {
         console.error('❌ API Error:', data.error)
@@ -138,7 +150,7 @@ export default function TeamsPage() {
   const totalPlayers = teams.reduce((sum, team) => sum + team.members.length, 0)
   const verifiedPlayers = teams.reduce((sum, team) => sum + team.members.filter(m => m.isVerified).length, 0)
   const fullTeamsCount = teams.filter(team => team.members.length === TEAM_SIZE).length
-  const totalCapacity = MAX_TEAMS * TEAM_SIZE
+  const totalCapacity = teamSlots * TEAM_SIZE
   const freeSlots = Math.max(totalCapacity - totalPlayers, 0)
 
   if (loading) {
@@ -181,8 +193,9 @@ export default function TeamsPage() {
               🏆 TOURNAMENT TEAMS
             </h1>
             <p className="text-xl text-white/80">
-              {teams.length > 0 ? `${teams.length} Teams bereit für das Double Elimination Tournament` : 'Teams werden vom Admin-System erstellt'}
+              {teams.length > 0 ? `${teamSlots} Team-Slots konfiguriert – ${teams.length} Plätze sichtbar` : 'Teams werden vom Admin-System erstellt'}
             </p>
+            <p className="text-white/60 text-sm mt-2">Konfiguration durch Admin: {teamSlots} Teams · automatische Platzhalter füllen leere Slots</p>
           </div>
         </div>
 
@@ -416,7 +429,7 @@ export default function TeamsPage() {
             📡 Live Updates • Letzte Aktualisierung: {new Date().toLocaleTimeString()}
           </p>
           <p className="text-purple-300 text-xs mt-1">
-            Teams werden automatisch vom Admin-System synchronisiert
+            Teams werden automatisch vom Admin-System synchronisiert · Konfigurierte Slots: {teamSlots}
           </p>
         </div>
 

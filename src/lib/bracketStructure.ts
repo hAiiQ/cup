@@ -66,6 +66,7 @@ export interface BracketBuildResult {
   layout: BracketNodeLayout[]
   connections: BracketConnection[]
   slotCount: number
+  requestedSlotCount: number
   mode: BracketMode
 }
 
@@ -101,6 +102,11 @@ const clampSlotCount = (value: number): number => {
     power *= 2
   }
   return Math.min(power, MAX_TEAMS)
+}
+
+const clampRequestedSlotCount = (value: number): number => {
+  const numeric = Math.floor(value)
+  return Math.min(Math.max(numeric, MIN_BRACKET_TEAMS), MAX_TEAMS)
 }
 
 const createSeedOrder = (slotCount: number): number[] => {
@@ -451,10 +457,10 @@ const prepareTeams = (inputTeams: BracketTeam[], desiredSlotCount?: number) => {
     .sort((a, b) => a.position - b.position)
 
   const realTeams = sanitized.filter((team) => !isPlaceholderTeam(team))
-  const slotBaseline = desiredSlotCount && desiredSlotCount >= MIN_BRACKET_TEAMS
-    ? desiredSlotCount
-    : realTeams.length || MIN_BRACKET_TEAMS
-  const slotCount = clampSlotCount(slotBaseline)
+    const requestedSlotCount = typeof desiredSlotCount === 'number' && desiredSlotCount >= MIN_BRACKET_TEAMS
+      ? clampRequestedSlotCount(desiredSlotCount)
+      : clampRequestedSlotCount(realTeams.length || MIN_BRACKET_TEAMS)
+    const slotCount = clampSlotCount(requestedSlotCount)
   const teamsWithPlaceholders = ensureTeamSlots(sanitized, slotCount)
 
   const teams = teamsWithPlaceholders.map((team) => {
@@ -464,7 +470,7 @@ const prepareTeams = (inputTeams: BracketTeam[], desiredSlotCount?: number) => {
     return team
   })
 
-  return { teams, slotCount }
+    return { teams, slotCount, requestedSlotCount }
 }
 
 const buildMatchesFromBlueprints = (
@@ -600,7 +606,8 @@ export const ensureTeamSlots = (teams: BracketTeam[] = [], slotCount: number = M
 const buildDoubleEliminationBracket = (
   teams: BracketTeam[],
   stateMap: Map<string, MatchState>,
-  slotCount: number
+  slotCount: number,
+  requestedSlotCount: number
 ): BracketBuildResult => {
   const winnerRounds = createWinnerRounds(slotCount)
   const loserRounds = createLoserRounds(winnerRounds)
@@ -633,6 +640,7 @@ const buildDoubleEliminationBracket = (
     layout,
     connections,
     slotCount,
+    requestedSlotCount,
     mode: 'double'
   }
 }
@@ -640,7 +648,8 @@ const buildDoubleEliminationBracket = (
 const buildSingleEliminationBracket = (
   teams: BracketTeam[],
   stateMap: Map<string, MatchState>,
-  slotCount: number
+  slotCount: number,
+  requestedSlotCount: number
 ): BracketBuildResult => {
   const rounds = createSingleEliminationRounds(slotCount)
   const blueprints = rounds.flat()
@@ -653,6 +662,7 @@ const buildSingleEliminationBracket = (
     layout,
     connections,
     slotCount,
+    requestedSlotCount,
     mode: 'single'
   }
 }
@@ -663,11 +673,11 @@ export const buildBracketMatches = (
   options: BracketBuildOptions = {}
 ): BracketBuildResult => {
   const desiredMode: BracketMode = options.mode === 'single' ? 'single' : 'double'
-  const { teams, slotCount } = prepareTeams(inputTeams, options.slotCount)
+  const { teams, slotCount, requestedSlotCount } = prepareTeams(inputTeams, options.slotCount)
 
   if (desiredMode === 'single') {
-    return buildSingleEliminationBracket(teams, stateMap, slotCount)
+    return buildSingleEliminationBracket(teams, stateMap, slotCount, requestedSlotCount)
   }
 
-  return buildDoubleEliminationBracket(teams, stateMap, slotCount)
+  return buildDoubleEliminationBracket(teams, stateMap, slotCount, requestedSlotCount)
 }

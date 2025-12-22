@@ -5,6 +5,7 @@ import Link from 'next/link'
 import {
   type BracketConnection,
   type BracketMatch,
+  type BracketMode,
   type BracketNodeLayout,
   type BracketTeam
 } from '@/lib/bracketStructure'
@@ -17,6 +18,8 @@ export default function BracketPage() {
   const [layout, setLayout] = useState<BracketNodeLayout[]>([])
   const [connections, setConnections] = useState<BracketConnection[]>([])
   const [slotCount, setSlotCount] = useState(0)
+  const [requestedSlotCount, setRequestedSlotCount] = useState(0)
+  const [bracketMode, setBracketMode] = useState<'single' | 'double'>('double')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -67,6 +70,10 @@ export default function BracketPage() {
         setLayout(Array.isArray(data.layout) ? data.layout : [])
         setConnections(Array.isArray(data.connections) ? data.connections : [])
         setSlotCount(typeof data.slotCount === 'number' ? data.slotCount : 0)
+          setRequestedSlotCount(typeof data.requestedSlotCount === 'number'
+            ? data.requestedSlotCount
+            : (typeof data.settings?.teamSlots === 'number' ? data.settings.teamSlots : 0))
+          setBracketMode(data.mode === 'single' ? 'single' : 'double')
       } else {
         console.error('❌ Failed to fetch bracket data:', matchesRes.status)
         setBracket([])
@@ -74,6 +81,7 @@ export default function BracketPage() {
         setLayout([])
         setConnections([])
         setSlotCount(0)
+        setRequestedSlotCount(0)
       }
       
     } catch (error) {
@@ -85,6 +93,7 @@ export default function BracketPage() {
       setSlotCount(0)
     } finally {
       setLoading(false)
+      setRequestedSlotCount(0)
     }
   }
 
@@ -150,7 +159,9 @@ export default function BracketPage() {
           
           <div className="text-center">
             <p className="text-purple-200 mb-2">
-              {teams.length > 0 ? `${teams.length} Teams • Double Elimination (${slotCount || '?'} Slots)` : 'Teams werden geladen...'}
+              {teams.length > 0
+                ? `${teams.length} Teams • ${bracketMode === 'single' ? 'Single' : 'Double'} Elimination (Konfiguriert: ${requestedSlotCount || '...'} Slots · Seeds: ${slotCount || '...'})`
+                : 'Teams werden geladen...'}
             </p>
             <div className="text-sm text-purple-300 flex items-center justify-center gap-4">
               🔄 Live Updates alle 3 Sekunden
@@ -195,7 +206,7 @@ export default function BracketPage() {
               </div>
             )) : (
               // Fallback teams if no teams are loaded
-              DEFAULT_TEAM_NAMES.slice(0, slotCount || DEFAULT_TEAM_NAMES.length).map((teamName, index) => (
+              DEFAULT_TEAM_NAMES.slice(0, requestedSlotCount || slotCount || DEFAULT_TEAM_NAMES.length).map((teamName, index) => (
                 <div key={index} className="bg-purple-600/20 backdrop-blur-sm rounded-lg p-3 border border-purple-500/50">
                   <h3 className="text-white font-semibold text-center text-base">{teamName}</h3>
                   <p className="text-purple-200 text-center text-xs">Position {index + 1}</p>

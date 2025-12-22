@@ -99,13 +99,14 @@ export async function GET() {
       slotCount: settings.teamSlots
     })
 
-    console.log(`✅ Generated ${bracketResult.matches.length} matches for a ${bracketResult.slotCount}-slot bracket (${settings.mode})`)
+    console.log(`✅ Generated ${bracketResult.matches.length} matches for a ${bracketResult.slotCount}-slot bracket (${settings.mode}) [requested ${bracketResult.requestedSlotCount}]`)
     
     return NextResponse.json({
       matches: bracketResult.matches,
       layout: bracketResult.layout,
       connections: bracketResult.connections,
       slotCount: bracketResult.slotCount,
+      requestedSlotCount: bracketResult.requestedSlotCount,
       mode: bracketResult.mode,
       settings,
       teams: dbTeams,
@@ -125,6 +126,7 @@ export async function GET() {
         layout: [],
         connections: [],
         slotCount: 0,
+        requestedSlotCount: 0,
         mode: 'double'
       },
       { status: 500 }
