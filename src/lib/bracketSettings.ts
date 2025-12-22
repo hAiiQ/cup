@@ -1,4 +1,3 @@
-import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { MAX_TEAMS } from '@/lib/teamDefaults'
 
@@ -31,44 +30,68 @@ const normalizeMode = (mode?: string | null): BracketMode => {
   return mode === 'single' ? 'single' : 'double'
 }
 
-const isMissingTableError = (error: unknown): error is Prisma.PrismaClientKnownRequestError => {
-  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2021'
+let ensureTablePromise: Promise<void> | null = null
+let tableReady = false
+
+const doesBracketSettingsTableExist = async (): Promise<boolean> => {
+  try {
+    const result = await prisma.$queryRaw<Array<{ exists: boolean }>>`
+      SELECT EXISTS (
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_name = 'BracketSetting'
+      ) AS "exists";
+    `
+
+    return Boolean(result?.[0]?.exists)
+  } catch (error) {
+    console.error('Failed to check BracketSetting table existence:', error)
+    return false
+  }
 }
 
-let ensureTablePromise: Promise<void> | null = null
-
 const ensureBracketSettingsTable = async () => {
+  if (tableReady) {
+    return
+  }
+
   if (ensureTablePromise) {
     return ensureTablePromise
   }
 
   ensureTablePromise = (async () => {
     try {
-      await prisma.$queryRawUnsafe('SELECT 1 FROM "BracketSetting" LIMIT 1')
-    } catch (error) {
-      if (!isMissingTableError(error)) {
-        throw error
+      const exists = await doesBracketSettingsTableExist()
+      if (!exists) {
+        await prisma.$executeRawUnsafe(`
+          CREATE TABLE IF NOT EXISTS "BracketSetting" (
+            id TEXT PRIMARY KEY,
+            mode TEXT NOT NULL DEFAULT 'double',
+            "teamSlots" INTEGER NOT NULL DEFAULT 16,
+            "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+          );
+        `)
+
+        await prisma.bracketSetting.upsert({
+          where: { id: SETTINGS_ID },
+          create: {
+            id: SETTINGS_ID,
+            mode: DEFAULT_SETTINGS.mode,
+            teamSlots: DEFAULT_SETTINGS.teamSlots
+          },
+          update: {}
+        })
       }
 
-      await prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "BracketSetting" (
-          id TEXT PRIMARY KEY,
-          mode TEXT NOT NULL DEFAULT 'double',
-          "teamSlots" INTEGER NOT NULL DEFAULT 16,
-          "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-          "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        );
-      `)
-
-      await prisma.bracketSetting.upsert({
-        where: { id: SETTINGS_ID },
-        create: {
-          id: SETTINGS_ID,
-          mode: DEFAULT_SETTINGS.mode,
-          teamSlots: DEFAULT_SETTINGS.teamSlots
-        },
-        update: {}
-      })
+      tableReady = true
+    } catch (error) {
+      tableReady = false
+      console.error('Failed to ensure BracketSetting table:', error)
+      throw error
+    } finally {
+      ensureTablePromise = null
     }
   })()
 
