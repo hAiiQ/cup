@@ -192,7 +192,7 @@ export default function DashboardPage() {
                     🎮 Willkommen, {user?.inGameName || user?.username}!
                   </h1>
                   <p className="text-white/80 text-lg">
-                    Du bist für das JOEDOM'S PATH OF GAMBIT Tournament registriert
+                    Du bist für das JOE'S SUMMER CUP Tournament registriert
                   </p>
                 </div>
                 <div className="hidden md:block">
@@ -543,10 +543,10 @@ export default function DashboardPage() {
                 </h2>
                 
                 <div className="space-y-4">
-                  <div className="bg-gradient-to-r from-purple-600/30 to-pink-600/30 border border-purple-500 rounded-lg p-4">
-                    <div className="text-purple-200 font-medium text-sm">Registriert für:</div>
-                    <div className="text-white text-lg font-bold mt-1">JOEDOM'S PATH OF GAMBIT</div>
-                    <div className="text-purple-200 text-sm mt-1">Marvel Rivals Tournament</div>
+                  <div className="bg-gradient-to-r from-yellow-400/30 via-orange-300/30 to-pink-500/30 border border-yellow-300 rounded-lg p-4">
+                    <div className="text-orange-200 font-medium text-sm">Registriert für:</div>
+                    <div className="text-white text-lg font-bold mt-1">JOE'S SUMMER CUP</div>
+                    <div className="text-orange-200 text-sm mt-1">Sommer Cup Tournament</div>
                   </div>
                   
                   <div className="bg-white/5 rounded-lg p-4">
@@ -587,8 +587,8 @@ export default function DashboardPage() {
                     <span className="text-white font-medium">6 pro Team</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-white/70">Spiel:</span>
-                    <span className="text-white font-medium">Marvel Rivals</span>
+                    <span className="text-white/70">Event:</span>
+                    <span className="text-white font-medium">Joe's Summer Cup</span>
                   </div>
                 </div>
               </div>
@@ -643,9 +643,9 @@ export default function DashboardPage() {
               </div>
               
               <div className="bg-white/10 rounded-lg p-4">
-                <div className="text-pink-300 font-medium text-sm mb-1">Spiel</div>
-                <div className="text-white text-lg font-semibold">Marvel Rivals</div>
-                <div className="text-pink-200 text-xs mt-1">Competitive 6v6</div>
+                <div className="text-pink-300 font-medium text-sm mb-1">Event</div>
+                <div className="text-white text-lg font-semibold">Joe's Summer Cup</div>
+                <div className="text-pink-200 text-xs mt-1">Sommer Cup Edition</div>
               </div>
               
               <div className="bg-white/10 rounded-lg p-4">

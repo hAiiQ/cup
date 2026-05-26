@@ -145,7 +145,7 @@ export default function RegisterPage() {
                 id="inGameName"
                 required
                 className="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                placeholder="Marvel Rivals Name"
+                placeholder="In-Game Name"
                 value={formData.inGameName}
                 onChange={(e) => setFormData({ ...formData, inGameName: e.target.value })}
               />
@@ -254,10 +254,10 @@ export default function RegisterPage() {
                 🏆 Tournament Regeln
               </h2>
               <p className="text-xl text-white/80">
-                JOEDOM'S PATH OF GAMBIT - Marvel Rivals Tournament
+                JOE'S SUMMER CUP - Sommer Cup Tournament
               </p>
-              <div className="mt-4 inline-block bg-purple-600/30 border border-purple-400 rounded-lg px-6 py-2">
-                <span className="text-purple-200 font-medium">📅 Double Elimination • 8 Teams • Marvel Rivals</span>
+              <div className="mt-4 inline-block bg-gradient-to-r from-yellow-400/20 via-orange-400/20 to-pink-500/20 border border-orange-300 rounded-lg px-6 py-2">
+                <span className="text-orange-200 font-medium">📅 Double Elimination • 8 Teams • Summer Cup</span>
               </div>
             </div>
 
@@ -344,7 +344,7 @@ export default function RegisterPage() {
                   </div>
                   <div className="flex items-start">
                     <span className="text-orange-400 mr-2 text-lg mt-1">📊</span>
-                    <span className="text-white/90 text-sm"><strong>Die In-Game Karriere in Marvel Rivals muss öffentlich sichtbar sein</strong></span>
+                    <span className="text-white/90 text-sm"><strong>Die In-Game Karriere im Sommer Cup muss öffentlich sichtbar sein</strong></span>
                   </div>
                 </div>
               </div>

@@ -48,7 +48,7 @@ export default function Navigation() {
               {/* Logo */}
               <Image
                 src="/logo.png"
-                alt="PATH OF GAMBIT Logo"
+                alt="JOE'S SUMMER CUP Logo"
                 width={40}
                 height={40}
                 className="object-contain"
@@ -60,12 +60,12 @@ export default function Navigation() {
                   <span 
                     className="text-transparent bg-clip-text no-text-shadow group-hover:opacity-80 transition-all duration-500"
                     style={{
-                      background: 'linear-gradient(to right, #C084FC, #E879F9, #F5D0FE)',
+                      background: 'linear-gradient(to right, #FDBA74, #FB7185, #EC4899)',
                       backgroundClip: 'text',
                       WebkitBackgroundClip: 'text'
                     }}
                   >
-                    PATH OF GAMBIT
+                    JOE'S SUMMER CUP
                   </span>
                 </div>
                 <div className="text-xs font-medium text-white/70 group-hover:text-purple-300 transition-colors">
