@@ -16,6 +16,17 @@ async function fixMissingTables() {
     console.log('📊 Current tables:', result);
     
     // Create TeamMember table if missing
+    console.log('🛠️ Creating Admin table if missing...');
+    await prisma.$executeRaw`
+      CREATE TABLE IF NOT EXISTS "public"."Admin" (
+        "id" TEXT NOT NULL,
+        "username" TEXT NOT NULL UNIQUE,
+        "password" TEXT NOT NULL,
+        "role" TEXT DEFAULT 'admin',
+        CONSTRAINT "Admin_pkey" PRIMARY KEY ("id")
+      );
+    `;
+
     console.log('🛠️ Creating TeamMember table...');
     await prisma.$executeRaw`
       CREATE TABLE IF NOT EXISTS "public"."TeamMember" (

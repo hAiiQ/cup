@@ -76,6 +76,7 @@ node create-admin-quick.js
 - Kostenloser Free Tier verfügbar
 - Automatische PostgreSQL Setup
 - SSL-Zertifikate inklusive
+- Deployment via GitHub Push möglich: `npm run deploy:github`
 
 #### 🚨 Render Deployment Issues
 Falls die Teams-Seite "Internal Server Error" zeigt:

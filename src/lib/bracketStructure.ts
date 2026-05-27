@@ -380,7 +380,7 @@ const buildLayouts = (
         if (sourceRows.length > 0) {
           relativeRow = sourceRows.reduce((sum, value) => sum + value, 0) / sourceRows.length
         } else {
-          relativeRow = matchIndex * 2 + 1
+          relativeRow = matchIndex + 1
         }
 
         const actualRow = relativeRow + rowOffset

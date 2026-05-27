@@ -1,6 +1,14 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 
+const { execSync } = require('child_process')
+
+async function runPrismaDbPush() {
+  console.log('🔧 Running prisma db push to ensure schema exists...')
+  execSync('npx prisma db push', { stdio: 'inherit' })
+  console.log('✅ prisma db push completed')
+}
+
 async function setupProduction() {
   const prisma = new PrismaClient();
   
@@ -15,14 +23,31 @@ async function setupProduction() {
     // Create admin user
     console.log('Creating admin user...');
     const hashedPassword = await bcrypt.hash('rootmr', 10);
-    await prisma.admin.upsert({
-      where: { username: 'admin' },
-      update: { password: hashedPassword },
-      create: {
-        username: 'admin',
-        password: hashedPassword
+    try {
+      await prisma.admin.upsert({
+        where: { username: 'admin' },
+        update: { password: hashedPassword },
+        create: {
+          username: 'admin',
+          password: hashedPassword
+        }
+      });
+    } catch (adminError) {
+      console.error('⚠️ Admin upsert failed:', adminError?.message || adminError)
+      if (adminError instanceof Error && adminError.message.includes('public.Admin')) {
+        await runPrismaDbPush()
+        await prisma.admin.upsert({
+          where: { username: 'admin' },
+          update: { password: hashedPassword },
+          create: {
+            username: 'admin',
+            password: hashedPassword
+          }
+        });
+      } else {
+        throw adminError
       }
-    });
+    }
     console.log('✅ Admin user created');
     
     // Create default teams

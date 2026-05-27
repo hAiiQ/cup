@@ -10,11 +10,7 @@ services:
       npx prisma generate
       echo "🔧 Prisma client generated"
       echo "🗄️ Setting up database..."
-      npx prisma db push
-      echo "📊 Database schema applied"
-      node scripts/fix-missing-tables.js
-      echo "🔧 Missing tables fixed"
-      node scripts/setup-production.js
+      npm run render-postbuild
       echo "🎯 Production setup completed"
       npm run build
       echo "✅ Build process completed"
