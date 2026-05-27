@@ -49,9 +49,9 @@ export default function Navigation() {
               <Image
                 src="/logo.png"
                 alt="Tournament Logo"
-                width={40}
-                height={40}
-                className="object-contain"
+                width={72}
+                height={72}
+                className="object-contain rounded-md"
               />
 
               {/* Title */}
