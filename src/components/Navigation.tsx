@@ -47,13 +47,11 @@ export default function Navigation() {
             <Link href="/" className="group flex items-center space-x-3 hover:scale-105 transition-all duration-300">
               {/* Logo */}
               <Image
-                src="/logo.png"
-                alt="JOE'S SUMMER CUP Logo"
-                width={40}
-                height={40}
-                className="object-contain"
+                src="/OXS/OXS_Logo_rot.png"
+                alt="Tournament Logo"
+                className="object-contain w-10 h-10"
               />
-              
+
               {/* Title */}
               <div className="flex flex-col">
                 <div className="text-lg font-bold">
@@ -67,9 +65,6 @@ export default function Navigation() {
                   >
                     JOE'S SUMMER CUP
                   </span>
-                </div>
-                <div className="text-xs font-medium text-white/70 group-hover:text-purple-300 transition-colors">
-                  by JoeDom
                 </div>
               </div>
             </Link>

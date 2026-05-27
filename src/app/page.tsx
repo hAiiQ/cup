@@ -16,9 +16,6 @@ export default function HomePage() {
             <h1 className="text-6xl font-bold text-white mb-6 no-text-shadow">
               JOE'S SUMMER CUP
               <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-400 to-pink-500 no-text-shadow">
-                Sommer Edition 2026
-              </span>
             </h1>
             <p className="text-xl text-white/80 mb-8 max-w-2xl mx-auto">
               Nimm teil am Joe's Summer Cup. Registriere dich, entdecke neue Spieler und kämpfe um den Sieg!
@@ -67,17 +64,17 @@ export default function HomePage() {
           </div>
 
           {/* Tournament Info Cards */}
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 transform hover:scale-105">
-              <h3 className="text-xl font-semibold text-white mb-4">Double Elimination</h3>
+              <h3 className="text-xl font-semibold text-white mb-4">Turniersystem</h3>
               <p className="text-white/80">
-                Faires Turniersystem mit Winner und Loser Bracket. Jeder bekommt eine zweite Chance!
+                Wird noch bekanntgegeben — das finale Turniersystem steht noch nicht fest.
               </p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 transform hover:scale-105">
-              <h3 className="text-xl font-semibold text-white mb-4">8 Teams</h3>
+              <h3 className="text-xl font-semibold text-white mb-4">Teamanzahl</h3>
               <p className="text-white/80">
-                Maximal 8 Teams mit je 6 Spielern. Die Teams werden zufällig durch ein Tier-System fair zusammengestellt.
+                Die genaue Anzahl der teilnehmenden Teams ist noch unklar und wird noch bekanntgegeben.
               </p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 transform hover:scale-105">

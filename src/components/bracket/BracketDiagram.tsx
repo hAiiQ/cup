@@ -6,12 +6,13 @@ import type {
   BracketConnection
 } from '@/lib/bracketStructure'
 
-const MATCH_WIDTH = 360
-const MATCH_HEIGHT = 72
-const COLUMN_GAP = 110
-const ROW_GAP = 30
+// Reduced sizes to make the bracket more compact (less scrolling)
+const MATCH_WIDTH = 280
+const MATCH_HEIGHT = 56
+const COLUMN_GAP = 80
+const ROW_GAP = 18
 const CONNECTOR_COLOR = 'rgba(230,233,255,0.3)'
-const CONNECTOR_WIDTH = 2.5
+const CONNECTOR_WIDTH = 2
 
 type MatchRenderer = (match: BracketMatch | undefined, id: string) => ReactNode
 
@@ -102,6 +103,12 @@ const BracketDiagram = ({
             if (!from || !to) {
               return null
             }
+
+            // Only draw connectors when both matches belong to the same bracket
+            const fromMatch = matchMap.get(fromId)
+            const toMatch = matchMap.get(toId)
+            if (!fromMatch || !toMatch) return null
+            if (fromMatch.bracket !== toMatch.bracket) return null
 
             const pathD = createConnectorPath(from, to)
 
