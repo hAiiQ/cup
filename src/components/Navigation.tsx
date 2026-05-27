@@ -68,6 +68,9 @@ export default function Navigation() {
                     JOE'S SUMMER CUP
                   </span>
                 </div>
+                <div className="text-xs font-medium text-white/70 group-hover:text-purple-300 transition-colors">
+                  by JoeDom
+                </div>
               </div>
             </Link>
             
