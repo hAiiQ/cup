@@ -65,7 +65,7 @@ export default function Navigation() {
                       WebkitBackgroundClip: 'text'
                     }}
                   >
-                    JOE'S SUMMER CUP
+                    SUMMER CUP
                   </span>
                 </div>
                 <div className="text-xs font-medium text-white/70 group-hover:text-purple-300 transition-colors">
