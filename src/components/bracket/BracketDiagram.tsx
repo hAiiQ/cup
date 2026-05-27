@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useMemo } from 'react'
 import type { ReactNode } from 'react'
 import type {
   BracketMatch,
@@ -6,11 +6,11 @@ import type {
   BracketConnection
 } from '@/lib/bracketStructure'
 
-// Match sizes and spacing optimized for a tighter compact bracket layout
-const MATCH_WIDTH = 240
-const MATCH_HEIGHT = 54
-const COLUMN_GAP = 28
-const ROW_GAP = 8
+// Match sizes and spacing optimized for a larger bracket layout with compact stacking
+const MATCH_WIDTH = 340
+const MATCH_HEIGHT = 86
+const COLUMN_GAP = 32
+const ROW_GAP = 0
 const CONNECTOR_COLOR = 'rgba(230,233,255,0.3)'
 const CONNECTOR_WIDTH = 2
 
@@ -82,48 +82,16 @@ const BracketDiagram = ({
     return map
   }, [positionedLayout])
 
-  const wrapperRef = useRef<HTMLDivElement | null>(null)
-  const [scale, setScale] = useState(1)
-
-  useLayoutEffect(() => {
-    const updateScale = () => {
-      const wrapper = wrapperRef.current
-      if (!wrapper) return
-
-      const availableWidth = wrapper.clientWidth || window.innerWidth
-      const availableHeight = window.innerHeight - wrapper.getBoundingClientRect().top - 40
-      const scaleWidth = Math.min(1, availableWidth / width)
-      const scaleHeight = Math.min(1, availableHeight / height)
-      setScale(Math.min(scaleWidth, scaleHeight))
-    }
-
-    updateScale()
-
-    const observer = new ResizeObserver(updateScale)
-    if (wrapperRef.current) {
-      observer.observe(wrapperRef.current)
-    }
-    window.addEventListener('resize', updateScale)
-
-    return () => {
-      observer.disconnect()
-      window.removeEventListener('resize', updateScale)
-    }
-  }, [width, height])
-
   return (
     <div
-      ref={wrapperRef}
-      className={`relative overflow-hidden ${className}`}
-      style={{ minHeight: `${Math.max(1, height * scale)}px` }}
+      className={`relative overflow-visible ${className}`}
+      style={{ width: `${width}px`, minHeight: `${Math.max(1, height)}px` }}
     >
       <div
         className="absolute top-0 left-0"
         style={{
           width: `${width}px`,
-          height: `${height}px`,
-          transform: `scale(${scale})`,
-          transformOrigin: 'top left'
+          height: `${height}px`
         }}
       >
         <svg
