@@ -5,6 +5,18 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
 
+const VALORANT_RANKS = [
+  'Iron 1', 'Iron 2', 'Iron 3',
+  'Bronze 1', 'Bronze 2', 'Bronze 3',
+  'Silver 1', 'Silver 2', 'Silver 3',
+  'Gold 1', 'Gold 2', 'Gold 3',
+  'Platinum 1', 'Platinum 2', 'Platinum 3',
+  'Diamond 1', 'Diamond 2', 'Diamond 3',
+  'Ascendant 1', 'Ascendant 2', 'Ascendant 3',
+  'Immortal 1', 'Immortal 2', 'Immortal 3',
+  'Radiant',
+]
+
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
     username: '',
@@ -20,6 +32,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [rankError, setRankError] = useState('')
   const [rankLoading, setRankLoading] = useState(false)
+  const [manualRankMode, setManualRankMode] = useState(false)
   const [showRules, setShowRules] = useState(false)
   const router = useRouter()
   const { login } = useAuth()
@@ -94,11 +107,16 @@ export default function RegisterPage() {
   }
 
   const loadRankFromHenrikdev = async (fullName: string) => {
+    if (manualRankMode) return
+
     setRankError('')
     setRankLoading(true)
     setFormData((prev) => ({ ...prev, inGameRank: '' }))
 
-    const [name, tag] = fullName.split('#', 2)
+    const hashIndex = fullName.indexOf('#')
+    const name = fullName.slice(0, hashIndex).trim()
+    const tag = fullName.slice(hashIndex + 1).trim()
+
     if (!name || !tag) {
       setRankError('Ungültiger Name. Bitte im Format Name#Tag eingeben.')
       setRankLoading(false)
@@ -106,18 +124,25 @@ export default function RegisterPage() {
     }
 
     try {
-      const response = await fetch(`/api/valorant-rank?name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}`)
+      const response = await fetch(
+        `/api/valorant-rank?name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}`
+      )
       const data = await response.json()
 
       if (!response.ok) {
-        setRankError(data.error || 'Rank konnte nicht ermittelt werden')
+        const message =
+          data.code === 'API_KEY_MISSING'
+            ? 'Rank-API ist auf dem Server nicht eingerichtet. Wähle deinen Rank manuell.'
+            : data.error || 'Rank konnte nicht ermittelt werden'
+        setRankError(message)
         return
       }
 
       setFormData((prev) => ({ ...prev, inGameRank: data.rank }))
+      setManualRankMode(false)
     } catch (error) {
       console.error('Rank lookup failed:', error)
-      setRankError('Rank konnte nicht ermittelt werden')
+      setRankError('Rank konnte nicht ermittelt werden. Wähle deinen Rank manuell.')
     } finally {
       setRankLoading(false)
     }
@@ -125,10 +150,12 @@ export default function RegisterPage() {
 
   useEffect(() => {
     const name = formData.inGameName.trim()
-    if (!name || !name.includes('#')) {
-      setFormData((prev) => ({ ...prev, inGameRank: '' }))
-      setRankError('')
-      setRankLoading(false)
+    if (!name || !name.includes('#') || manualRankMode) {
+      if (!manualRankMode) {
+        setFormData((prev) => ({ ...prev, inGameRank: '' }))
+        setRankError('')
+        setRankLoading(false)
+      }
       return
     }
 
@@ -137,7 +164,7 @@ export default function RegisterPage() {
     }, 500)
 
     return () => clearTimeout(timeout)
-  }, [formData.inGameName])
+  }, [formData.inGameName, manualRankMode])
 
   return (
     <div className="min-h-screen bg-image flex items-center justify-center px-4">
@@ -216,19 +243,67 @@ export default function RegisterPage() {
               <label htmlFor="inGameRank" className="block text-white mb-2">
                 Höchster Rank *
               </label>
-              <input
-                type="text"
-                id="inGameRank"
-                readOnly
-                value={rankLoading ? 'Rank wird geladen...' : formData.inGameRank}
-                className="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                placeholder="Rank wird automatisch ausgefüllt"
-              />
+              {manualRankMode ? (
+                <select
+                  id="inGameRank"
+                  required
+                  value={formData.inGameRank}
+                  onChange={(e) => setFormData({ ...formData, inGameRank: e.target.value })}
+                  className="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="" className="text-gray-900">
+                    Rank auswählen
+                  </option>
+                  {VALORANT_RANKS.map((rank) => (
+                    <option key={rank} value={rank} className="text-gray-900">
+                      {rank}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  id="inGameRank"
+                  readOnly
+                  value={rankLoading ? 'Rank wird geladen...' : formData.inGameRank}
+                  className="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="Rank wird automatisch ausgefüllt"
+                />
+              )}
               {rankError ? (
-                <p className="text-xs text-red-300 mt-2">{rankError}</p>
+                <div className="mt-2 space-y-2">
+                  <p className="text-xs text-red-300">{rankError}</p>
+                  {!manualRankMode && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setManualRankMode(true)
+                        setFormData((prev) => ({ ...prev, inGameRank: '' }))
+                        setRankError('')
+                      }}
+                      className="text-xs text-purple-300 hover:text-purple-200 underline"
+                    >
+                      Rank manuell auswählen
+                    </button>
+                  )}
+                </div>
+              ) : manualRankMode ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setManualRankMode(false)
+                    setFormData((prev) => ({ ...prev, inGameRank: '' }))
+                    if (formData.inGameName.includes('#')) {
+                      loadRankFromHenrikdev(formData.inGameName.trim())
+                    }
+                  }}
+                  className="text-xs text-purple-300 hover:text-purple-200 underline mt-2"
+                >
+                  Automatisch laden
+                </button>
               ) : (
                 <p className="text-xs text-white/60 mt-2">
-                  Der Rank wird automatisch über die HenrikDev API ermittelt.
+                  Peak-Rank wird über die HenrikDev API ermittelt (Name#Tag muss öffentlich sein).
                 </p>
               )}
             </div>
