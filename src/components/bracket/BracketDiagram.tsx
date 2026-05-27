@@ -6,11 +6,11 @@ import type {
   BracketConnection
 } from '@/lib/bracketStructure'
 
-// Match sizes and spacing optimized for a larger but tighter bracket layout
-const MATCH_WIDTH = 280
-const MATCH_HEIGHT = 64
-const COLUMN_GAP = 40
-const ROW_GAP = 12
+// Match sizes and spacing optimized for a tighter compact bracket layout
+const MATCH_WIDTH = 240
+const MATCH_HEIGHT = 54
+const COLUMN_GAP = 28
+const ROW_GAP = 8
 const CONNECTOR_COLOR = 'rgba(230,233,255,0.3)'
 const CONNECTOR_WIDTH = 2
 
