@@ -397,8 +397,8 @@ const buildLayouts = (
   const winnerRows = winnerRounds.flat().map((match) => actualRowMap.get(match.id) || 0)
   const winnerMaxRow = winnerRows.length > 0 ? Math.max(...winnerRows) : 0
 
-  const loserRowOffset = winnerMaxRow + 2
-  const loserColumnStart = winnerRounds.length + 1
+  const loserRowOffset = winnerMaxRow + 1
+  const loserColumnStart = 2
   assignRounds(loserRounds, loserColumnStart, loserRowOffset)
 
   const grandFinalColumn = loserColumnStart + loserRounds.length + 1
