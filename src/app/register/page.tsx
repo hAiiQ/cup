@@ -17,6 +17,7 @@ export default function RegisterPage() {
     instagramName: '',
   })
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const [rankError, setRankError] = useState('')
   const [rankLoading, setRankLoading] = useState(false)
   const [showRules, setShowRules] = useState(false)
