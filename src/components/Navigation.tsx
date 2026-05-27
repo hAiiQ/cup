@@ -47,9 +47,11 @@ export default function Navigation() {
             <Link href="/" className="group flex items-center space-x-3 hover:scale-105 transition-all duration-300">
               {/* Logo */}
               <Image
-                src="/OXS/OXS_Logo_rot.png"
+                src="/logo.png"
                 alt="Tournament Logo"
-                className="object-contain w-10 h-10"
+                width={40}
+                height={40}
+                className="object-contain"
               />
 
               {/* Title */}
