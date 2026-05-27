@@ -32,6 +32,14 @@ services:
         value: rootmr
       - key: HENRIKDEV_API_KEY
         sync: false
+      - key: DISCORD_GUILD_ID
+        value: "744595661889994852"
+      - key: TWITCH_CLIENT_ID
+        sync: false
+      - key: TWITCH_ACCESS_TOKEN
+        sync: false
+      - key: DISCORD_BOT_TOKEN
+        sync: false
 
 databases:
   - name: path-of-gambit-db

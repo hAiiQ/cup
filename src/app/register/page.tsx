@@ -4,18 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
-
-const VALORANT_RANKS = [
-  'Iron 1', 'Iron 2', 'Iron 3',
-  'Bronze 1', 'Bronze 2', 'Bronze 3',
-  'Silver 1', 'Silver 2', 'Silver 3',
-  'Gold 1', 'Gold 2', 'Gold 3',
-  'Platinum 1', 'Platinum 2', 'Platinum 3',
-  'Diamond 1', 'Diamond 2', 'Diamond 3',
-  'Ascendant 1', 'Ascendant 2', 'Ascendant 3',
-  'Immortal 1', 'Immortal 2', 'Immortal 3',
-  'Radiant',
-]
+import { SOCIAL_REQUIREMENTS } from '@/lib/socialRequirements'
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -27,12 +16,12 @@ export default function RegisterPage() {
     discordName: '',
     twitchName: '',
     instagramName: '',
+    tiktokName: '',
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [rankError, setRankError] = useState('')
   const [rankLoading, setRankLoading] = useState(false)
-  const [manualRankMode, setManualRankMode] = useState(false)
   const [showRules, setShowRules] = useState(false)
   const router = useRouter()
   const { login } = useAuth()
@@ -61,6 +50,11 @@ export default function RegisterPage() {
       return
     }
 
+    if (!formData.twitchName.trim() || !formData.discordName.trim() || !formData.instagramName.trim() || !formData.tiktokName.trim()) {
+      setError('Twitch, Discord, Instagram und TikTok sind Pflichtfelder.')
+      return
+    }
+
     // Show rules instead of submitting directly
     setShowRules(true)
   }
@@ -82,6 +76,7 @@ export default function RegisterPage() {
           discordName: formData.discordName,
           twitchName: formData.twitchName,
           instagramName: formData.instagramName,
+          tiktokName: formData.tiktokName,
           rulesAccepted: true,
         }),
         credentials: 'include' // Include cookies
@@ -90,11 +85,19 @@ export default function RegisterPage() {
       const data = await response.json()
 
       if (response.ok && data.token && data.user) {
-        // Use AuthContext login function
         login(data.token, data.user)
-        
-        // Navigate to dashboard
-        router.push('/dashboard')
+
+        sessionStorage.setItem(
+          'pendingVerification',
+          JSON.stringify({
+            twitch: formData.twitchName,
+            discord: formData.discordName,
+            instagram: formData.instagramName,
+            tiktok: formData.tiktokName,
+          })
+        )
+
+        router.push('/verify')
       } else {
         setError(data.error || 'Ein Fehler ist aufgetreten')
       }
@@ -107,8 +110,6 @@ export default function RegisterPage() {
   }
 
   const loadRankFromHenrikdev = async (fullName: string) => {
-    if (manualRankMode) return
-
     setRankError('')
     setRankLoading(true)
     setFormData((prev) => ({ ...prev, inGameRank: '' }))
@@ -132,17 +133,16 @@ export default function RegisterPage() {
       if (!response.ok) {
         const message =
           data.code === 'API_KEY_MISSING'
-            ? 'Rank-API ist auf dem Server nicht eingerichtet. Wähle deinen Rank manuell.'
+            ? 'Rank-API ist auf dem Server nicht eingerichtet (HENRIKDEV_API_KEY).'
             : data.error || 'Rank konnte nicht ermittelt werden'
         setRankError(message)
         return
       }
 
       setFormData((prev) => ({ ...prev, inGameRank: data.rank }))
-      setManualRankMode(false)
     } catch (error) {
       console.error('Rank lookup failed:', error)
-      setRankError('Rank konnte nicht ermittelt werden. Wähle deinen Rank manuell.')
+      setRankError('Rank konnte nicht ermittelt werden.')
     } finally {
       setRankLoading(false)
     }
@@ -150,12 +150,10 @@ export default function RegisterPage() {
 
   useEffect(() => {
     const name = formData.inGameName.trim()
-    if (!name || !name.includes('#') || manualRankMode) {
-      if (!manualRankMode) {
-        setFormData((prev) => ({ ...prev, inGameRank: '' }))
-        setRankError('')
-        setRankLoading(false)
-      }
+    if (!name || !name.includes('#')) {
+      setFormData((prev) => ({ ...prev, inGameRank: '' }))
+      setRankError('')
+      setRankLoading(false)
       return
     }
 
@@ -164,11 +162,11 @@ export default function RegisterPage() {
     }, 500)
 
     return () => clearTimeout(timeout)
-  }, [formData.inGameName, manualRankMode])
+  }, [formData.inGameName])
 
   return (
     <div className="min-h-screen bg-image flex items-center justify-center px-4">
-      <div className="bg-white/10 backdrop-blur-sm rounded-lg p-8 w-full max-w-md border border-white/20">
+      <div className="bg-white/10 backdrop-blur-sm rounded-lg p-8 w-full max-w-2xl border border-white/20">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Registrierung</h1>
           <p className="text-white/80">Erstelle deinen Tournament Account</p>
@@ -243,113 +241,99 @@ export default function RegisterPage() {
               <label htmlFor="inGameRank" className="block text-white mb-2">
                 Höchster Rank *
               </label>
-              {manualRankMode ? (
-                <select
-                  id="inGameRank"
-                  required
-                  value={formData.inGameRank}
-                  onChange={(e) => setFormData({ ...formData, inGameRank: e.target.value })}
-                  className="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  <option value="" className="text-gray-900">
-                    Rank auswählen
-                  </option>
-                  {VALORANT_RANKS.map((rank) => (
-                    <option key={rank} value={rank} className="text-gray-900">
-                      {rank}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  type="text"
-                  id="inGameRank"
-                  readOnly
-                  value={rankLoading ? 'Rank wird geladen...' : formData.inGameRank}
-                  className="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="Rank wird automatisch ausgefüllt"
-                />
-              )}
+              <input
+                type="text"
+                id="inGameRank"
+                readOnly
+                required
+                value={rankLoading ? 'Rank wird geladen...' : formData.inGameRank}
+                className="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder="Rank wird automatisch ausgefüllt"
+              />
               {rankError ? (
-                <div className="mt-2 space-y-2">
-                  <p className="text-xs text-red-300">{rankError}</p>
-                  {!manualRankMode && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setManualRankMode(true)
-                        setFormData((prev) => ({ ...prev, inGameRank: '' }))
-                        setRankError('')
-                      }}
-                      className="text-xs text-purple-300 hover:text-purple-200 underline"
-                    >
-                      Rank manuell auswählen
-                    </button>
-                  )}
-                </div>
-              ) : manualRankMode ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setManualRankMode(false)
-                    setFormData((prev) => ({ ...prev, inGameRank: '' }))
-                    if (formData.inGameName.includes('#')) {
-                      loadRankFromHenrikdev(formData.inGameName.trim())
-                    }
-                  }}
-                  className="text-xs text-purple-300 hover:text-purple-200 underline mt-2"
-                >
-                  Automatisch laden
-                </button>
+                <p className="text-xs text-red-300 mt-2">{rankError}</p>
               ) : (
                 <p className="text-xs text-white/60 mt-2">
-                  Peak-Rank wird über die HenrikDev API ermittelt (Name#Tag muss öffentlich sein).
+                  Peak-Rank wird automatisch ermittelt (Name#Tag muss öffentlich sein).
                 </p>
               )}
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="discordName" className="block text-white mb-2">
-                Discord Name
-              </label>
-              <input
-                type="text"
-                id="discordName"
-                className="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                placeholder="dein_discord_name"
-                value={formData.discordName}
-                onChange={(e) => setFormData({ ...formData, discordName: e.target.value })}
-              />
-            </div>
+          <div className="bg-white/5 border border-white/20 rounded-lg p-4 mb-2">
+            <p className="text-white font-medium mb-3">Social Media (Pflicht — wird nach der Registrierung geprüft)</p>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="twitchName" className="block text-white mb-2">
+                  Twitch Name *
+                </label>
+                <input
+                  type="text"
+                  id="twitchName"
+                  required
+                  className="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="dein_twitch_name"
+                  value={formData.twitchName}
+                  onChange={(e) => setFormData({ ...formData, twitchName: e.target.value })}
+                />
+                <a href={SOCIAL_REQUIREMENTS.twitch.url} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-300 hover:underline mt-1 inline-block">
+                  → {SOCIAL_REQUIREMENTS.twitch.action}
+                </a>
+              </div>
 
-            <div>
-              <label htmlFor="twitchName" className="block text-white mb-2">
-                Twitch Name
-              </label>
-              <input
-                type="text"
-                id="twitchName"
-                className="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                placeholder="dein_twitch_name"
-                value={formData.twitchName}
-                onChange={(e) => setFormData({ ...formData, twitchName: e.target.value })}
-              />
-            </div>
+              <div>
+                <label htmlFor="discordName" className="block text-white mb-2">
+                  Discord Name *
+                </label>
+                <input
+                  type="text"
+                  id="discordName"
+                  required
+                  className="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="dein_discord_name"
+                  value={formData.discordName}
+                  onChange={(e) => setFormData({ ...formData, discordName: e.target.value })}
+                />
+                <a href={SOCIAL_REQUIREMENTS.discord.url} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-300 hover:underline mt-1 inline-block">
+                  → {SOCIAL_REQUIREMENTS.discord.action}
+                </a>
+              </div>
 
-            <div>
-              <label htmlFor="instagramName" className="block text-white mb-2">
-                Instagram Name
-              </label>
-              <input
-                type="text"
-                id="instagramName"
-                className="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                placeholder="dein_instagram_name"
-                value={formData.instagramName}
-                onChange={(e) => setFormData({ ...formData, instagramName: e.target.value })}
-              />
+              <div>
+                <label htmlFor="instagramName" className="block text-white mb-2">
+                  Instagram Name *
+                </label>
+                <input
+                  type="text"
+                  id="instagramName"
+                  required
+                  className="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="dein_instagram_name"
+                  value={formData.instagramName}
+                  onChange={(e) => setFormData({ ...formData, instagramName: e.target.value })}
+                />
+                <a href={SOCIAL_REQUIREMENTS.instagram.url} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-300 hover:underline mt-1 inline-block">
+                  → {SOCIAL_REQUIREMENTS.instagram.action}
+                </a>
+              </div>
+
+              <div>
+                <label htmlFor="tiktokName" className="block text-white mb-2">
+                  TikTok Name *
+                </label>
+                <input
+                  type="text"
+                  id="tiktokName"
+                  required
+                  className="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="dein_tiktok_name"
+                  value={formData.tiktokName}
+                  onChange={(e) => setFormData({ ...formData, tiktokName: e.target.value })}
+                />
+                <a href={SOCIAL_REQUIREMENTS.tiktok.url} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-300 hover:underline mt-1 inline-block">
+                  → {SOCIAL_REQUIREMENTS.tiktok.action}
+                </a>
+              </div>
             </div>
           </div>
 
@@ -404,29 +388,29 @@ export default function RegisterPage() {
                   Teilnahme-Voraussetzungen
                 </h3>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                   <div className="bg-white/10 rounded-lg p-4 border border-purple-500/30 text-center">
                     <div className="text-2xl mb-2">📺</div>
-                    <h4 className="text-white font-semibold text-sm mb-1">Twitch Follow</h4>
+                    <h4 className="text-white font-semibold text-sm mb-1">Twitch</h4>
                     <p className="text-white/80 text-xs">JoeDom folgen</p>
-                  </div>
-
-                  <div className="bg-white/10 rounded-lg p-4 border border-red-500/30 text-center">
-                    <div className="text-2xl mb-2">▶️</div>
-                    <h4 className="text-white font-semibold text-sm mb-1">YouTube Follow</h4>
-                    <p className="text-white/80 text-xs">JoeDom abonnieren</p>
                   </div>
                   
                   <div className="bg-white/10 rounded-lg p-4 border border-blue-500/30 text-center">
                     <div className="text-2xl mb-2">💬</div>
-                    <h4 className="text-white font-semibold text-sm mb-1">Discord Join</h4>
-                    <p className="text-white/80 text-xs">JoeDom & MRDE Discords</p>
+                    <h4 className="text-white font-semibold text-sm mb-1">Discord</h4>
+                    <p className="text-white/80 text-xs">Boss Gang Server</p>
                   </div>
                   
                   <div className="bg-white/10 rounded-lg p-4 border border-pink-500/30 text-center">
                     <div className="text-2xl mb-2">📸</div>
-                    <h4 className="text-white font-semibold text-sm mb-1">Instagram Follow</h4>
-                    <p className="text-white/80 text-xs">JoeDom folgen</p>
+                    <h4 className="text-white font-semibold text-sm mb-1">Instagram</h4>
+                    <p className="text-white/80 text-xs">@joetothedom folgen</p>
+                  </div>
+
+                  <div className="bg-white/10 rounded-lg p-4 border border-cyan-500/30 text-center">
+                    <div className="text-2xl mb-2">🎵</div>
+                    <h4 className="text-white font-semibold text-sm mb-1">TikTok</h4>
+                    <p className="text-white/80 text-xs">@joetothedom folgen</p>
                   </div>
                   
                   <div className="bg-white/10 rounded-lg p-4 border border-green-500/30 text-center">
@@ -583,7 +567,7 @@ export default function RegisterPage() {
                 <div className="space-y-3">
                   <div className="bg-blue-500/20 rounded-lg p-2 border border-blue-500/30">
                     <div className="text-white/90 text-sm">
-                      <span className="font-semibold">Zu verifizieren:</span> In-Game Name, Rank, Discord, Twitch und Instagram
+                      <span className="font-semibold">Zu verifizieren:</span> In-Game Name, Rank, Twitch, Discord, Instagram und TikTok
                     </div>
                   </div>
                   <div className="flex items-start">

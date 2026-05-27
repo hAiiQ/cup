@@ -143,7 +143,7 @@ export default function Navigation() {
                 </svg>
               </a>
               <a 
-                href="https://www.instagram.com/joel_dominikowski/" 
+                href="https://www.instagram.com/joetothedom/" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="w-8 h-8 bg-gradient-to-br from-pink-500 to-yellow-500 hover:from-pink-600 hover:to-yellow-600 rounded-lg flex items-center justify-center transition-colors group hover:scale-110"
@@ -170,6 +170,9 @@ export default function Navigation() {
                 {/* Logged in user links */}
                 <Link href="/dashboard" className="text-white hover:text-purple-300 transition-colors px-3 py-1 rounded">
                   Dashboard
+                </Link>
+                <Link href="/verify" className="text-white hover:text-purple-300 transition-colors px-3 py-1 rounded">
+                  Verifizieren
                 </Link>
                 <Link href="/rules" className="text-white hover:text-purple-300 transition-colors px-3 py-1 rounded">
                   Regeln

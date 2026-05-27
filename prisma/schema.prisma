@@ -19,6 +19,7 @@ model User {
   discordName     String?
   twitchName      String?
   instagramName   String?
+  tiktokName      String?
   tier            String?   // "tier1", "tier2", "tier3"
   isStreamer      Boolean   @default(false)  // Separate streamer status
   isVerified      Boolean   @default(false)
@@ -31,6 +32,7 @@ model User {
   twitchVerified    Boolean   @default(false)
   instagramVerified Boolean   @default(false)
   discordVerified   Boolean   @default(false)
+  tiktokVerified    Boolean   @default(false)
   
   // In-Game Verifikationen
   inGameNameVerified Boolean   @default(false)

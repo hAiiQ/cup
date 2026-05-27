@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: NextRequest) {
   try {
     console.log('🔍 Registration attempt started');
-    const { username, password, inGameName, inGameRank, discordName, twitchName, instagramName } = await request.json()
+    const { username, password, inGameName, inGameRank, discordName, twitchName, instagramName, tiktokName } = await request.json()
     console.log('📝 Registration data received:', { username, inGameName, inGameRank });
 
     // Validation
@@ -24,6 +24,13 @@ export async function POST(request: NextRequest) {
     if (!inGameName || !inGameRank) {
       return NextResponse.json(
         { error: 'Spielername und Rank sind erforderlich' },
+        { status: 400 }
+      )
+    }
+
+    if (!twitchName?.trim() || !discordName?.trim() || !instagramName?.trim() || !tiktokName?.trim()) {
+      return NextResponse.json(
+        { error: 'Twitch, Discord, Instagram und TikTok sind erforderlich' },
         { status: 400 }
       )
     }
@@ -64,9 +71,10 @@ export async function POST(request: NextRequest) {
         password: hashedPassword,
         inGameName: inGameName.trim(),
         inGameRank: inGameRank,
-        discordName: discordName ? discordName.trim() : null,
-        twitchName: twitchName ? twitchName.trim() : null,
-        instagramName: instagramName ? instagramName.trim() : null,
+        discordName: discordName.trim(),
+        twitchName: twitchName.trim(),
+        instagramName: instagramName.trim(),
+        tiktokName: tiktokName.trim(),
         rulesAccepted: true, // Automatically set to true when registration is completed
       }
     })

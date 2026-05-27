@@ -14,7 +14,7 @@ export async function POST(
     const userId = id
     const { platform, verified } = await request.json()
 
-    if (!['twitch', 'instagram', 'discord', 'inGameName', 'inGameRank'].includes(platform)) {
+    if (!['twitch', 'instagram', 'discord', 'tiktok', 'inGameName', 'inGameRank'].includes(platform)) {
       return NextResponse.json({ error: 'Invalid platform' }, { status: 400 })
     }
 
@@ -28,13 +28,17 @@ export async function POST(
     })
 
     // Check if all provided platforms are verified to update overall status
-    const hasAnySocialMedia = updatedUser.twitchName || updatedUser.instagramName || updatedUser.discordName
-    
-    // Only require verification for platforms where user provided information
-    const allProvidedPlatformsVerified = 
-      (!updatedUser.twitchName || updatedUser.twitchVerified) && 
-      (!updatedUser.instagramName || updatedUser.instagramVerified) && 
-      (!updatedUser.discordName || updatedUser.discordVerified)
+    const hasAnySocialMedia =
+      updatedUser.twitchName ||
+      updatedUser.instagramName ||
+      updatedUser.discordName ||
+      updatedUser.tiktokName
+
+    const allProvidedPlatformsVerified =
+      (!updatedUser.twitchName || updatedUser.twitchVerified) &&
+      (!updatedUser.instagramName || updatedUser.instagramVerified) &&
+      (!updatedUser.discordName || updatedUser.discordVerified) &&
+      (!updatedUser.tiktokName || updatedUser.tiktokVerified)
 
     // Update overall verification status if all provided platforms are verified
     // OR if user has no social media but has inGameName and inGameRank

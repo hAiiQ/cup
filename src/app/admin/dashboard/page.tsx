@@ -21,6 +21,7 @@ interface User {
   discordName?: string
   twitchName?: string
   instagramName?: string
+  tiktokName?: string
   tier?: string
   isStreamer: boolean
   isVerified: boolean
@@ -28,6 +29,7 @@ interface User {
   twitchVerified: boolean
   instagramVerified: boolean
   discordVerified: boolean
+  tiktokVerified: boolean
   inGameNameVerified: boolean
   inGameRankVerified: boolean
   createdAt: string
@@ -154,7 +156,7 @@ export default function AdminDashboard() {
     }
   }
 
-  const toggleSocialVerification = async (userId: string, platform: 'twitch' | 'instagram' | 'discord' | 'inGameName' | 'inGameRank', currentStatus: boolean) => {
+  const toggleSocialVerification = async (userId: string, platform: 'twitch' | 'instagram' | 'discord' | 'tiktok' | 'inGameName' | 'inGameRank', currentStatus: boolean) => {
     try {
       const response = await fetch(`/api/admin/users/${userId}/social-verification`, {
         method: 'POST',
@@ -169,18 +171,19 @@ export default function AdminDashboard() {
 
       if (response.ok) {
         // Update local state
-        setUsers(prev => prev.map(u => 
-          u.id === userId 
-            ? { 
-                ...u, 
-                [`${platform}Verified`]: !currentStatus,
-                // Update overall verification status
-                isVerified: platform === 'twitch' ? !currentStatus : u.twitchVerified &&
-                           platform === 'instagram' ? !currentStatus : u.instagramVerified &&
-                           platform === 'discord' ? !currentStatus : u.discordVerified
-              } 
-            : u
-        ))
+        setUsers(prev => prev.map(u => {
+          if (u.id !== userId) return u
+          const updated = { ...u, [`${platform}Verified`]: !currentStatus } as User
+          const allSocial =
+            (!updated.twitchName || updated.twitchVerified) &&
+            (!updated.instagramName || updated.instagramVerified) &&
+            (!updated.discordName || updated.discordVerified) &&
+            (!updated.tiktokName || updated.tiktokVerified)
+          const allInGame =
+            (!updated.inGameName || updated.inGameNameVerified) &&
+            (!updated.inGameRank || updated.inGameRankVerified)
+          return { ...updated, isVerified: allSocial && allInGame }
+        }))
       } else {
         alert('Fehler beim Aktualisieren der Verifikation')
       }
@@ -442,6 +445,7 @@ export default function AdminDashboard() {
                       <th className="text-left p-4 text-gray-300">Twitch</th>
                       <th className="text-left p-4 text-gray-300">Instagram</th>
                       <th className="text-left p-4 text-gray-300">Discord</th>
+                      <th className="text-left p-4 text-gray-300">TikTok</th>
                       <th className="text-left p-4 text-gray-300">Status</th>
                       <th className="text-left p-4 text-gray-300">Aktionen</th>
                     </tr>
@@ -624,18 +628,43 @@ export default function AdminDashboard() {
                           </div>
                         </td>
 
+                        {/* TikTok Verification */}
+                        <td className="p-4">
+                          <div className="space-y-1">
+                            <p className="text-gray-300 text-sm">{user.tiktokName || '-'}</p>
+                            <button
+                              onClick={() => toggleSocialVerification(user.id, 'tiktok', user.tiktokVerified)}
+                              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                user.tiktokVerified
+                                  ? 'bg-green-600 text-white hover:bg-green-700'
+                                  : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                              }`}
+                            >
+                              {user.tiktokVerified ? '✅ Verifiziert' : '⏳ Als verifiziert markieren'}
+                            </button>
+                          </div>
+                        </td>
+
                         {/* Overall Status */}
                         <td className="p-4">
                           {(() => {
-                            const hasAccounts = user.twitchName || user.instagramName || user.discordName
+                            const hasAccounts = user.twitchName || user.instagramName || user.discordName || user.tiktokName
                             const hasInGameInfo = user.inGameName || user.inGameRank
-                            const allSocialVerified = (!user.twitchName || user.twitchVerified) && 
-                                                     (!user.instagramName || user.instagramVerified) && 
-                                                     (!user.discordName || user.discordVerified)
-                            const allInGameVerified = (!user.inGameName || user.inGameNameVerified) && 
-                                                     (!user.inGameRank || user.inGameRankVerified)
-                            const hasVerified = user.twitchVerified || user.instagramVerified || user.discordVerified || 
-                                              user.inGameNameVerified || user.inGameRankVerified
+                            const allSocialVerified =
+                              (!user.twitchName || user.twitchVerified) &&
+                              (!user.instagramName || user.instagramVerified) &&
+                              (!user.discordName || user.discordVerified) &&
+                              (!user.tiktokName || user.tiktokVerified)
+                            const allInGameVerified =
+                              (!user.inGameName || user.inGameNameVerified) &&
+                              (!user.inGameRank || user.inGameRankVerified)
+                            const hasVerified =
+                              user.twitchVerified ||
+                              user.instagramVerified ||
+                              user.discordVerified ||
+                              user.tiktokVerified ||
+                              user.inGameNameVerified ||
+                              user.inGameRankVerified
                             
                             if (!hasAccounts && !hasInGameInfo) {
                               return <span className="bg-gray-600 text-white px-2 py-1 rounded text-sm">Keine Infos</span>
