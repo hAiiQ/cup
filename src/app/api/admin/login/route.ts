@@ -1,135 +1,87 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { verifyPassword, generateToken } from '@/lib/auth'
 
-
-// Force dynamic rendering
 export const dynamic = 'force-dynamic'
+
+function envAdminCredentialsMatch(username: string, password: string): boolean {
+  const expectedUser = process.env.ADMIN_USERNAME || 'admin'
+  const expectedPass = process.env.ADMIN_PASSWORD || 'rootmr'
+  return username === expectedUser && password === expectedPass
+}
+
+function adminLoginResponse(username: string, adminId: string, role: string) {
+  const token = generateToken(`admin_${adminId}`)
+  const response = NextResponse.json({
+    message: 'Admin-Anmeldung erfolgreich',
+    admin: { id: adminId, username, role },
+  })
+  response.cookies.set('admin_token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 24 * 7,
+  })
+  return response
+}
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔍 Admin login attempt started');
     const { username, password } = await request.json()
-    console.log('📝 Admin login data received:', { username });
 
     if (!username || !password) {
-      console.log('❌ Missing username or password');
       return NextResponse.json(
         { error: 'Benutzername und Passwort sind erforderlich' },
         { status: 400 }
       )
     }
 
-    // Find admin
-    console.log('🔍 Searching for admin:', username);
-    const admin = await prisma.admin.findUnique({
-      where: { username }
-    })
-    console.log('👤 Admin found:', admin ? 'YES' : 'NO');
+    let admin = null
+    try {
+      admin = await prisma.admin.findUnique({ where: { username } })
+    } catch (error) {
+      const missingTable =
+        error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2021'
 
-    // Check if admin exists in database
+      if (missingTable && envAdminCredentialsMatch(username, password)) {
+        console.log('✅ Admin login via env fallback (tables not migrated yet)')
+        return adminLoginResponse(username, 'env_admin', 'SUPER_ADMIN')
+      }
+
+      if (missingTable) {
+        return NextResponse.json(
+          {
+            error:
+              'Datenbank-Tabellen fehlen. Starte den Service auf Render neu (Deploy) — das Schema wird beim Start automatisch angelegt.',
+          },
+          { status: 503 }
+        )
+      }
+
+      throw error
+    }
+
     if (!admin) {
-      console.log('❌ Admin not found in database - checking environment fallback');
-      
-      // Fallback: Check environment variables
-      if (username === (process.env.ADMIN_USERNAME || 'admin') && 
-          password === (process.env.ADMIN_PASSWORD || 'rootmr')) {
-        console.log('✅ Environment admin login successful');
-        
-        // Generate token for environment admin
-        const token = generateToken('admin_env')
-        
-        const response = NextResponse.json({
-          message: 'Admin-Anmeldung erfolgreich (Environment)',
-          admin: {
-            id: 'env_admin',
-            username: username,
-            role: 'SUPER_ADMIN'
-          }
-        })
-
-        response.cookies.set('admin_token', token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 60 * 60 * 24 * 7
-        })
-
-        return response
+      if (envAdminCredentialsMatch(username, password)) {
+        return adminLoginResponse(username, 'env_admin', 'SUPER_ADMIN')
       }
-      
-      return NextResponse.json(
-        { error: 'Ungültige Admin-Anmeldedaten' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Ungültige Admin-Anmeldedaten' }, { status: 401 })
     }
 
-    // Verify password against database
     const isValid = await verifyPassword(password, admin.password)
-    
     if (!isValid) {
-      console.log('❌ Database password invalid - checking environment fallback');
-      
-      // Fallback: Check environment password
-      if (password === (process.env.ADMIN_PASSWORD || 'rootmr')) {
-        console.log('✅ Environment password valid');
-        
-        // Generate token
-        const token = generateToken(`admin_${admin.id}`)
-        
-        const response = NextResponse.json({
-          message: 'Admin-Anmeldung erfolgreich (Environment Password)',
-          admin: {
-            id: admin.id,
-            username: admin.username,
-            role: admin.role
-          }
-        })
-
-        response.cookies.set('admin_token', token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 60 * 60 * 24 * 7
-        })
-
-        return response
+      if (envAdminCredentialsMatch(username, password)) {
+        return adminLoginResponse(username, admin.id, admin.role)
       }
-      
-      return NextResponse.json(
-        { error: 'Ungültige Admin-Anmeldedaten' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Ungültige Admin-Anmeldedaten' }, { status: 401 })
     }
 
-    // Generate token with admin flag
-    const token = generateToken(`admin_${admin.id}`)
-
-    // Set cookie
-    const response = NextResponse.json({
-      message: 'Admin-Anmeldung erfolgreich',
-      admin: {
-        id: admin.id,
-        username: admin.username,
-        role: admin.role
-      }
-    })
-
-    response.cookies.set('admin_token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7 // 7 days
-    })
-
-    return response
-
+    return adminLoginResponse(username, admin.id, admin.role)
   } catch (error) {
-    console.error('❌ Admin login error details:', error);
-    console.error('❌ Admin login error stack:', error instanceof Error ? error.stack : 'No stack trace');
-    console.error('❌ Admin login error message:', error instanceof Error ? error.message : String(error));
+    console.error('❌ Admin login error:', error)
     return NextResponse.json(
-      { error: 'Interner Serverfehler: ' + (error instanceof Error ? error.message : String(error)) },
+      { error: 'Interner Serverfehler' },
       { status: 500 }
     )
   }

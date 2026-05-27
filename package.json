@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "prestart": "node scripts/ensure-db.js",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "npx prisma generate",
