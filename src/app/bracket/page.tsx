@@ -126,13 +126,13 @@ export default function BracketPage() {
     const team2Wins = match.isFinished && match.winnerId === 'team2'
 
     return (
-      <div className={`bg-gray-900/70 border border-white/10 rounded-lg px-2 py-3 w-full h-full flex flex-col justify-center ${className}`}>
+      <div className={`bg-gray-900/70 border border-white/10 rounded-lg px-2 py-2 w-full h-full flex flex-col justify-center ${className}`}>
         {match.isLive && (
           <div className="text-[10px] uppercase text-center text-red-300 font-bold mb-1 animate-pulse">
             Live Match
           </div>
         )}
-        <div className="flex items-center gap-2 text-white text-[13px] font-semibold w-full justify-center">
+        <div className="flex items-center gap-1 text-white text-[13px] font-semibold w-full justify-center">
           <span className={`flex-1 min-w-0 truncate text-right ${team1Wins ? 'text-green-400' : ''}`}>{team1Name}</span>
           <span className={`flex-none w-14 text-center whitespace-nowrap ${match.isLive ? 'text-yellow-300' : 'text-purple-200'}`}>{team1Score} - {team2Score}</span>
           <span className={`flex-1 min-w-0 truncate text-left ${team2Wins ? 'text-green-400' : ''}`}>{team2Name}</span>
@@ -180,7 +180,7 @@ export default function BracketPage() {
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end mb-6">
             <span className="text-sm text-purple-200">Alle Matches Best-of-3 • Grand Final Best-of-5</span>
           </div>
-          <div className="overflow-x-auto pb-2">
+          <div className="overflow-auto pb-2">
             {layout.length > 0 ? (
               <BracketDiagram
                 matches={bracket}

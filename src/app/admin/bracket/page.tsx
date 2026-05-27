@@ -442,7 +442,7 @@ export default function AdminBracketPage() {
   }) => {
     if (!match) {
       return (
-        <div className={`bg-gray-900/60 border border-dashed border-white/15 rounded-lg p-4 text-center text-gray-400 text-sm ${className}`}>
+        <div className={`bg-gray-900/60 border border-dashed border-white/15 rounded-lg p-3 text-center text-gray-400 text-sm ${className}`}>
           Match folgt
         </div>
       )
@@ -457,7 +457,7 @@ export default function AdminBracketPage() {
       <button
         type="button"
         onClick={() => onSelect?.(match)}
-        className={`bg-gray-900/75 border ${isSelected ? 'border-purple-400 ring-2 ring-purple-500/60' : 'border-white/10 hover:border-purple-400/70'} rounded-lg px-3 py-4 w-full h-full flex flex-col justify-center shadow-lg transition-all duration-200 text-left ${className}`}
+        className={`bg-gray-900/75 border ${isSelected ? 'border-purple-400 ring-2 ring-purple-500/60' : 'border-white/10 hover:border-purple-400/70'} rounded-lg px-3 py-3 w-full h-full flex flex-col justify-center shadow-lg transition-all duration-200 text-left ${className}`}
         aria-pressed={isSelected}
       >
         <div className="flex items-center justify-between text-[11px] uppercase tracking-wide text-purple-200/80 mb-2">
