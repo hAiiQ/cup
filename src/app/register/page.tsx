@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
@@ -23,7 +23,9 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [rankError, setRankError] = useState('')
   const [rankLoading, setRankLoading] = useState(false)
+  const [rankCheckedName, setRankCheckedName] = useState('')
   const [showRules, setShowRules] = useState(false)
+  const latestInGameNameRef = useRef('')
   const router = useRouter()
   const { login } = useAuth()
 
@@ -46,8 +48,13 @@ export default function RegisterPage() {
       return
     }
 
-    if (!formData.inGameRank) {
-      setError('Rank konnte noch nicht ermittelt werden. Bitte überprüfe deinen In-Game Namen.')
+    if (rankLoading) {
+      setError('Valorant Daten werden gerade geprüft. Bitte warte kurz.')
+      return
+    }
+
+    if (!formData.inGameRank || rankCheckedName !== formData.inGameName.trim()) {
+      setError('Bitte prüfe deinen Valorant Namen erst mit dem Button.')
       return
     }
 
@@ -108,8 +115,10 @@ export default function RegisterPage() {
   }
 
   const loadRankFromHenrikdev = async (fullName: string) => {
+    const lookupName = fullName.trim()
     setRankError('')
     setRankLoading(true)
+    setRankCheckedName('')
     setFormData((prev) => ({ ...prev, inGameRank: '', valorantLevel: '' }))
 
     const hashIndex = fullName.indexOf('#')
@@ -129,11 +138,19 @@ export default function RegisterPage() {
       const data = await response.json()
 
       if (!response.ok) {
+        if (latestInGameNameRef.current.trim() !== lookupName) {
+          return
+        }
+
         const message =
           data.code === 'API_KEY_MISSING'
             ? 'Rank-API ist auf dem Server nicht eingerichtet (HENRIKDEV_API_KEY).'
             : data.error || 'Rank konnte nicht ermittelt werden'
         setRankError(message)
+        return
+      }
+
+      if (latestInGameNameRef.current.trim() !== lookupName) {
         return
       }
 
@@ -143,6 +160,7 @@ export default function RegisterPage() {
         inGameRank: data.rank,
         valorantLevel: nextLevel,
       }))
+      setRankCheckedName(lookupName)
 
       if (typeof data.level === 'number' && data.level < MIN_VALORANT_LEVEL) {
         setRankError(
@@ -151,27 +169,43 @@ export default function RegisterPage() {
       }
     } catch (error) {
       console.error('Rank lookup failed:', error)
-      setRankError('Rank konnte nicht ermittelt werden.')
+      if (latestInGameNameRef.current.trim() === lookupName) {
+        setRankError('Rank konnte nicht ermittelt werden.')
+      }
     } finally {
       setRankLoading(false)
     }
   }
 
-  useEffect(() => {
+  const handleInGameNameChange = (value: string) => {
+    latestInGameNameRef.current = value
+    const trimmedValue = value.trim()
+    const keepCheckedRank = trimmedValue === rankCheckedName
+
+    setFormData((prev) => ({
+      ...prev,
+      inGameName: value,
+      inGameRank: keepCheckedRank ? prev.inGameRank : '',
+      valorantLevel: keepCheckedRank ? prev.valorantLevel : '',
+    }))
+
+    if (!keepCheckedRank) {
+      setRankCheckedName('')
+    }
+
+    setRankError('')
+  }
+
+  const handleRankLookupClick = () => {
     const name = formData.inGameName.trim()
-    if (!name || !name.includes('#')) {
-      setFormData((prev) => ({ ...prev, inGameRank: '', valorantLevel: '' }))
-      setRankError('')
-      setRankLoading(false)
+    if (!name.includes('#')) {
+      setRankError('Bitte gib deinen Valorant Namen im Format Name#Tag ein.')
       return
     }
 
-    const timeout = setTimeout(() => {
-      loadRankFromHenrikdev(name)
-    }, 500)
-
-    return () => clearTimeout(timeout)
-  }, [formData.inGameName])
+    latestInGameNameRef.current = formData.inGameName
+    loadRankFromHenrikdev(name)
+  }
 
   return (
     <div className="min-h-screen bg-image flex items-center justify-center px-4">
@@ -217,17 +251,27 @@ export default function RegisterPage() {
               <label htmlFor="inGameName" className="block text-white mb-2">
                 In-Game Name *
               </label>
-              <input
-                type="text"
-                id="inGameName"
-                required
-                className="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                placeholder="Name#Tag"
-                value={formData.inGameName}
-                onChange={(e) => setFormData({ ...formData, inGameName: e.target.value })}
-              />
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <input
+                  type="text"
+                  id="inGameName"
+                  required
+                  className="min-w-0 flex-1 px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="Name#Tag"
+                  value={formData.inGameName}
+                  onChange={(e) => handleInGameNameChange(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={handleRankLookupClick}
+                  disabled={rankLoading || !formData.inGameName.trim().includes('#')}
+                  className="rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {rankLoading ? 'Prüfe...' : 'Prüfen'}
+                </button>
+              </div>
               <p className="text-xs text-white/60 mt-2">
-                Gib deinen In-Game Namen inklusive Hashtag ein, damit dein Rank automatisch geladen wird.
+                Gib deinen Valorant Namen inklusive Hashtag ein und klicke danach auf Prüfen.
               </p>
             </div>
 
