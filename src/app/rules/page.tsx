@@ -142,25 +142,15 @@ export default function RulesPage() {
                   <div className="text-center">
                     <div className="text-4xl mb-4">💬</div>
                     <h3 className="text-lg font-semibold text-white mb-3">Discord Beitritt</h3>
-                    <p className="text-white/80 mb-4">Du musst in beiden offiziellen Discord-Servern sein</p>
-                    <div className="flex flex-col gap-2">
-                      <a 
-                        href="https://discord.gg/uvkuf4Vscy" 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-all hover:scale-105"
-                      >
-                        Main Discord
-                      </a>
-                      <a 
-                        href="https://discord.gg/uUFgCQfb" 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-all hover:scale-105"
-                      >
-                        MRDE Discord
-                      </a>
-                    </div>
+                    <p className="text-white/80 mb-4">Du musst im offiziellen Boss Discord sein</p>
+                    <a
+                      href="https://discord.gg/uvkuf4Vscy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-all hover:scale-105"
+                    >
+                      Zum Boss Discord
+                    </a>
                   </div>
                 </div>
 
@@ -338,7 +328,7 @@ export default function RulesPage() {
               <div className="space-y-4">
                 <div className="bg-blue-500/20 rounded-lg p-3 border border-blue-500/30">
                   <div className="text-white/90">
-                    <span className="font-semibold">Zu verifizieren:</span> In-Game Name, Rank, beide Discord-Server, Twitch, YouTube und Instagram
+                    <span className="font-semibold">Zu verifizieren:</span> In-Game Name, Rank, Discord, Twitch, YouTube und Instagram
                   </div>
                 </div>
                 <div className="flex items-start">
