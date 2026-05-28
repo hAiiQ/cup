@@ -123,8 +123,8 @@ export default function AdminDashboard() {
     router.push('/admin')
   }
 
-  const deleteUser = async (userId: string, username: string) => {
-    if (!confirm(`Bist du sicher, dass du den Benutzer "${username}" löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.`)) {
+  const deleteUser = async (userId: string, twitchName: string) => {
+    if (!confirm(`Bist du sicher, dass du den Benutzer "${twitchName}" löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.`)) {
       return
     }
 
@@ -143,7 +143,7 @@ export default function AdminDashboard() {
         setUsers(prev => prev.filter(u => u.id !== userId))
         // Refresh stats
         await fetchData()
-        alert(`Benutzer "${username}" wurde erfolgreich gelöscht.`)
+        alert(`Benutzer "${twitchName}" wurde erfolgreich gelöscht.`)
       } else {
         const data = await response.json()
         alert(data.error || 'Fehler beim Löschen des Users')
@@ -434,7 +434,7 @@ export default function AdminDashboard() {
                 <table className="w-full">
                   <thead className="bg-gray-700">
                     <tr>
-                      <th className="text-left p-4 text-gray-300">Username</th>
+                      <th className="text-left p-4 text-gray-300">Twitch Name</th>
                       <th className="text-left p-4 text-gray-300">In-Game Name</th>
                       <th className="text-left p-4 text-gray-300">Rank</th>
                       <th className="text-left p-4 text-gray-300">Tier & Status</th>
@@ -450,7 +450,7 @@ export default function AdminDashboard() {
                   <tbody>
                     {users.map((user) => (
                       <tr key={user.id} className="border-t border-gray-700">
-                        <td className="p-4 text-white">{user.username}</td>
+                        <td className="p-4 text-white">{user.twitchName || user.username}</td>
                         
                         {/* In-Game Name Verification */}
                         <td className="p-4">
@@ -678,7 +678,7 @@ export default function AdminDashboard() {
                         <td className="p-4">
                           <div className="flex space-x-2">
                             <button
-                              onClick={() => deleteUser(user.id, user.username)}
+                              onClick={() => deleteUser(user.id, user.twitchName || user.username)}
                               disabled={deletingUser === user.id}
                               className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center space-x-1"
                             >

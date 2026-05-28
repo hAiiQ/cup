@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { hashPassword, generateToken } from '@/lib/auth'
 import { verifyDiscordMembership, verifyTwitchFollow } from '@/lib/socialVerification'
@@ -104,7 +105,7 @@ export async function POST(request: NextRequest) {
 
     const user = await prisma.user.create({
       data: {
-        username: twitchUsername,
+        username: normalizedTwitchUsername,
         password: hashedPassword,
         inGameName: trimmedInGameName,
         inGameRank: trimmedInGameRank,
@@ -153,6 +154,17 @@ export async function POST(request: NextRequest) {
     return response
   } catch (error) {
     console.error('Registration error:', error)
+
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    ) {
+      return NextResponse.json(
+        { error: 'Dieser Twitch Name ist bereits registriert' },
+        { status: 400 }
+      )
+    }
+
     return NextResponse.json(
       { error: 'Interner Serverfehler' },
       { status: 500 }

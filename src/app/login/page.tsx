@@ -7,7 +7,7 @@ import Link from 'next/link'
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
-    username: '',
+    twitchName: '',
     password: '',
   })
   const [error, setError] = useState('')
@@ -59,17 +59,17 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="username" className="block text-white mb-2">
+            <label htmlFor="twitchName" className="block text-white mb-2">
               Twitch Name
             </label>
             <input
               type="text"
-              id="username"
+              id="twitchName"
               required
               className="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-purple-500"
               placeholder="Dein Twitch Name"
-              value={formData.username}
-              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+              value={formData.twitchName}
+              onChange={(e) => setFormData({ ...formData, twitchName: e.target.value })}
             />
           </div>
 

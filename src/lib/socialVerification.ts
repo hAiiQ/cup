@@ -180,7 +180,7 @@ export async function verifyTwitchFollow(twitchLogin: string): Promise<Verificat
       verified: false,
       message: twitchLookupFailureMessage(
         user,
-        'Twitch-Account nicht gefunden. Prüfe deinen Benutzernamen.'
+        'Twitch-Account nicht gefunden. Prüfe deinen Twitch Namen.'
       ),
     }
   }

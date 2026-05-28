@@ -12,8 +12,9 @@ function normalizeLoginName(value: string): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const { username, password } = await request.json()
-    const loginName = typeof username === 'string' ? normalizeLoginName(username) : ''
+    const { twitchName, username, password } = await request.json()
+    const loginInput = typeof twitchName === 'string' ? twitchName : username
+    const loginName = typeof loginInput === 'string' ? normalizeLoginName(loginInput) : ''
     const plainPassword = typeof password === 'string' ? password : ''
 
     // Validation
@@ -27,7 +28,8 @@ export async function POST(request: NextRequest) {
     // Find user (case-insensitive search)
     const allUsers = await prisma.user.findMany()
     const user = allUsers.find(u =>
-      normalizeLoginName(u.username) === loginName
+      normalizeLoginName(u.username) === loginName ||
+      normalizeLoginName(u.twitchName || '') === loginName
     )
 
     if (!user) {
