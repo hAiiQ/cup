@@ -3,6 +3,8 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { hashPassword, generateToken } from '@/lib/auth'
 import { verifyDiscordMembership, verifyTwitchFollow } from '@/lib/socialVerification'
+import { fetchValorantRank, HenrikApiError } from '@/lib/henrikValorant'
+import { MIN_VALORANT_LEVEL } from '@/lib/valorantRequirements'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,9 +43,51 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!trimmedInGameName || !trimmedInGameRank) {
+    if (!trimmedInGameName) {
       return NextResponse.json(
-        { error: 'Spielername und Rank sind erforderlich' },
+        { error: 'Spielername ist erforderlich' },
+        { status: 400 }
+      )
+    }
+
+    const hashIndex = trimmedInGameName.indexOf('#')
+    const valorantName = trimmedInGameName.slice(0, hashIndex).trim()
+    const valorantTag = trimmedInGameName.slice(hashIndex + 1).trim()
+
+    if (hashIndex === -1 || !valorantName || !valorantTag) {
+      return NextResponse.json(
+        { error: 'Bitte gib deinen In-Game Namen im Format Name#Tag ein' },
+        { status: 400 }
+      )
+    }
+
+    let valorantLookup: Awaited<ReturnType<typeof fetchValorantRank>>
+    try {
+      valorantLookup = await fetchValorantRank(valorantName, valorantTag)
+    } catch (error) {
+      if (error instanceof HenrikApiError) {
+        return NextResponse.json(
+          { error: error.message },
+          { status: error.status }
+        )
+      }
+
+      throw error
+    }
+
+    const valorantLevel = valorantLookup.accountLevel
+    if (typeof valorantLevel !== 'number') {
+      return NextResponse.json(
+        { error: 'Valorant-Level konnte nicht abgerufen werden. Bitte versuche es später erneut.' },
+        { status: 502 }
+      )
+    }
+
+    if (valorantLevel < MIN_VALORANT_LEVEL) {
+      return NextResponse.json(
+        {
+          error: `Dein Valorant Account muss mindestens Level ${MIN_VALORANT_LEVEL} sein. Aktuelles Level: ${valorantLevel}.`,
+        },
         { status: 400 }
       )
     }
@@ -108,7 +152,8 @@ export async function POST(request: NextRequest) {
         username: normalizedTwitchUsername,
         password: hashedPassword,
         inGameName: trimmedInGameName,
-        inGameRank: trimmedInGameRank,
+        inGameRank: valorantLookup.rank || trimmedInGameRank,
+        valorantLevel,
         discordName: trimmedDiscordName,
         twitchName: twitchUsername,
         instagramName: trimmedInstagramName,
@@ -131,6 +176,7 @@ export async function POST(request: NextRequest) {
         username: user.username,
         inGameName: user.inGameName,
         inGameRank: user.inGameRank,
+        valorantLevel: user.valorantLevel,
         discordName: user.discordName,
         twitchName: user.twitchName,
         instagramName: user.instagramName,

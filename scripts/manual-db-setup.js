@@ -17,6 +17,7 @@ async function setupDatabase() {
         "password" TEXT NOT NULL,
         "inGameName" TEXT,
         "inGameRank" TEXT,
+        "valorantLevel" INTEGER,
         "discordName" TEXT,
         "twitchName" TEXT,
         "instagramName" TEXT,

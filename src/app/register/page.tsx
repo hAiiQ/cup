@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
 import { SOCIAL_REQUIREMENTS } from '@/lib/socialRequirements'
+import { MIN_VALORANT_LEVEL } from '@/lib/valorantRequirements'
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -12,6 +13,7 @@ export default function RegisterPage() {
     confirmPassword: '',
     inGameName: '',
     inGameRank: '',
+    valorantLevel: '',
     discordName: '',
     twitchName: '',
     instagramName: '',
@@ -49,6 +51,11 @@ export default function RegisterPage() {
       return
     }
 
+    if (!formData.valorantLevel || Number(formData.valorantLevel) < MIN_VALORANT_LEVEL) {
+      setError(`Dein Valorant Account muss mindestens Level ${MIN_VALORANT_LEVEL} sein.`)
+      return
+    }
+
     if (!formData.twitchName.trim() || !formData.discordName.trim() || !formData.instagramName.trim() || !formData.tiktokName.trim()) {
       setError('Twitch, Discord, Instagram und TikTok sind Pflichtfelder.')
       return
@@ -72,6 +79,7 @@ export default function RegisterPage() {
           password: formData.password,
           inGameName: formData.inGameName,
           inGameRank: formData.inGameRank,
+          valorantLevel: formData.valorantLevel,
           discordName: formData.discordName,
           twitchName: formData.twitchName,
           instagramName: formData.instagramName,
@@ -102,7 +110,7 @@ export default function RegisterPage() {
   const loadRankFromHenrikdev = async (fullName: string) => {
     setRankError('')
     setRankLoading(true)
-    setFormData((prev) => ({ ...prev, inGameRank: '' }))
+    setFormData((prev) => ({ ...prev, inGameRank: '', valorantLevel: '' }))
 
     const hashIndex = fullName.indexOf('#')
     const name = fullName.slice(0, hashIndex).trim()
@@ -129,7 +137,18 @@ export default function RegisterPage() {
         return
       }
 
-      setFormData((prev) => ({ ...prev, inGameRank: data.rank }))
+      const nextLevel = typeof data.level === 'number' ? String(data.level) : ''
+      setFormData((prev) => ({
+        ...prev,
+        inGameRank: data.rank,
+        valorantLevel: nextLevel,
+      }))
+
+      if (typeof data.level === 'number' && data.level < MIN_VALORANT_LEVEL) {
+        setRankError(
+          `Dein Valorant Account ist Level ${data.level}. Für die Teilnahme brauchst du mindestens Level ${MIN_VALORANT_LEVEL}.`
+        )
+      }
     } catch (error) {
       console.error('Rank lookup failed:', error)
       setRankError('Rank konnte nicht ermittelt werden.')
@@ -141,7 +160,7 @@ export default function RegisterPage() {
   useEffect(() => {
     const name = formData.inGameName.trim()
     if (!name || !name.includes('#')) {
-      setFormData((prev) => ({ ...prev, inGameRank: '' }))
+      setFormData((prev) => ({ ...prev, inGameRank: '', valorantLevel: '' }))
       setRankError('')
       setRankLoading(false)
       return
@@ -232,6 +251,27 @@ export default function RegisterPage() {
                   Peak-Rank wird automatisch ermittelt (Name#Tag muss öffentlich sein).
                 </p>
               )}
+              <div className="mt-4">
+                <label htmlFor="valorantLevel" className="block text-white mb-2">
+                  Valorant Level *
+                </label>
+                <input
+                  type="text"
+                  id="valorantLevel"
+                  readOnly
+                  required
+                  value={rankLoading ? 'Level wird geladen...' : formData.valorantLevel}
+                  className={`w-full px-4 py-3 rounded-lg bg-white/20 border text-white placeholder-white/60 focus:outline-none focus:ring-2 ${
+                    formData.valorantLevel && Number(formData.valorantLevel) < MIN_VALORANT_LEVEL
+                      ? 'border-red-400 focus:ring-red-500'
+                      : 'border-white/30 focus:ring-purple-500'
+                  }`}
+                  placeholder={`Mindestens Level ${MIN_VALORANT_LEVEL}`}
+                />
+                <p className="text-xs text-white/60 mt-2">
+                  Mindestlevel für die Teilnahme: {MIN_VALORANT_LEVEL}.
+                </p>
+              </div>
             </div>
           </div>
 

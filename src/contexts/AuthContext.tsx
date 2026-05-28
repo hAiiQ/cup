@@ -7,10 +7,12 @@ interface User {
   username: string
   inGameName: string
   inGameRank: string
+  valorantLevel?: number | null
   discordName: string
   twitchName: string
   instagramName: string
   tier: string
+  isStreamer?: boolean
   isVerified: boolean
   rulesAccepted: boolean
 }

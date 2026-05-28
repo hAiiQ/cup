@@ -16,6 +16,7 @@ model User {
   password        String
   inGameName      String?
   inGameRank      String?
+  valorantLevel   Int?
   discordName     String?
   twitchName      String?
   instagramName   String?

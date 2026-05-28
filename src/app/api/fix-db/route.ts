@@ -15,6 +15,9 @@ export async function GET(request: NextRequest) {
     await prisma.$executeRaw`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "inGameRankVerified" BOOLEAN DEFAULT false`
     console.log('✅ Added inGameRankVerified column');
     
+    await prisma.$executeRaw`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "valorantLevel" INTEGER`
+    console.log('Added valorantLevel column');
+
     await prisma.$executeRaw`ALTER TABLE "Team" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT`
     console.log('✅ Added imageUrl column to Team');
     

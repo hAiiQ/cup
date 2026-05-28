@@ -62,6 +62,8 @@ export async function POST(request: NextRequest) {
         isVerified: user.isVerified,
         rulesAccepted: user.rulesAccepted,
         inGameName: user.inGameName,
+        inGameRank: user.inGameRank,
+        valorantLevel: user.valorantLevel,
         tier: user.tier
       }
     })

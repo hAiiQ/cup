@@ -4,16 +4,19 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { TEAM_CAPACITY_FULL_LABEL, TEAM_CAPACITY_SHORT_LABEL } from '@/lib/teamCapacity'
+import { MIN_VALORANT_LEVEL } from '@/lib/valorantRequirements'
 
 interface User {
   id: string
   username: string
   inGameName: string
   inGameRank: string
+  valorantLevel?: number | null
   discordName: string
   twitchName: string
   instagramName: string
   tier: string
+  isStreamer?: boolean
   isVerified: boolean
   twitchVerified: boolean
   instagramVerified: boolean
@@ -317,16 +320,39 @@ export default function DashboardPage() {
                       </div>
 
                       <div className="bg-white/5 rounded-lg p-4">
-                        <div className="text-white/70 text-sm mb-1">Tier</div>
-                        <div className="text-white font-medium">
+                        <div className="text-white/70 text-sm mb-3">Spieler Badges</div>
+                        <div className="flex flex-wrap gap-2">
+                          {typeof user?.valorantLevel === 'number' ? (
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
+                              user.valorantLevel >= MIN_VALORANT_LEVEL
+                                ? 'bg-emerald-600/20 text-emerald-200 border-emerald-400/60'
+                                : 'bg-red-600/20 text-red-200 border-red-400/60'
+                            }`}>
+                              LVL {user.valorantLevel}
+                            </span>
+                          ) : (
+                            <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-600/20 text-gray-300 border border-gray-500/60">
+                              LVL offen
+                            </span>
+                          )}
+
                           {user?.tier ? (
-                            <span className="bg-purple-600/20 text-purple-300 px-3 py-1 rounded-full text-sm border border-purple-500">
+                            <span className="bg-purple-600/20 text-purple-300 px-3 py-1 rounded-full text-xs font-bold border border-purple-500">
                               {user.tier.toUpperCase()}
                             </span>
                           ) : (
-                            <span className="text-yellow-400 italic">Wird vom Admin zugewiesen</span>
+                            <span className="bg-yellow-600/20 text-yellow-300 px-3 py-1 rounded-full text-xs font-bold border border-yellow-500">
+                              Kein Tier
+                            </span>
+                          )}
+
+                          {user?.isStreamer && (
+                            <span className="bg-pink-600/20 text-pink-200 px-3 py-1 rounded-full text-xs font-bold border border-pink-400/60">
+                              Streamer
+                            </span>
                           )}
                         </div>
+                        <div className="text-xs text-gray-400 mt-2">Mindestlevel: {MIN_VALORANT_LEVEL}</div>
                       </div>
                     </div>
 
@@ -451,17 +477,29 @@ export default function DashboardPage() {
                         </div>
 
                         <div className="bg-white/5 rounded-lg p-4">
-                          <div className="text-white/70 text-sm mb-1">Tier</div>
-                          <div className="text-white font-medium">
+                          <div className="text-white/70 text-sm mb-3">Spieler Badges</div>
+                          <div className="flex flex-wrap gap-2">
+                            {typeof user?.valorantLevel === 'number' && (
+                              <span className="bg-emerald-600/20 text-emerald-200 px-3 py-1 rounded-full text-xs font-bold border border-emerald-400/60">
+                                LVL {user.valorantLevel}
+                              </span>
+                            )}
                             {user?.tier ? (
-                              <span className="bg-purple-600/20 text-purple-300 px-3 py-1 rounded-full text-sm border border-purple-500">
+                              <span className="bg-purple-600/20 text-purple-300 px-3 py-1 rounded-full text-xs font-bold border border-purple-500">
                                 {user.tier.toUpperCase()}
                               </span>
                             ) : (
-                              <span className="text-yellow-400 italic">Wird vom Admin zugewiesen</span>
+                              <span className="bg-yellow-600/20 text-yellow-300 px-3 py-1 rounded-full text-xs font-bold border border-yellow-500">
+                                Kein Tier
+                              </span>
+                            )}
+                            {user?.isStreamer && (
+                              <span className="bg-pink-600/20 text-pink-200 px-3 py-1 rounded-full text-xs font-bold border border-pink-400/60">
+                                Streamer
+                              </span>
                             )}
                           </div>
-                          <div className="text-xs text-gray-400 mt-1">Tier wird vom Admin zugewiesen</div>
+                          <div className="text-xs text-gray-400 mt-2">Level und Tier werden automatisch bzw. durch Admin gesetzt.</div>
                         </div>
                       </div>
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { fetchValorantRank, HenrikApiError } from '@/lib/henrikValorant'
+import { MIN_VALORANT_LEVEL } from '@/lib/valorantRequirements'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,6 +18,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       rank: result.rank,
       currentRank: result.currentRank,
+      level: result.accountLevel,
+      minimumLevel: MIN_VALORANT_LEVEL,
       region: result.region,
       name,
       tag,

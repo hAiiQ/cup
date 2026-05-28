@@ -58,6 +58,7 @@ async function henrikGet<T>(path: string): Promise<T> {
 
 type AccountData = {
   region?: string
+  account_level?: number
 }
 
 type MmrData = {
@@ -71,16 +72,20 @@ export async function fetchValorantRank(name: string, tag: string): Promise<{
   rank: string
   region: string
   currentRank?: string
+  accountLevel?: number
 }> {
   const trimmedName = name.trim()
   const trimmedTag = tag.trim()
 
   let region: string | undefined
+  let accountLevel: number | undefined
   try {
     const account = await henrikGet<AccountData>(
       `/v1/account/${encodeURIComponent(trimmedName)}/${encodeURIComponent(trimmedTag)}`
     )
     region = account.region?.toLowerCase()
+    accountLevel =
+      typeof account.account_level === 'number' ? account.account_level : undefined
   } catch (error) {
     if (error instanceof HenrikApiError && error.code !== 'LOOKUP_FAILED') {
       throw error
@@ -111,6 +116,7 @@ export async function fetchValorantRank(name: string, tag: string): Promise<{
         rank,
         region: tryRegion,
         currentRank: currentRank || undefined,
+        accountLevel,
       }
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error))

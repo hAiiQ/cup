@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { formatTierShortLabel, resolveTierKey, TIER_SELECT_OPTIONS, type TierKey } from '@/lib/tierConfig'
 import { DEFAULT_TEAM_NAMES } from '@/lib/teamDefaults'
+import { MIN_VALORANT_LEVEL } from '@/lib/valorantRequirements'
 
 const TIER_BADGE_CLASSES: Record<TierKey, string> = {
   tier1: 'bg-blue-600 text-white',
@@ -18,6 +19,7 @@ interface User {
   username: string
   inGameName?: string
   inGameRank?: string
+  valorantLevel?: number | null
   discordName?: string
   twitchName?: string
   instagramName?: string
@@ -299,6 +301,36 @@ export default function AdminDashboard() {
     }
   }
 
+  const getUserDisplayName = (user: User) => user.twitchName || user.username
+
+  const getVerificationSummary = (user: User) => {
+    const socialItems = [
+      { value: user.twitchName, verified: user.twitchVerified },
+      { value: user.instagramName, verified: user.instagramVerified },
+      { value: user.discordName, verified: user.discordVerified },
+      { value: user.tiktokName, verified: user.tiktokVerified },
+    ]
+    const gameItems = [
+      { value: user.inGameName, verified: user.inGameNameVerified },
+      { value: user.inGameRank, verified: user.inGameRankVerified },
+    ]
+    const allItems = [...socialItems, ...gameItems].filter((item) => item.value)
+    const verifiedCount = allItems.filter((item) => item.verified).length
+    return {
+      total: allItems.length,
+      verified: verifiedCount,
+      complete: allItems.length > 0 && verifiedCount === allItems.length,
+      partial: verifiedCount > 0 && verifiedCount < allItems.length,
+    }
+  }
+
+  const formatJoinDate = (value: string) => {
+    const date = new Date(value)
+    return Number.isNaN(date.getTime())
+      ? 'Datum offen'
+      : date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' })
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -426,143 +458,169 @@ export default function AdminDashboard() {
 
         {/* Users Tab */}
         {activeTab === 'users' && (
-          <div className="space-y-8">
-            <h1 className="text-4xl font-bold text-white">User Management</h1>
-            
-            <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-700">
-                    <tr>
-                      <th className="text-left p-4 text-gray-300">Twitch Name</th>
-                      <th className="text-left p-4 text-gray-300">In-Game Name</th>
-                      <th className="text-left p-4 text-gray-300">Rank</th>
-                      <th className="text-left p-4 text-gray-300">Tier & Status</th>
-                      <th className="text-left p-4 text-gray-300">Team</th>
-                      <th className="text-left p-4 text-gray-300">Twitch</th>
-                      <th className="text-left p-4 text-gray-300">Instagram</th>
-                      <th className="text-left p-4 text-gray-300">Discord</th>
-                      <th className="text-left p-4 text-gray-300">TikTok</th>
-                      <th className="text-left p-4 text-gray-300">Status</th>
-                      <th className="text-left p-4 text-gray-300">Aktionen</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map((user) => (
-                      <tr key={user.id} className="border-t border-gray-700">
-                        <td className="p-4 text-white">{user.twitchName || user.username}</td>
-                        
-                        {/* In-Game Name Verification */}
-                        <td className="p-4">
-                          <div className="space-y-1">
-                            <p className="text-gray-300 text-sm">{user.inGameName || '-'}</p>
-                            {user.inGameName && (
-                              <button
-                                onClick={() => toggleSocialVerification(user.id, 'inGameName', user.inGameNameVerified)}
-                                className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                                  user.inGameNameVerified 
-                                    ? 'bg-green-600 text-white hover:bg-green-700'
-                                    : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                                }`}
-                              >
-                                {user.inGameNameVerified ? '✅ Verifiziert' : '⏳ Ausstehend'}
-                              </button>
-                            )}
-                          </div>
-                        </td>
+          <div className="space-y-6">
+            <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-wide text-red-300">Admin</p>
+                  <h1 className="text-4xl font-bold text-white mt-1">User Management</h1>
+                  <p className="text-gray-400 mt-2">
+                    Spieler, Verifikation, Badges und Team-Zuweisung in einer kompakten Ansicht.
+                  </p>
+                </div>
 
-                        {/* In-Game Rank Verification */}
-                        <td className="p-4">
-                          <div className="space-y-1">
-                            <p className="text-gray-300 text-sm">{user.inGameRank || '-'}</p>
-                            {user.inGameRank && (
-                              <button
-                                onClick={() => toggleSocialVerification(user.id, 'inGameRank', user.inGameRankVerified)}
-                                className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                                  user.inGameRankVerified 
-                                    ? 'bg-green-600 text-white hover:bg-green-700'
-                                    : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                                }`}
-                              >
-                                {user.inGameRankVerified ? '✅ Verifiziert' : '⏳ Ausstehend'}
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                        
-                        {/* Tier Selection */}
-                        <td className="p-4">
-                          <div className="space-y-2">
-                            <div className="flex flex-wrap gap-1">
-                              {/* Tier Badge */}
-                              {(() => {
-                                const tierKey = resolveTierKey(user.tier)
-                                const badgeClass = tierKey
-                                  ? TIER_BADGE_CLASSES[tierKey]
-                                  : 'bg-gray-600 text-gray-300'
-                                const badgeLabel = tierKey
-                                  ? formatTierShortLabel(tierKey)
-                                  : 'KEIN TIER'
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-gray-900/70 border border-gray-700 rounded-lg p-3 min-w-28">
+                    <div className="text-2xl font-bold text-white">{users.length}</div>
+                    <div className="text-xs text-gray-400 uppercase tracking-wide">Spieler</div>
+                  </div>
+                  <div className="bg-gray-900/70 border border-gray-700 rounded-lg p-3 min-w-28">
+                    <div className="text-2xl font-bold text-green-300">
+                      {users.filter((user) => user.isVerified).length}
+                    </div>
+                    <div className="text-xs text-gray-400 uppercase tracking-wide">Verifiziert</div>
+                  </div>
+                  <div className="bg-gray-900/70 border border-gray-700 rounded-lg p-3 min-w-28">
+                    <div className="text-2xl font-bold text-cyan-300">
+                      {
+                        users.filter(
+                          (user) =>
+                            typeof user.valorantLevel === 'number' &&
+                            user.valorantLevel >= MIN_VALORANT_LEVEL
+                        ).length
+                      }
+                    </div>
+                    <div className="text-xs text-gray-400 uppercase tracking-wide">Level OK</div>
+                  </div>
+                  <div className="bg-gray-900/70 border border-gray-700 rounded-lg p-3 min-w-28">
+                    <div className="text-2xl font-bold text-blue-300">
+                      {users.filter((user) => user.team).length}
+                    </div>
+                    <div className="text-xs text-gray-400 uppercase tracking-wide">Im Team</div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-                                return (
-                                  <span className={`px-2 py-1 rounded text-xs font-semibold ${badgeClass}`}>
-                                    {badgeLabel}
-                                  </span>
-                                )
-                              })()}
-                              
-                              {/* Streamer Badge */}
-                              {user.isStreamer && (
-                                <span className="px-2 py-1 rounded text-xs font-semibold bg-purple-600 text-white">
-                                  🎥 STREAMER
-                                </span>
-                              )}
-                            </div>
-                            
-                            <div className="flex gap-1">
-                              {/* Tier Selection */}
-                              <select
-                                value={user.tier || ''}
-                                onChange={(e) => updateTier(user.id, e.target.value)}
-                                className="bg-gray-700 border border-gray-600 rounded text-xs text-white px-2 py-1 focus:outline-none focus:border-blue-500 flex-1"
-                              >
-                                <option value="">Kein Tier</option>
-                                {TIER_SELECT_OPTIONS.map((option) => (
-                                  <option key={option.value} value={option.value}>
-                                    {option.label}
-                                  </option>
-                                ))}
-                              </select>
-                              
-                              {/* Streamer Toggle */}
-                              <button
-                                onClick={() => toggleStreamerStatus(user.id)}
-                                className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                                  user.isStreamer 
-                                    ? 'bg-purple-600 text-white hover:bg-purple-700'
-                                    : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                                }`}
-                                title={user.isStreamer ? 'Streamer Status entfernen' : 'Als Streamer markieren'}
-                              >
-                                🎥
-                              </button>
-                            </div>
+            {users.length === 0 ? (
+              <div className="bg-gray-800 rounded-lg border border-gray-700 p-10 text-center">
+                <h2 className="text-2xl font-bold text-white">Noch keine User</h2>
+                <p className="text-gray-400 mt-2">Sobald sich Spieler registrieren, erscheinen sie hier.</p>
+              </div>
+            ) : (
+              <div className="grid gap-4 xl:grid-cols-2">
+                {users.map((user) => {
+                  const displayName = getUserDisplayName(user)
+                  const verification = getVerificationSummary(user)
+                  const tierKey = resolveTierKey(user.tier)
+                  const tierBadgeClass = tierKey ? TIER_BADGE_CLASSES[tierKey] : 'bg-gray-700 text-gray-300'
+                  const tierBadgeLabel = tierKey ? formatTierShortLabel(tierKey) : 'KEIN TIER'
+                  const levelKnown = typeof user.valorantLevel === 'number'
+                  const levelReady = levelKnown && user.valorantLevel! >= MIN_VALORANT_LEVEL
+                  const verificationLabel =
+                    verification.total === 0
+                      ? 'Keine Daten'
+                      : verification.complete
+                        ? 'Voll verifiziert'
+                        : verification.partial
+                          ? `${verification.verified}/${verification.total} verifiziert`
+                          : 'Nicht verifiziert'
+                  const verificationClass =
+                    verification.total === 0
+                      ? 'bg-gray-700 text-gray-300 border-gray-600'
+                      : verification.complete
+                        ? 'bg-green-600/20 text-green-200 border-green-500/60'
+                        : verification.partial
+                          ? 'bg-yellow-600/20 text-yellow-200 border-yellow-500/60'
+                          : 'bg-red-600/20 text-red-200 border-red-500/60'
+                  const verificationItems = [
+                    { key: 'twitch' as const, label: 'Twitch', value: user.twitchName, verified: user.twitchVerified },
+                    { key: 'discord' as const, label: 'Discord', value: user.discordName, verified: user.discordVerified },
+                    { key: 'instagram' as const, label: 'Instagram', value: user.instagramName, verified: user.instagramVerified },
+                    { key: 'tiktok' as const, label: 'TikTok', value: user.tiktokName, verified: user.tiktokVerified },
+                    { key: 'inGameName' as const, label: 'Riot ID', value: user.inGameName, verified: user.inGameNameVerified },
+                    { key: 'inGameRank' as const, label: 'Rank', value: user.inGameRank, verified: user.inGameRankVerified },
+                  ]
+
+                  return (
+                    <div key={user.id} className="bg-gray-800 rounded-lg border border-gray-700 p-5">
+                      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h2 className="text-2xl font-bold text-white truncate">{displayName}</h2>
+                            <span className={`px-2.5 py-1 rounded-full border text-xs font-semibold ${verificationClass}`}>
+                              {verificationLabel}
+                            </span>
                           </div>
-                        </td>
-                        
-                        {/* Team Assignment */}
-                        <td className="p-4">
-                          <div className="space-y-1">
-                            <p className="text-gray-300 text-sm">
-                              {user.team 
-                                ? user.team.name 
-                                : 'Kein Team'
-                              }
-                            </p>
+                          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-400">
+                            <span>{user.inGameName || 'Riot ID offen'}</span>
+                            <span>{user.team?.name || 'Kein Team'}</span>
+                            <span>Seit {formatJoinDate(user.createdAt)}</span>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => deleteUser(user.id, displayName)}
+                          disabled={deletingUser === user.id}
+                          className="md:self-start rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-gray-600"
+                        >
+                          {deletingUser === user.id ? 'Loesche...' : 'Loeschen'}
+                        </button>
+                      </div>
+
+                      <div className="mt-5 flex flex-wrap gap-2">
+                        <span
+                          className={`px-3 py-1 rounded-full border text-xs font-bold ${
+                            !levelKnown
+                              ? 'bg-gray-700/70 text-gray-300 border-gray-600'
+                              : levelReady
+                                ? 'bg-cyan-600/20 text-cyan-200 border-cyan-500/60'
+                                : 'bg-red-600/20 text-red-200 border-red-500/60'
+                          }`}
+                        >
+                          {levelKnown ? `LVL ${user.valorantLevel}` : 'LVL OFFEN'}
+                        </span>
+                        <span className="px-3 py-1 rounded-full border border-blue-500/60 bg-blue-600/20 text-blue-200 text-xs font-bold">
+                          {user.inGameRank || 'RANK OFFEN'}
+                        </span>
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${tierBadgeClass}`}>
+                          {tierBadgeLabel}
+                        </span>
+                        {user.isStreamer && (
+                          <span className="px-3 py-1 rounded-full border border-pink-500/60 bg-pink-600/20 text-pink-200 text-xs font-bold">
+                            STREAMER
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
+                              Tier
+                            </label>
+                            <select
+                              value={user.tier || ''}
+                              onChange={(e) => updateTier(user.id, e.target.value)}
+                              className="w-full rounded-md bg-gray-900 border border-gray-700 px-3 py-2 text-sm text-white focus:outline-none focus:border-red-400"
+                            >
+                              <option value="">Kein Tier</option>
+                              {TIER_SELECT_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
+                              Team
+                            </label>
                             <select
                               value={user.team ? user.team.name : ''}
                               onChange={(e) => updateTeamAssignment(user.id, e.target.value)}
-                              className="bg-gray-700 border border-gray-600 rounded text-xs text-white px-2 py-1 focus:outline-none focus:border-blue-500"
+                              className="w-full rounded-md bg-gray-900 border border-gray-700 px-3 py-2 text-sm text-white focus:outline-none focus:border-red-400"
                             >
                               <option value="">Kein Team</option>
                               {resolvedTeamOptions.map((team) => (
@@ -572,136 +630,57 @@ export default function AdminDashboard() {
                               ))}
                             </select>
                           </div>
-                        </td>
-                        
-                        {/* Twitch Verification */}
-                        <td className="p-4">
-                          <div className="space-y-1">
-                            <p className="text-gray-300 text-sm">{user.twitchName || '-'}</p>
-                            <button
-                              onClick={() => toggleSocialVerification(user.id, 'twitch', user.twitchVerified)}
-                              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                                user.twitchVerified 
-                                  ? 'bg-green-600 text-white hover:bg-green-700'
-                                  : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                              }`}
-                            >
-                              {user.twitchVerified ? '✅ Verifiziert' : '⏳ Als verifiziert markieren'}
-                            </button>
-                          </div>
-                        </td>
 
-                        {/* Instagram Verification */}
-                        <td className="p-4">
-                          <div className="space-y-1">
-                            <p className="text-gray-300 text-sm">{user.instagramName || '-'}</p>
-                            <button
-                              onClick={() => toggleSocialVerification(user.id, 'instagram', user.instagramVerified)}
-                              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                                user.instagramVerified 
-                                  ? 'bg-green-600 text-white hover:bg-green-700'
-                                  : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                              }`}
-                            >
-                              {user.instagramVerified ? '✅ Verifiziert' : '⏳ Als verifiziert markieren'}
-                            </button>
-                          </div>
-                        </td>
+                          <button
+                            onClick={() => toggleStreamerStatus(user.id)}
+                            className={`w-full rounded-md px-3 py-2 text-sm font-semibold transition-colors ${
+                              user.isStreamer
+                                ? 'bg-pink-600 text-white hover:bg-pink-700'
+                                : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                            }`}
+                          >
+                            {user.isStreamer ? 'Streamer entfernen' : 'Als Streamer markieren'}
+                          </button>
+                        </div>
 
-                        {/* Discord Verification */}
-                        <td className="p-4">
-                          <div className="space-y-1">
-                            <p className="text-gray-300 text-sm">{user.discordName || '-'}</p>
-                            <button
-                              onClick={() => toggleSocialVerification(user.id, 'discord', user.discordVerified)}
-                              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                                user.discordVerified 
-                                  ? 'bg-green-600 text-white hover:bg-green-700'
-                                  : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                              }`}
-                            >
-                              {user.discordVerified ? '✅ Verifiziert' : '⏳ Als verifiziert markieren'}
-                            </button>
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="block text-xs font-semibold uppercase tracking-wide text-gray-400">
+                              Verifikation
+                            </label>
+                            <span className="text-xs text-gray-500">
+                              Mindestlevel {MIN_VALORANT_LEVEL}
+                            </span>
                           </div>
-                        </td>
 
-                        {/* TikTok Verification */}
-                        <td className="p-4">
-                          <div className="space-y-1">
-                            <p className="text-gray-300 text-sm">{user.tiktokName || '-'}</p>
-                            <button
-                              onClick={() => toggleSocialVerification(user.id, 'tiktok', user.tiktokVerified)}
-                              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                                user.tiktokVerified
-                                  ? 'bg-green-600 text-white hover:bg-green-700'
-                                  : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                              }`}
-                            >
-                              {user.tiktokVerified ? '✅ Verifiziert' : '⏳ Als verifiziert markieren'}
-                            </button>
+                          <div className="grid grid-cols-2 gap-2">
+                            {verificationItems.map((item) => (
+                              <button
+                                key={item.key}
+                                onClick={() => toggleSocialVerification(user.id, item.key, item.verified)}
+                                disabled={!item.value}
+                                className={`rounded-md border px-3 py-2 text-left text-xs transition-colors disabled:cursor-not-allowed ${
+                                  !item.value
+                                    ? 'bg-gray-900/50 border-gray-800 text-gray-600'
+                                    : item.verified
+                                      ? 'bg-green-600/15 border-green-500/60 text-green-200 hover:bg-green-600/25'
+                                      : 'bg-gray-900 border-gray-700 text-gray-300 hover:border-yellow-500 hover:text-yellow-200'
+                                }`}
+                              >
+                                <span className="block font-semibold">{item.label}</span>
+                                <span className="block mt-1 truncate">
+                                  {!item.value ? 'Fehlt' : item.verified ? 'Verifiziert' : 'Offen'}
+                                </span>
+                              </button>
+                            ))}
                           </div>
-                        </td>
-
-                        {/* Overall Status */}
-                        <td className="p-4">
-                          {(() => {
-                            const hasAccounts = user.twitchName || user.instagramName || user.discordName || user.tiktokName
-                            const hasInGameInfo = user.inGameName || user.inGameRank
-                            const allSocialVerified =
-                              (!user.twitchName || user.twitchVerified) &&
-                              (!user.instagramName || user.instagramVerified) &&
-                              (!user.discordName || user.discordVerified) &&
-                              (!user.tiktokName || user.tiktokVerified)
-                            const allInGameVerified =
-                              (!user.inGameName || user.inGameNameVerified) &&
-                              (!user.inGameRank || user.inGameRankVerified)
-                            const hasVerified =
-                              user.twitchVerified ||
-                              user.instagramVerified ||
-                              user.discordVerified ||
-                              user.tiktokVerified ||
-                              user.inGameNameVerified ||
-                              user.inGameRankVerified
-                            
-                            if (!hasAccounts && !hasInGameInfo) {
-                              return <span className="bg-gray-600 text-white px-2 py-1 rounded text-sm">Keine Infos</span>
-                            } else if (allSocialVerified && allInGameVerified) {
-                              return <span className="bg-green-600 text-white px-2 py-1 rounded text-sm">Vollständig verifiziert</span>
-                            } else if (hasVerified) {
-                              return <span className="bg-yellow-600 text-white px-2 py-1 rounded text-sm">Teilweise verifiziert</span>
-                            } else {
-                              return <span className="bg-red-600 text-white px-2 py-1 rounded text-sm">Nicht verifiziert</span>
-                            }
-                          })()}
-                        </td>
-                        {/* Actions */}
-                        <td className="p-4">
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => deleteUser(user.id, user.twitchName || user.username)}
-                              disabled={deletingUser === user.id}
-                              className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center space-x-1"
-                            >
-                              {deletingUser === user.id ? (
-                                <>
-                                  <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
-                                  <span>...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <span>🗑️</span>
-                                  <span>Löschen</span>
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>
