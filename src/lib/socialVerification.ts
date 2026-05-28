@@ -10,6 +10,10 @@ function normalizeUsername(value: string): string {
   return value.trim().replace(/^@/, '').toLowerCase()
 }
 
+function normalizeTwitchToken(value: string): string {
+  return value.trim().replace(/^Bearer\s+/i, '').replace(/^oauth:/i, '')
+}
+
 async function twitchHeaders() {
   const clientId = process.env.TWITCH_CLIENT_ID
   const token = process.env.TWITCH_ACCESS_TOKEN
@@ -17,19 +21,63 @@ async function twitchHeaders() {
     return null
   }
   return {
-    'Client-ID': clientId,
-    Authorization: `Bearer ${token}`,
+    'Client-ID': clientId.trim(),
+    Authorization: `Bearer ${normalizeTwitchToken(token)}`,
   }
 }
 
-async function getTwitchUserId(login: string, headers: Record<string, string>): Promise<string | null> {
-  const response = await fetch(
-    `https://api.twitch.tv/helix/users?login=${encodeURIComponent(login)}`,
-    { headers }
-  )
-  if (!response.ok) return null
-  const body = await response.json()
-  return body?.data?.[0]?.id ?? null
+type TwitchUserLookup =
+  | { ok: true; id: string }
+  | {
+      ok: false
+      reason: 'not_found' | 'auth_error' | 'api_error' | 'network_error'
+      status?: number
+    }
+
+async function getTwitchUserId(
+  login: string,
+  headers: Record<string, string>
+): Promise<TwitchUserLookup> {
+  try {
+    const response = await fetch(
+      `https://api.twitch.tv/helix/users?login=${encodeURIComponent(normalizeUsername(login))}`,
+      { headers }
+    )
+
+    if (response.status === 401 || response.status === 403) {
+      return { ok: false, reason: 'auth_error', status: response.status }
+    }
+
+    if (!response.ok) {
+      return { ok: false, reason: 'api_error', status: response.status }
+    }
+
+    const body = await response.json()
+    const id = body?.data?.[0]?.id
+    return typeof id === 'string' && id.length > 0
+      ? { ok: true, id }
+      : { ok: false, reason: 'not_found' }
+  } catch {
+    return { ok: false, reason: 'network_error' }
+  }
+}
+
+function twitchLookupFailureMessage(
+  lookup: Exclude<TwitchUserLookup, { ok: true }>,
+  notFoundMessage: string
+): string {
+  if (lookup.reason === 'auth_error') {
+    return 'Twitch-API-Anmeldung fehlgeschlagen. Prüfe TWITCH_CLIENT_ID / TWITCH_ACCESS_TOKEN.'
+  }
+  if (lookup.reason === 'api_error') {
+    return `Twitch-API konnte nicht abgefragt werden${
+      lookup.status ? ` (Status ${lookup.status})` : ''
+    }. Versuche es später erneut.`
+  }
+  if (lookup.reason === 'network_error') {
+    return 'Twitch-API ist gerade nicht erreichbar. Versuche es später erneut.'
+  }
+  return notFoundMessage
 }
 
 export async function verifyTwitchFollow(twitchLogin: string): Promise<VerificationResult> {
@@ -42,18 +90,32 @@ export async function verifyTwitchFollow(twitchLogin: string): Promise<Verificat
   }
 
   const channel = SOCIAL_REQUIREMENTS.twitch.channel
-  const broadcasterId = await getTwitchUserId(channel, headers)
-  const userId = await getTwitchUserId(normalizeUsername(twitchLogin), headers)
+  const [broadcaster, user] = await Promise.all([
+    getTwitchUserId(channel, headers),
+    getTwitchUserId(twitchLogin, headers),
+  ])
 
-  if (!broadcasterId) {
-    return { verified: false, message: `Twitch-Kanal "${channel}" wurde nicht gefunden.` }
+  if (!broadcaster.ok) {
+    return {
+      verified: false,
+      message: twitchLookupFailureMessage(
+        broadcaster,
+        `Twitch-Kanal "${channel}" wurde nicht gefunden.`
+      ),
+    }
   }
-  if (!userId) {
-    return { verified: false, message: 'Twitch-Account nicht gefunden. Prüfe deinen Benutzernamen.' }
+  if (!user.ok) {
+    return {
+      verified: false,
+      message: twitchLookupFailureMessage(
+        user,
+        'Twitch-Account nicht gefunden. Prüfe deinen Benutzernamen.'
+      ),
+    }
   }
 
   const response = await fetch(
-    `https://api.twitch.tv/helix/channels/followers?broadcaster_id=${broadcasterId}&user_id=${userId}`,
+    `https://api.twitch.tv/helix/channels/followers?broadcaster_id=${broadcaster.id}&user_id=${user.id}`,
     { headers }
   )
 
