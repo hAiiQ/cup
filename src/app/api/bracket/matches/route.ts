@@ -98,7 +98,8 @@ export async function GET() {
 
     const bracketResult = buildBracketMatches(dbTeams, combinedStates, {
       mode: settings.mode,
-      slotCount: requestedSlots
+      slotCount: requestedSlots,
+      autoAdvanceByes: settings.tournamentStarted
     })
 
     console.log(`✅ Generated ${bracketResult.matches.length} matches for a ${bracketResult.slotCount}-slot bracket (${settings.mode}) [requested ${bracketResult.requestedSlotCount}]`)

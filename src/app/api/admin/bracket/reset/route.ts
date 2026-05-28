@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
 import { clearMatchStates } from '@/lib/matchState'
+import { updateBracketSettings } from '@/lib/bracketSettings'
 
 // Helper function to verify admin
 async function verifyAdmin(request: NextRequest) {
@@ -43,6 +44,7 @@ export async function POST(request: NextRequest) {
     // RENDER FIX: Simplified tournament reset
     // Delete all matches to reset tournament
     const deleteResult = await prisma.match.deleteMany({})
+    await updateBracketSettings({ tournamentStarted: false })
     clearMatchStates()
     
     console.log(`✅ Tournament reset: ${deleteResult.count} matches deleted`)

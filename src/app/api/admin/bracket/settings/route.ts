@@ -47,9 +47,9 @@ export async function POST(request: NextRequest) {
     }
 
     const payload = await request.json().catch(() => ({}))
-    const { mode, teamSlots } = payload || {}
+    const { mode, teamSlots, tournamentStarted } = payload || {}
 
-    const updated = await updateBracketSettings({ mode, teamSlots })
+    const updated = await updateBracketSettings({ mode, teamSlots, tournamentStarted })
     console.log(`${SETTINGS_ENDPOINT_LOG} Updated settings`, updated)
 
     return NextResponse.json({ settings: updated })

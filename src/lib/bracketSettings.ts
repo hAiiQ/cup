@@ -6,11 +6,13 @@ export type BracketMode = 'single' | 'double'
 export interface BracketSettings {
   mode: BracketMode
   teamSlots: number
+  tournamentStarted: boolean
 }
 
 const DEFAULT_SETTINGS: BracketSettings = {
   mode: 'double',
-  teamSlots: 16
+  teamSlots: 16,
+  tournamentStarted: false
 }
 
 const MIN_TEAM_SLOTS = 2
@@ -69,17 +71,26 @@ const ensureBracketSettingsTable = async () => {
             id TEXT PRIMARY KEY,
             mode TEXT NOT NULL DEFAULT 'double',
             "teamSlots" INTEGER NOT NULL DEFAULT 16,
+            "tournamentStarted" BOOLEAN NOT NULL DEFAULT FALSE,
             "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
           );
         `)
+      } else {
+        await prisma.$executeRawUnsafe(`
+          ALTER TABLE "BracketSetting"
+          ADD COLUMN IF NOT EXISTS "tournamentStarted" BOOLEAN NOT NULL DEFAULT FALSE;
+        `)
+      }
 
+      if (!exists) {
         await prisma.bracketSetting.upsert({
           where: { id: SETTINGS_ID },
           create: {
             id: SETTINGS_ID,
             mode: DEFAULT_SETTINGS.mode,
-            teamSlots: DEFAULT_SETTINGS.teamSlots
+            teamSlots: DEFAULT_SETTINGS.teamSlots,
+            tournamentStarted: DEFAULT_SETTINGS.tournamentStarted
           },
           update: {}
         })
@@ -108,7 +119,8 @@ export async function getBracketSettings(): Promise<BracketSettings> {
 
     return {
       mode: normalizeMode(record.mode),
-      teamSlots: clampTeamSlots(record.teamSlots)
+      teamSlots: clampTeamSlots(record.teamSlots),
+      tournamentStarted: Boolean(record.tournamentStarted)
     }
   } catch (error) {
     console.warn('Failed to load bracket settings, falling back to defaults:', error)
@@ -119,26 +131,33 @@ export async function getBracketSettings(): Promise<BracketSettings> {
 export async function updateBracketSettings(
   update: Partial<BracketSettings>
 ): Promise<BracketSettings> {
-  const mode = normalizeMode(update.mode)
-  const teamSlots = clampTeamSlots(update.teamSlots)
-
   await ensureBracketSettingsTable()
+
+  const current = await getBracketSettings()
+  const mode = update.mode === undefined ? current.mode : normalizeMode(update.mode)
+  const teamSlots = update.teamSlots === undefined ? current.teamSlots : clampTeamSlots(update.teamSlots)
+  const tournamentStarted = update.tournamentStarted === undefined
+    ? current.tournamentStarted
+    : Boolean(update.tournamentStarted)
 
   const saved = await prisma.bracketSetting.upsert({
     where: { id: SETTINGS_ID },
     create: {
       id: SETTINGS_ID,
       mode,
-      teamSlots
+      teamSlots,
+      tournamentStarted
     },
     update: {
       mode,
-      teamSlots
+      teamSlots,
+      tournamentStarted
     }
   })
 
   return {
     mode: normalizeMode(saved.mode),
-    teamSlots: clampTeamSlots(saved.teamSlots)
+    teamSlots: clampTeamSlots(saved.teamSlots),
+    tournamentStarted: Boolean(saved.tournamentStarted)
   }
 }

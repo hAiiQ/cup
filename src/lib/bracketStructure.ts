@@ -73,6 +73,7 @@ export interface BracketBuildResult {
 export interface BracketBuildOptions {
   mode?: BracketMode
   slotCount?: number
+  autoAdvanceByes?: boolean
 }
 
 const MIN_BRACKET_TEAMS = 2
@@ -476,7 +477,8 @@ const prepareTeams = (inputTeams: BracketTeam[], desiredSlotCount?: number) => {
 const buildMatchesFromBlueprints = (
   blueprints: MatchBlueprint[],
   teams: BracketTeam[],
-  stateMap: Map<string, MatchState>
+  stateMap: Map<string, MatchState>,
+  autoAdvanceByes: boolean = true
 ): BracketMatch[] => {
   const positionMap = new Map<number, BracketTeam>()
   teams.forEach((team) => positionMap.set(team.position, team))
@@ -554,7 +556,7 @@ const buildMatchesFromBlueprints = (
       }
     }
 
-    if (autoAdvanceWinner) {
+    if (autoAdvanceByes && autoAdvanceWinner) {
       const winningScore = blueprint.id === GRAND_FINAL_ID ? 3 : 2
       match.autoAdvance = true
       match.isFinished = true
@@ -607,7 +609,8 @@ const buildDoubleEliminationBracket = (
   teams: BracketTeam[],
   stateMap: Map<string, MatchState>,
   slotCount: number,
-  requestedSlotCount: number
+  requestedSlotCount: number,
+  autoAdvanceByes: boolean
 ): BracketBuildResult => {
   const winnerRounds = createWinnerRounds(slotCount)
   const loserRounds = createLoserRounds(winnerRounds)
@@ -631,7 +634,7 @@ const buildDoubleEliminationBracket = (
     grandFinal
   ]
 
-  const matches = buildMatchesFromBlueprints(blueprints, teams, stateMap)
+  const matches = buildMatchesFromBlueprints(blueprints, teams, stateMap, autoAdvanceByes)
   const layout = buildLayouts(winnerRounds, loserRounds, grandFinal)
   const connections = buildConnections(winnerRounds, loserRounds, grandFinal)
 
@@ -649,11 +652,12 @@ const buildSingleEliminationBracket = (
   teams: BracketTeam[],
   stateMap: Map<string, MatchState>,
   slotCount: number,
-  requestedSlotCount: number
+  requestedSlotCount: number,
+  autoAdvanceByes: boolean
 ): BracketBuildResult => {
   const rounds = createSingleEliminationRounds(slotCount)
   const blueprints = rounds.flat()
-  const matches = buildMatchesFromBlueprints(blueprints, teams, stateMap)
+  const matches = buildMatchesFromBlueprints(blueprints, teams, stateMap, autoAdvanceByes)
   const layout = buildSingleLayout(rounds)
   const connections = buildSingleConnections(rounds)
 
@@ -673,11 +677,12 @@ export const buildBracketMatches = (
   options: BracketBuildOptions = {}
 ): BracketBuildResult => {
   const desiredMode: BracketMode = options.mode === 'single' ? 'single' : 'double'
+  const autoAdvanceByes = options.autoAdvanceByes ?? true
   const { teams, slotCount, requestedSlotCount } = prepareTeams(inputTeams, options.slotCount)
 
   if (desiredMode === 'single') {
-    return buildSingleEliminationBracket(teams, stateMap, slotCount, requestedSlotCount)
+    return buildSingleEliminationBracket(teams, stateMap, slotCount, requestedSlotCount, autoAdvanceByes)
   }
 
-  return buildDoubleEliminationBracket(teams, stateMap, slotCount, requestedSlotCount)
+  return buildDoubleEliminationBracket(teams, stateMap, slotCount, requestedSlotCount, autoAdvanceByes)
 }

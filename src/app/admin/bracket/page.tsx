@@ -35,6 +35,7 @@ const createStateMap = (states: any[]): Map<string, MatchState> => {
 type BracketSettingsState = {
   mode: BracketMode
   teamSlots: number
+  tournamentStarted: boolean
 }
 
 const MIN_TEAM_SLOTS = 2
@@ -48,7 +49,8 @@ const clampTeamSlots = (value: number): number => {
 
 const DEFAULT_BRACKET_SETTINGS: BracketSettingsState = {
   mode: 'double',
-  teamSlots: MAX_TEAM_SLOTS
+  teamSlots: MAX_TEAM_SLOTS,
+  tournamentStarted: false
 }
 
 const MODE_LABELS: Record<BracketMode, string> = {
@@ -78,6 +80,7 @@ export default function AdminBracketPage() {
   const [bracketSettings, setBracketSettings] = useState<BracketSettingsState>(() => ({ ...DEFAULT_BRACKET_SETTINGS }))
   const [settingsDraft, setSettingsDraft] = useState<BracketSettingsState>(() => ({ ...DEFAULT_BRACKET_SETTINGS }))
   const [settingsSaving, setSettingsSaving] = useState(false)
+  const [tournamentStartLoading, setTournamentStartLoading] = useState(false)
   const [settingsAlert, setSettingsAlert] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const settingsChanged = settingsDraft.mode !== bracketSettings.mode || settingsDraft.teamSlots !== bracketSettings.teamSlots
   const modeOptions: BracketMode[] = ['double', 'single']
@@ -150,7 +153,8 @@ export default function AdminBracketPage() {
         if (settingsPayload?.settings) {
           persistedSettings = {
             mode: settingsPayload.settings.mode === 'single' ? 'single' : 'double',
-            teamSlots: clampTeamSlots(settingsPayload.settings.teamSlots)
+            teamSlots: clampTeamSlots(settingsPayload.settings.teamSlots),
+            tournamentStarted: Boolean(settingsPayload.settings.tournamentStarted)
           }
         }
       }
@@ -165,7 +169,8 @@ export default function AdminBracketPage() {
 
       const bracketResult = buildBracketMatches(limitedTeams, stateMap, {
         mode: persistedSettings.mode,
-        slotCount: persistedSettings.teamSlots
+        slotCount: persistedSettings.teamSlots,
+        autoAdvanceByes: persistedSettings.tournamentStarted
       })
       setBracket(bracketResult.matches)
       setLayout(bracketResult.layout)
@@ -230,7 +235,8 @@ export default function AdminBracketPage() {
       const payload = await response.json()
       const updatedSettings: BracketSettingsState = {
         mode: payload?.settings?.mode === 'single' ? 'single' : 'double',
-        teamSlots: clampTeamSlots(payload?.settings?.teamSlots ?? settingsDraft.teamSlots)
+        teamSlots: clampTeamSlots(payload?.settings?.teamSlots ?? settingsDraft.teamSlots),
+        tournamentStarted: Boolean(payload?.settings?.tournamentStarted)
       }
 
       setBracketSettings(updatedSettings)
@@ -242,6 +248,54 @@ export default function AdminBracketPage() {
       setSettingsAlert({ type: 'error', text: 'Einstellungen konnten nicht gespeichert werden.' })
     } finally {
       setSettingsSaving(false)
+    }
+  }
+
+  const startTournament = async () => {
+    if (bracketSettings.tournamentStarted || tournamentStartLoading) {
+      return
+    }
+
+    if (teams.length < 2) {
+      setSettingsAlert({ type: 'error', text: 'Zum Starten müssen mindestens 2 Teams besetzt sein.' })
+      return
+    }
+
+    if (!confirm('Turnier jetzt starten? Ab dann werden Freilose automatisch im Bracket weitergerechnet.')) {
+      return
+    }
+
+    setTournamentStartLoading(true)
+    setSettingsAlert(null)
+
+    try {
+      const response = await fetch('/api/admin/bracket/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ tournamentStarted: true })
+      })
+
+      if (!response.ok) {
+        throw new Error('Tournament konnte nicht gestartet werden')
+      }
+
+      const payload = await response.json()
+      const updatedSettings: BracketSettingsState = {
+        mode: payload?.settings?.mode === 'single' ? 'single' : 'double',
+        teamSlots: clampTeamSlots(payload?.settings?.teamSlots ?? bracketSettings.teamSlots),
+        tournamentStarted: Boolean(payload?.settings?.tournamentStarted)
+      }
+
+      setBracketSettings(updatedSettings)
+      setSettingsDraft(updatedSettings)
+      setSettingsAlert({ type: 'success', text: 'Turnier gestartet. Freilose werden jetzt angewendet.' })
+      await fetchData(false)
+    } catch (error) {
+      console.error('Error starting tournament:', error)
+      setSettingsAlert({ type: 'error', text: 'Turnier konnte nicht gestartet werden.' })
+    } finally {
+      setTournamentStartLoading(false)
     }
   }
 
@@ -526,6 +580,17 @@ export default function AdminBracketPage() {
                 {teams.length} Teams aktiv · Konfiguriert: {configuredSlotCount} Slots · Bracket Seeds: {slotCount > 0 ? slotCount : '...'} · {MODE_LABELS[bracketSettings.mode]}
               </div>
               <button
+                onClick={startTournament}
+                className={`px-4 py-2 rounded transition-colors font-semibold ${bracketSettings.tournamentStarted ? 'bg-green-700 text-green-100 cursor-default' : 'bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed'}`}
+                disabled={bracketSettings.tournamentStarted || tournamentStartLoading || teams.length < 2}
+              >
+                {tournamentStartLoading
+                  ? 'Starte...'
+                  : bracketSettings.tournamentStarted
+                    ? 'Turnier gestartet'
+                    : 'Turnier starten'}
+              </button>
+              <button
                 onClick={() => fetchData(false)}
                 className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors flex items-center gap-2"
                 disabled={refreshing}
@@ -629,6 +694,18 @@ export default function AdminBracketPage() {
                 className={`w-full px-4 py-3 rounded font-semibold text-white transition-colors ${settingsChanged ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-700 cursor-not-allowed'} ${settingsSaving ? 'opacity-60' : ''}`}
               >
                 {settingsSaving ? 'Speichere...' : 'Einstellungen speichern & anwenden'}
+              </button>
+              <button
+                type="button"
+                onClick={startTournament}
+                disabled={bracketSettings.tournamentStarted || tournamentStartLoading || teams.length < 2}
+                className={`w-full px-4 py-3 rounded font-semibold text-white transition-colors ${bracketSettings.tournamentStarted ? 'bg-green-700 cursor-default' : 'bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed'} ${tournamentStartLoading ? 'opacity-60' : ''}`}
+              >
+                {tournamentStartLoading
+                  ? 'Turnier startet...'
+                  : bracketSettings.tournamentStarted
+                    ? 'Turnier ist gestartet'
+                    : 'Turnier jetzt starten'}
               </button>
             </div>
           </div>
