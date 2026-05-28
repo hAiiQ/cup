@@ -499,18 +499,6 @@ export default function RegisterPage() {
                       <span className="text-white/90 text-sm"><strong>Tournament Format:</strong> Noch unbekannt - das finale Format wird noch bekanntgegeben</span>
                     </div>
                   </div>
-                  <div className="bg-yellow-500/20 rounded-lg p-2 border border-yellow-500/30">
-                    <div className="flex items-start">
-                      <span className="text-yellow-400 mr-2 text-lg mt-1">⚡</span>
-                      <span className="text-white/90 text-sm"><strong>Jeder Tier 1 Spieler muss Gambit spielen</strong></span>
-                    </div>
-                  </div>
-                  <div className="bg-red-500/20 rounded-lg p-2 border border-red-500/30">
-                    <div className="flex items-start">
-                      <span className="text-red-400 mr-2 text-lg mt-1">🚫</span>
-                      <span className="text-white/90 text-sm"><strong>Gambit darf nicht gebannt werden</strong></span>
-                    </div>
-                  </div>
                   <div className="flex items-start">
                     <span className="text-green-400 mr-2 text-lg mt-1">🔄</span>
                     <span className="text-white/90 text-sm">Turnierformat und Teamanzahl werden noch bekanntgegeben</span>
