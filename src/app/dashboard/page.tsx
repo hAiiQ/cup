@@ -34,7 +34,6 @@ export default function DashboardPage() {
   const [editMode, setEditMode] = useState(false)
   const [editForm, setEditForm] = useState({
     inGameName: '',
-    inGameRank: '',
     discordName: '',
     twitchName: '',
     instagramName: ''
@@ -84,7 +83,6 @@ export default function DashboardPage() {
           // Update edit form with current user data
           setEditForm({
             inGameName: data.user.inGameName || '',
-            inGameRank: data.user.inGameRank || '',
             discordName: data.user.discordName || '',
             twitchName: data.user.twitchName || '',
             instagramName: data.user.instagramName || ''
@@ -134,7 +132,6 @@ export default function DashboardPage() {
     if (user) {
       setEditForm({
         inGameName: user.inGameName || '',
-        inGameRank: user.inGameRank || '',
         discordName: user.discordName || '',
         twitchName: user.twitchName || '',
         instagramName: user.instagramName || ''
@@ -303,7 +300,7 @@ export default function DashboardPage() {
                       </div>
 
                       <div className="bg-white/5 rounded-lg p-4">
-                        <div className="text-white/70 text-sm mb-1">Rank</div>
+                        <div className="text-white/70 text-sm mb-1">Peak Rank</div>
                         <div className="flex items-center justify-between">
                           <span className="text-white font-medium">
                             {user?.inGameRank || <span className="text-gray-400 italic">Nicht angegeben</span>}
@@ -476,21 +473,29 @@ export default function DashboardPage() {
                         </div>
 
                         <div className="bg-white/5 rounded-lg p-4">
-                          <label className="block text-white/70 text-sm mb-2">Rank</label>
-                          <select
-                            value={editForm.inGameRank}
-                            onChange={(e) => handleInputChange('inGameRank', e.target.value)}
-                            className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
-                          >
-                            <option value="" className="bg-gray-800">Wähle deinen Rank</option>
-                            <option value="Gold" className="bg-gray-800">Gold</option>
-                            <option value="Platinum" className="bg-gray-800">Platinum</option>
-                            <option value="Diamond" className="bg-gray-800">Diamond</option>
-                            <option value="Grandmaster" className="bg-gray-800">Grandmaster</option>
-                            <option value="Celestial" className="bg-gray-800">Celestial</option>
-                            <option value="Eternity" className="bg-gray-800">Eternity</option>
-                            <option value="One Above All" className="bg-gray-800">One Above All</option>
-                          </select>
+                          <div className="text-white/70 text-sm mb-3">Valorant Rank</div>
+                          <div className="flex flex-wrap gap-2">
+                            {user?.valorantCurrentRank ? (
+                              <span className="bg-blue-600/20 text-blue-200 px-3 py-1 rounded-full text-xs font-bold border border-blue-400/60">
+                                AKTUELL {user.valorantCurrentRank}
+                              </span>
+                            ) : (
+                              <span className="bg-gray-600/20 text-gray-300 px-3 py-1 rounded-full text-xs font-bold border border-gray-500/60">
+                                AKTUELL offen
+                              </span>
+                            )}
+
+                            {user?.inGameRank ? (
+                              <span className="bg-indigo-600/20 text-indigo-200 px-3 py-1 rounded-full text-xs font-bold border border-indigo-400/60">
+                                PEAK {user.inGameRank}
+                              </span>
+                            ) : (
+                              <span className="bg-gray-600/20 text-gray-300 px-3 py-1 rounded-full text-xs font-bold border border-gray-500/60">
+                                PEAK offen
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-400 mt-2">Ranks werden automatisch ueber die Henrik API gesetzt und koennen hier nicht geaendert werden.</div>
                         </div>
 
                         <div className="bg-white/5 rounded-lg p-4">

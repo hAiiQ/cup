@@ -117,14 +117,13 @@ export async function PUT(request: NextRequest) {
     }
 
     console.log('Token verified, userId:', decoded.userId)
-    const { inGameName, inGameRank, discordName, twitchName, instagramName } = await request.json()
-    console.log('Update data:', { inGameName, inGameRank, discordName, twitchName, instagramName })
+    const { inGameName, discordName, twitchName, instagramName } = await request.json()
+    console.log('Update data:', { inGameName, discordName, twitchName, instagramName })
 
     const user = await prisma.user.update({
       where: { id: decoded.userId },
       data: {
         inGameName: inGameName || null,
-        inGameRank: inGameRank || null,
         discordName: discordName || null,
         twitchName: twitchName || null,
         instagramName: instagramName || null,
