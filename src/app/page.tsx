@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 
 const CASE_ITEM_COUNT = 48
@@ -15,9 +15,10 @@ const CASE_ROLL_DURATION_MS = 6000
 export default function HomePage() {
   const { isLoggedIn, loading } = useAuth()
   const [caseOpen, setCaseOpen] = useState(false)
-  const [caseRolling, setCaseRolling] = useState(false)
   const [caseRunId, setCaseRunId] = useState(0)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const caseTrackRef = useRef<HTMLDivElement | null>(null)
+  const caseAnimationRef = useRef<Animation | null>(null)
   const caseRollDistance = CASE_WIN_INDEX * CASE_ITEM_SPAN
 
   const caseItems = useMemo(
@@ -38,6 +39,11 @@ export default function HomePage() {
   }, [])
 
   const closeCaseOpening = useCallback(() => {
+    caseAnimationRef.current?.cancel()
+    caseAnimationRef.current = null
+    if (caseTrackRef.current) {
+      caseTrackRef.current.style.transform = 'translate3d(0, 0, 0)'
+    }
     setCaseOpen(false)
     stopCaseAudio()
   }, [stopCaseAudio])
@@ -48,13 +54,44 @@ export default function HomePage() {
     }
 
     const rollTimer = window.setTimeout(() => {
-      setCaseRolling(true)
+      const track = caseTrackRef.current
+      if (!track) {
+        return
+      }
+
+      const fastDistance = Math.round(caseRollDistance * 0.9)
+      caseAnimationRef.current?.cancel()
+      track.style.transform = 'translate3d(0, 0, 0)'
+      caseAnimationRef.current = track.animate(
+        [
+          {
+            transform: 'translate3d(0, 0, 0)',
+            easing: 'cubic-bezier(0.03, 0.96, 0.12, 1)',
+            offset: 0,
+          },
+          {
+            transform: `translate3d(-${fastDistance}px, 0, 0)`,
+            easing: 'cubic-bezier(0.08, 0.62, 0.12, 1)',
+            offset: 2 / 3,
+          },
+          {
+            transform: `translate3d(-${caseRollDistance}px, 0, 0)`,
+            offset: 1,
+          },
+        ],
+        {
+          duration: CASE_ROLL_DURATION_MS,
+          fill: 'forwards',
+        }
+      )
     }, 80)
 
     return () => {
       window.clearTimeout(rollTimer)
+      caseAnimationRef.current?.cancel()
+      caseAnimationRef.current = null
     }
-  }, [caseOpen, caseRunId])
+  }, [caseOpen, caseRunId, caseRollDistance])
 
   useEffect(() => {
     if (!caseOpen) {
@@ -68,7 +105,11 @@ export default function HomePage() {
   }, [caseOpen, closeCaseOpening])
 
   const handleCaseOpening = () => {
-    setCaseRolling(false)
+    caseAnimationRef.current?.cancel()
+    caseAnimationRef.current = null
+    if (caseTrackRef.current) {
+      caseTrackRef.current.style.transform = 'translate3d(0, 0, 0)'
+    }
     setCaseOpen(true)
     setCaseRunId((current) => current + 1)
 
@@ -185,19 +226,17 @@ export default function HomePage() {
               <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-black/80 to-transparent" />
 
               <div
+                ref={caseTrackRef}
                 className="flex"
                 style={{
                   gap: `${CASE_ITEM_GAP}px`,
                   paddingLeft: `calc(50% - ${CASE_ITEM_SIZE / 2}px)`,
                   paddingRight: `calc(50% - ${CASE_ITEM_SIZE / 2}px)`,
-                  '--case-roll-fast-distance': `-${Math.round(caseRollDistance * 0.9)}px`,
-                  '--case-roll-distance': `-${caseRollDistance}px`,
-                  animation: caseRolling
-                    ? `case-prize-roll ${CASE_ROLL_DURATION_MS}ms forwards`
-                    : 'none',
+                  animation: 'none',
                   transform: 'translate3d(0, 0, 0)',
+                  transition: 'none',
                   willChange: 'transform',
-                } as CSSProperties}
+                }}
               >
                 {caseItems.map((item, index) => (
                   <div
@@ -223,24 +262,6 @@ export default function HomePage() {
           </div>
         </div>
       )}
-
-      <style jsx global>{`
-        @keyframes case-prize-roll {
-          0% {
-            transform: translate3d(0, 0, 0);
-            animation-timing-function: cubic-bezier(0.03, 0.96, 0.12, 1);
-          }
-
-          66.67% {
-            transform: translate3d(var(--case-roll-fast-distance), 0, 0);
-            animation-timing-function: cubic-bezier(0.08, 0.62, 0.12, 1);
-          }
-
-          100% {
-            transform: translate3d(var(--case-roll-distance), 0, 0);
-          }
-        }
-      `}</style>
     </>
   )
 }
