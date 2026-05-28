@@ -11,6 +11,10 @@ const CASE_ITEM_SIZE = 132
 const CASE_ITEM_GAP = 16
 const CASE_ITEM_SPAN = CASE_ITEM_SIZE + CASE_ITEM_GAP
 const CASE_ROLL_DURATION_MS = 6000
+const CASE_FAST_PHASE_MS = 2500
+const CASE_FINAL_PHASE_START_MS = 4000
+const CASE_DECELERATION_ITEM_COUNT = 4
+const CASE_FINAL_ITEMS_PER_SECOND = 1
 
 export default function HomePage() {
   const { isLoggedIn, loading } = useAuth()
@@ -59,16 +63,40 @@ export default function HomePage() {
         return
       }
 
+      const finalPhaseSeconds = (CASE_ROLL_DURATION_MS - CASE_FINAL_PHASE_START_MS) / 1000
+      const finalPhaseDistance = CASE_ITEM_SPAN * CASE_FINAL_ITEMS_PER_SECOND * finalPhaseSeconds
+      const decelerationDistance = CASE_ITEM_SPAN * CASE_DECELERATION_ITEM_COUNT
+      const fastPhaseDistance = caseRollDistance - finalPhaseDistance - decelerationDistance
+      const finalPhaseStartDistance = caseRollDistance - finalPhaseDistance
+      const fastPhaseOffset = CASE_FAST_PHASE_MS / CASE_ROLL_DURATION_MS
+      const finalPhaseStartOffset = CASE_FINAL_PHASE_START_MS / CASE_ROLL_DURATION_MS
+
       caseAnimationRef.current?.cancel()
       track.style.transform = 'translate3d(0, 0, 0)'
       caseAnimationRef.current = track.animate(
         [
-          { transform: 'translate3d(0, 0, 0)' },
-          { transform: `translate3d(-${caseRollDistance}px, 0, 0)` },
+          {
+            transform: 'translate3d(0, 0, 0)',
+            easing: 'cubic-bezier(0.02, 0.96, 0.04, 1)',
+            offset: 0,
+          },
+          {
+            transform: `translate3d(-${fastPhaseDistance}px, 0, 0)`,
+            easing: 'cubic-bezier(0.18, 0.72, 0.18, 1)',
+            offset: fastPhaseOffset,
+          },
+          {
+            transform: `translate3d(-${finalPhaseStartDistance}px, 0, 0)`,
+            easing: 'linear',
+            offset: finalPhaseStartOffset,
+          },
+          {
+            transform: `translate3d(-${caseRollDistance}px, 0, 0)`,
+            offset: 1,
+          },
         ],
         {
           duration: CASE_ROLL_DURATION_MS,
-          easing: 'cubic-bezier(0.02, 0.88, 0.08, 1)',
           fill: 'forwards',
         }
       )
