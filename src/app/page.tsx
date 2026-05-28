@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 
 const CASE_ITEM_COUNT = 48
@@ -18,6 +18,7 @@ export default function HomePage() {
   const [caseRolling, setCaseRolling] = useState(false)
   const [caseRunId, setCaseRunId] = useState(0)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const caseRollDistance = CASE_WIN_INDEX * CASE_ITEM_SPAN
 
   const caseItems = useMemo(
     () =>
@@ -27,6 +28,19 @@ export default function HomePage() {
       })),
     []
   )
+
+  const stopCaseAudio = useCallback(() => {
+    const audio = audioRef.current
+    if (audio) {
+      audio.pause()
+      audio.currentTime = 0
+    }
+  }, [])
+
+  const closeCaseOpening = useCallback(() => {
+    setCaseOpen(false)
+    stopCaseAudio()
+  }, [stopCaseAudio])
 
   useEffect(() => {
     if (!caseOpen) {
@@ -47,17 +61,11 @@ export default function HomePage() {
       return
     }
 
-    const handlePointerDown = () => {
-      setCaseOpen(false)
-    }
+    const handlePointerDown = () => closeCaseOpening()
 
     window.addEventListener('pointerdown', handlePointerDown)
     return () => window.removeEventListener('pointerdown', handlePointerDown)
-  }, [caseOpen])
-
-  const closeCaseOpening = () => {
-    setCaseOpen(false)
-  }
+  }, [caseOpen, closeCaseOpening])
 
   const handleCaseOpening = () => {
     setCaseRolling(false)
@@ -182,14 +190,14 @@ export default function HomePage() {
                   gap: `${CASE_ITEM_GAP}px`,
                   paddingLeft: `calc(50% - ${CASE_ITEM_SIZE / 2}px)`,
                   paddingRight: `calc(50% - ${CASE_ITEM_SIZE / 2}px)`,
-                  transform: caseRolling
-                    ? `translate3d(-${CASE_WIN_INDEX * CASE_ITEM_SPAN}px, 0, 0)`
-                    : 'translate3d(0, 0, 0)',
-                  transition: caseRolling
-                    ? `transform ${CASE_ROLL_DURATION_MS}ms cubic-bezier(0.04, 0.92, 0.16, 1)`
+                  '--case-roll-fast-distance': `-${Math.round(caseRollDistance * 0.9)}px`,
+                  '--case-roll-distance': `-${caseRollDistance}px`,
+                  animation: caseRolling
+                    ? `case-prize-roll ${CASE_ROLL_DURATION_MS}ms forwards`
                     : 'none',
+                  transform: 'translate3d(0, 0, 0)',
                   willChange: 'transform',
-                }}
+                } as CSSProperties}
               >
                 {caseItems.map((item, index) => (
                   <div
@@ -215,6 +223,24 @@ export default function HomePage() {
           </div>
         </div>
       )}
+
+      <style jsx global>{`
+        @keyframes case-prize-roll {
+          0% {
+            transform: translate3d(0, 0, 0);
+            animation-timing-function: cubic-bezier(0.03, 0.96, 0.12, 1);
+          }
+
+          66.67% {
+            transform: translate3d(var(--case-roll-fast-distance), 0, 0);
+            animation-timing-function: cubic-bezier(0.08, 0.62, 0.12, 1);
+          }
+
+          100% {
+            transform: translate3d(var(--case-roll-distance), 0, 0);
+          }
+        }
+      `}</style>
     </>
   )
 }
