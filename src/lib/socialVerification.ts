@@ -34,6 +34,69 @@ type TwitchUserLookup =
       status?: number
     }
 
+type TwitchTokenValidation =
+  | { ok: true }
+  | { ok: false; message: string }
+
+async function validateTwitchToken(
+  clientId: string,
+  accessToken: string
+): Promise<TwitchTokenValidation> {
+  try {
+    const response = await fetch('https://id.twitch.tv/oauth2/validate', {
+      headers: { Authorization: `OAuth ${accessToken}` },
+    })
+
+    if (response.status === 401) {
+      return {
+        ok: false,
+        message:
+          'Twitch-Access-Token ist ungültig oder abgelaufen. Erzeuge ihn neu mit deiner Twitch-App.',
+      }
+    }
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        message: 'Twitch-Access-Token konnte nicht validiert werden. Versuche es später erneut.',
+      }
+    }
+
+    const body = await response.json()
+    if (body?.client_id !== clientId) {
+      return {
+        ok: false,
+        message:
+          'Twitch-Access-Token passt nicht zur TWITCH_CLIENT_ID. Erzeuge den Token mit genau dieser Twitch-App.',
+      }
+    }
+
+    if (!body?.user_id) {
+      return {
+        ok: false,
+        message:
+          'Twitch-Access-Token muss ein User Access Token sein, kein App Access Token.',
+      }
+    }
+
+    const scopes = Array.isArray(body?.scopes) ? body.scopes : []
+    if (!scopes.includes('moderator:read:followers')) {
+      return {
+        ok: false,
+        message:
+          'Twitch-Access-Token braucht den Scope moderator:read:followers.',
+      }
+    }
+
+    return { ok: true }
+  } catch {
+    return {
+      ok: false,
+      message: 'Twitch-API ist gerade nicht erreichbar. Versuche es später erneut.',
+    }
+  }
+}
+
 async function getTwitchUserId(
   login: string,
   headers: Record<string, string>
@@ -87,6 +150,14 @@ export async function verifyTwitchFollow(twitchLogin: string): Promise<Verificat
       verified: false,
       message: 'Twitch-API ist nicht konfiguriert (TWITCH_CLIENT_ID / TWITCH_ACCESS_TOKEN).',
     }
+  }
+
+  const tokenValidation = await validateTwitchToken(
+    headers['Client-ID'],
+    headers.Authorization.replace(/^Bearer\s+/i, '')
+  )
+  if (!tokenValidation.ok) {
+    return { verified: false, message: tokenValidation.message }
   }
 
   const channel = SOCIAL_REQUIREMENTS.twitch.channel
