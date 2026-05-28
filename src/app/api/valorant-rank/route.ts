@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { fetchValorantRank, HenrikApiError } from '@/lib/henrikValorant'
 import { MIN_VALORANT_LEVEL } from '@/lib/valorantRequirements'
+import {
+  checkValorantLookupRateLimit,
+  getRetryAfterSeconds,
+  getValorantRateLimitMessage,
+  VALORANT_LOOKUP_LIMIT,
+} from '@/lib/valorantLookupRateLimit'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,6 +17,25 @@ export async function GET(request: NextRequest) {
 
   if (!name || !tag) {
     return NextResponse.json({ error: 'Name und Tag sind erforderlich (Format: Name#Tag)' }, { status: 400 })
+  }
+
+  const rateLimit = checkValorantLookupRateLimit(request)
+  if (!rateLimit.allowed) {
+    const retryAfterSeconds = getRetryAfterSeconds(rateLimit.retryAfterMs)
+    return NextResponse.json(
+      {
+        error: getValorantRateLimitMessage(rateLimit.retryAfterMs),
+        code: 'RATE_LIMITED',
+        retryAfterSeconds,
+        limit: VALORANT_LOOKUP_LIMIT,
+      },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(retryAfterSeconds),
+        },
+      }
+    )
   }
 
   try {

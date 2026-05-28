@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
 import { SOCIAL_REQUIREMENTS } from '@/lib/socialRequirements'
+import { VALORANT_LOOKUP_LIMIT, VALORANT_LOOKUP_WINDOW_MINUTES } from '@/lib/valorantLookupLimits'
 import { MIN_VALORANT_LEVEL } from '@/lib/valorantRequirements'
 
 export default function RegisterPage() {
@@ -272,6 +273,7 @@ export default function RegisterPage() {
               </div>
               <p className="text-xs text-white/60 mt-2">
                 Gib deinen Valorant Namen inklusive Hashtag ein und klicke danach auf Prüfen.
+                Maximal {VALORANT_LOOKUP_LIMIT} Prüfungen alle {VALORANT_LOOKUP_WINDOW_MINUTES} Minuten.
               </p>
             </div>
 

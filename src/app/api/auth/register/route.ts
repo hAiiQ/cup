@@ -5,6 +5,12 @@ import { hashPassword, generateToken } from '@/lib/auth'
 import { verifyDiscordMembership, verifyTwitchFollow } from '@/lib/socialVerification'
 import { fetchValorantRank, HenrikApiError } from '@/lib/henrikValorant'
 import { MIN_VALORANT_LEVEL } from '@/lib/valorantRequirements'
+import {
+  checkValorantLookupRateLimit,
+  getRetryAfterSeconds,
+  getValorantRateLimitMessage,
+  VALORANT_LOOKUP_LIMIT,
+} from '@/lib/valorantLookupRateLimit'
 
 export const dynamic = 'force-dynamic'
 
@@ -61,37 +67,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    let valorantLookup: Awaited<ReturnType<typeof fetchValorantRank>>
-    try {
-      valorantLookup = await fetchValorantRank(valorantName, valorantTag)
-    } catch (error) {
-      if (error instanceof HenrikApiError) {
-        return NextResponse.json(
-          { error: error.message },
-          { status: error.status }
-        )
-      }
-
-      throw error
-    }
-
-    const valorantLevel = valorantLookup.accountLevel
-    if (typeof valorantLevel !== 'number') {
-      return NextResponse.json(
-        { error: 'Valorant-Level konnte nicht abgerufen werden. Bitte versuche es später erneut.' },
-        { status: 502 }
-      )
-    }
-
-    if (valorantLevel < MIN_VALORANT_LEVEL) {
-      return NextResponse.json(
-        {
-          error: `Dein Valorant Account muss mindestens Level ${MIN_VALORANT_LEVEL} sein. Aktuelles Level: ${valorantLevel}.`,
-        },
-        { status: 400 }
-      )
-    }
-
     if (!trimmedDiscordName || !trimmedInstagramName || !trimmedTikTokName) {
       return NextResponse.json(
         { error: 'Twitch, Discord, Instagram und TikTok sind erforderlich' },
@@ -122,6 +97,56 @@ export async function POST(request: NextRequest) {
     if (twitchAlreadyRegistered) {
       return NextResponse.json(
         { error: 'Dieser Twitch Name ist bereits registriert' },
+        { status: 400 }
+      )
+    }
+
+    const rateLimit = checkValorantLookupRateLimit(request)
+    if (!rateLimit.allowed) {
+      const retryAfterSeconds = getRetryAfterSeconds(rateLimit.retryAfterMs)
+      return NextResponse.json(
+        {
+          error: getValorantRateLimitMessage(rateLimit.retryAfterMs),
+          code: 'RATE_LIMITED',
+          retryAfterSeconds,
+          limit: VALORANT_LOOKUP_LIMIT,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(retryAfterSeconds),
+          },
+        }
+      )
+    }
+
+    let valorantLookup: Awaited<ReturnType<typeof fetchValorantRank>>
+    try {
+      valorantLookup = await fetchValorantRank(valorantName, valorantTag)
+    } catch (error) {
+      if (error instanceof HenrikApiError) {
+        return NextResponse.json(
+          { error: error.message },
+          { status: error.status }
+        )
+      }
+
+      throw error
+    }
+
+    const valorantLevel = valorantLookup.accountLevel
+    if (typeof valorantLevel !== 'number') {
+      return NextResponse.json(
+        { error: 'Valorant-Level konnte nicht abgerufen werden. Bitte versuche es später erneut.' },
+        { status: 502 }
+      )
+    }
+
+    if (valorantLevel < MIN_VALORANT_LEVEL) {
+      return NextResponse.json(
+        {
+          error: `Dein Valorant Account muss mindestens Level ${MIN_VALORANT_LEVEL} sein. Aktuelles Level: ${valorantLevel}.`,
+        },
         { status: 400 }
       )
     }
