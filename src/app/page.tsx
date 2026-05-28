@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -15,6 +14,7 @@ const CASE_FAST_PHASE_MS = 2500
 const CASE_FINAL_PHASE_START_MS = 4000
 const CASE_DECELERATION_ITEM_COUNT = 4
 const CASE_FINAL_ITEMS_PER_SECOND = 1
+const CASE_IMAGE_SOURCES = ['/bild1.png', '/bild2.png']
 
 const getCaseRollDistanceAtTime = (elapsedMs: number, totalDistance: number) => {
   const finalPhaseDuration = CASE_ROLL_DURATION_MS - CASE_FINAL_PHASE_START_MS
@@ -60,16 +60,58 @@ export default function HomePage() {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const caseTrackRef = useRef<HTMLDivElement | null>(null)
   const caseAnimationFrameRef = useRef<number | null>(null)
+  const caseImagesReadyRef = useRef(false)
+  const caseImagePreloadRef = useRef<Promise<void> | null>(null)
   const caseRollDistance = CASE_WIN_INDEX * CASE_ITEM_SPAN
 
   const caseItems = useMemo(
     () =>
       Array.from({ length: CASE_ITEM_COUNT }, (_, index) => ({
-        src: index === CASE_WIN_INDEX ? '/bild2.png' : '/bild1.png',
+        src: index === CASE_WIN_INDEX ? CASE_IMAGE_SOURCES[1] : CASE_IMAGE_SOURCES[0],
         isWinner: index === CASE_WIN_INDEX,
       })),
     []
   )
+
+  const preloadCaseImages = useCallback(() => {
+    if (caseImagesReadyRef.current) {
+      return Promise.resolve()
+    }
+
+    if (caseImagePreloadRef.current) {
+      return caseImagePreloadRef.current
+    }
+
+    caseImagePreloadRef.current = Promise.all(
+      CASE_IMAGE_SOURCES.map(
+        (src) =>
+          new Promise<void>((resolve) => {
+            const image = new window.Image()
+            let settled = false
+            const finish = () => {
+              if (settled) {
+                return
+              }
+
+              settled = true
+              resolve()
+            }
+
+            image.onload = finish
+            image.onerror = finish
+            image.src = src
+
+            if (image.complete) {
+              finish()
+            }
+          })
+      )
+    ).then(() => {
+      caseImagesReadyRef.current = true
+    })
+
+    return caseImagePreloadRef.current
+  }, [])
 
   const stopCaseAudio = useCallback(() => {
     const audio = audioRef.current
@@ -85,6 +127,10 @@ export default function HomePage() {
       caseAnimationFrameRef.current = null
     }
   }, [])
+
+  useEffect(() => {
+    void preloadCaseImages()
+  }, [preloadCaseImages])
 
   const closeCaseOpening = useCallback(() => {
     cancelCaseRoll()
@@ -149,21 +195,44 @@ export default function HomePage() {
     if (caseTrackRef.current) {
       caseTrackRef.current.style.transform = 'translate3d(0, 0, 0)'
     }
-    setCaseOpen(true)
-    setCaseRunId((current) => current + 1)
 
-    const audio = audioRef.current
-    if (audio) {
-      audio.currentTime = 0
-      void audio.play().catch(() => {
-        // Browser may block audio in unusual cases.
-      })
+    const openCase = () => {
+      setCaseOpen(true)
+      setCaseRunId((current) => current + 1)
+
+      const audio = audioRef.current
+      if (audio) {
+        audio.currentTime = 0
+        void audio.play().catch(() => {
+          // Browser may block audio in unusual cases.
+        })
+      }
     }
+
+    if (caseImagesReadyRef.current) {
+      openCase()
+      return
+    }
+
+    void preloadCaseImages().then(openCase)
   }
 
   return (
     <>
       <audio ref={audioRef} src="/caseopening.mp3" preload="auto" />
+      <div aria-hidden="true" className="pointer-events-none absolute h-px w-px overflow-hidden opacity-0">
+        {CASE_IMAGE_SOURCES.map((src) => (
+          <img
+            key={src}
+            src={src}
+            alt=""
+            width={CASE_ITEM_SIZE}
+            height={CASE_ITEM_SIZE}
+            loading="eager"
+            decoding="async"
+          />
+        ))}
+      </div>
 
       {/* Hero Section */}
       <main className="min-h-screen flex flex-col justify-center items-center px-4 py-20 relative">
@@ -287,11 +356,13 @@ export default function HomePage() {
                     }`}
                     style={{ width: CASE_ITEM_SIZE, height: CASE_ITEM_SIZE }}
                   >
-                    <Image
+                    <img
                       src={item.src}
                       alt="Preisbild"
                       width={CASE_ITEM_SIZE}
                       height={CASE_ITEM_SIZE}
+                      loading="eager"
+                      decoding="sync"
                       className="h-full w-full object-cover"
                     />
                   </div>
