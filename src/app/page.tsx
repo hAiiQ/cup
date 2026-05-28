@@ -59,28 +59,16 @@ export default function HomePage() {
         return
       }
 
-      const fastDistance = Math.round(caseRollDistance * 0.9)
       caseAnimationRef.current?.cancel()
       track.style.transform = 'translate3d(0, 0, 0)'
       caseAnimationRef.current = track.animate(
         [
-          {
-            transform: 'translate3d(0, 0, 0)',
-            easing: 'cubic-bezier(0.03, 0.96, 0.12, 1)',
-            offset: 0,
-          },
-          {
-            transform: `translate3d(-${fastDistance}px, 0, 0)`,
-            easing: 'cubic-bezier(0.08, 0.62, 0.12, 1)',
-            offset: 2 / 3,
-          },
-          {
-            transform: `translate3d(-${caseRollDistance}px, 0, 0)`,
-            offset: 1,
-          },
+          { transform: 'translate3d(0, 0, 0)' },
+          { transform: `translate3d(-${caseRollDistance}px, 0, 0)` },
         ],
         {
           duration: CASE_ROLL_DURATION_MS,
+          easing: 'cubic-bezier(0.02, 0.88, 0.08, 1)',
           fill: 'forwards',
         }
       )
