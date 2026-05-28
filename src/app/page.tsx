@@ -54,11 +54,6 @@ export default function HomePage() {
 
     const handlePointerDown = () => {
       setCaseOpen(false)
-      const audio = audioRef.current
-      if (audio) {
-        audio.pause()
-        audio.currentTime = 0
-      }
     }
 
     window.addEventListener('pointerdown', handlePointerDown)
@@ -67,11 +62,6 @@ export default function HomePage() {
 
   const closeCaseOpening = () => {
     setCaseOpen(false)
-    const audio = audioRef.current
-    if (audio) {
-      audio.pause()
-      audio.currentTime = 0
-    }
   }
 
   const handleCaseOpening = () => {
