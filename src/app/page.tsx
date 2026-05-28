@@ -16,13 +16,50 @@ const CASE_FINAL_PHASE_START_MS = 4000
 const CASE_DECELERATION_ITEM_COUNT = 4
 const CASE_FINAL_ITEMS_PER_SECOND = 1
 
+const getCaseRollDistanceAtTime = (elapsedMs: number, totalDistance: number) => {
+  const finalPhaseDuration = CASE_ROLL_DURATION_MS - CASE_FINAL_PHASE_START_MS
+  const finalSpeed = (CASE_ITEM_SPAN * CASE_FINAL_ITEMS_PER_SECOND) / 1000
+  const finalPhaseDistance = finalSpeed * finalPhaseDuration
+  const decelerationDistance = CASE_ITEM_SPAN * CASE_DECELERATION_ITEM_COUNT
+  const fastPhaseDistance = totalDistance - finalPhaseDistance - decelerationDistance
+  const decelerationDuration = CASE_FINAL_PHASE_START_MS - CASE_FAST_PHASE_MS
+  const speedAtFinalPhase = finalSpeed
+  const speedAtFastPhaseEnd =
+    (2 * decelerationDistance) / decelerationDuration - speedAtFinalPhase
+  const startSpeed = (2 * fastPhaseDistance) / CASE_FAST_PHASE_MS - speedAtFastPhaseEnd
+  const clampedElapsed = Math.min(Math.max(elapsedMs, 0), CASE_ROLL_DURATION_MS)
+
+  if (clampedElapsed <= CASE_FAST_PHASE_MS) {
+    const acceleration = (speedAtFastPhaseEnd - startSpeed) / CASE_FAST_PHASE_MS
+    return startSpeed * clampedElapsed + 0.5 * acceleration * clampedElapsed * clampedElapsed
+  }
+
+  if (clampedElapsed <= CASE_FINAL_PHASE_START_MS) {
+    const phaseElapsed = clampedElapsed - CASE_FAST_PHASE_MS
+    const acceleration =
+      (speedAtFinalPhase - speedAtFastPhaseEnd) /
+      (CASE_FINAL_PHASE_START_MS - CASE_FAST_PHASE_MS)
+    return (
+      fastPhaseDistance +
+      speedAtFastPhaseEnd * phaseElapsed +
+      0.5 * acceleration * phaseElapsed * phaseElapsed
+    )
+  }
+
+  return (
+    totalDistance -
+    finalPhaseDistance +
+    speedAtFinalPhase * (clampedElapsed - CASE_FINAL_PHASE_START_MS)
+  )
+}
+
 export default function HomePage() {
   const { isLoggedIn, loading } = useAuth()
   const [caseOpen, setCaseOpen] = useState(false)
   const [caseRunId, setCaseRunId] = useState(0)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const caseTrackRef = useRef<HTMLDivElement | null>(null)
-  const caseAnimationRef = useRef<Animation | null>(null)
+  const caseAnimationFrameRef = useRef<number | null>(null)
   const caseRollDistance = CASE_WIN_INDEX * CASE_ITEM_SPAN
 
   const caseItems = useMemo(
@@ -42,15 +79,21 @@ export default function HomePage() {
     }
   }, [])
 
+  const cancelCaseRoll = useCallback(() => {
+    if (caseAnimationFrameRef.current !== null) {
+      window.cancelAnimationFrame(caseAnimationFrameRef.current)
+      caseAnimationFrameRef.current = null
+    }
+  }, [])
+
   const closeCaseOpening = useCallback(() => {
-    caseAnimationRef.current?.cancel()
-    caseAnimationRef.current = null
+    cancelCaseRoll()
     if (caseTrackRef.current) {
       caseTrackRef.current.style.transform = 'translate3d(0, 0, 0)'
     }
     setCaseOpen(false)
     stopCaseAudio()
-  }, [stopCaseAudio])
+  }, [cancelCaseRoll, stopCaseAudio])
 
   useEffect(() => {
     if (!caseOpen) {
@@ -63,51 +106,32 @@ export default function HomePage() {
         return
       }
 
-      const finalPhaseSeconds = (CASE_ROLL_DURATION_MS - CASE_FINAL_PHASE_START_MS) / 1000
-      const finalPhaseDistance = CASE_ITEM_SPAN * CASE_FINAL_ITEMS_PER_SECOND * finalPhaseSeconds
-      const decelerationDistance = CASE_ITEM_SPAN * CASE_DECELERATION_ITEM_COUNT
-      const fastPhaseDistance = caseRollDistance - finalPhaseDistance - decelerationDistance
-      const finalPhaseStartDistance = caseRollDistance - finalPhaseDistance
-      const fastPhaseOffset = CASE_FAST_PHASE_MS / CASE_ROLL_DURATION_MS
-      const finalPhaseStartOffset = CASE_FINAL_PHASE_START_MS / CASE_ROLL_DURATION_MS
-
-      caseAnimationRef.current?.cancel()
+      cancelCaseRoll()
       track.style.transform = 'translate3d(0, 0, 0)'
-      caseAnimationRef.current = track.animate(
-        [
-          {
-            transform: 'translate3d(0, 0, 0)',
-            easing: 'cubic-bezier(0.02, 0.96, 0.04, 1)',
-            offset: 0,
-          },
-          {
-            transform: `translate3d(-${fastPhaseDistance}px, 0, 0)`,
-            easing: 'cubic-bezier(0.18, 0.72, 0.18, 1)',
-            offset: fastPhaseOffset,
-          },
-          {
-            transform: `translate3d(-${finalPhaseStartDistance}px, 0, 0)`,
-            easing: 'linear',
-            offset: finalPhaseStartOffset,
-          },
-          {
-            transform: `translate3d(-${caseRollDistance}px, 0, 0)`,
-            offset: 1,
-          },
-        ],
-        {
-          duration: CASE_ROLL_DURATION_MS,
-          fill: 'forwards',
+
+      const startTime = window.performance.now()
+      const animateCaseRoll = (currentTime: number) => {
+        const elapsed = currentTime - startTime
+        const distance = getCaseRollDistanceAtTime(elapsed, caseRollDistance)
+        track.style.transform = `translate3d(-${distance.toFixed(2)}px, 0, 0)`
+
+        if (elapsed < CASE_ROLL_DURATION_MS) {
+          caseAnimationFrameRef.current = window.requestAnimationFrame(animateCaseRoll)
+          return
         }
-      )
+
+        caseAnimationFrameRef.current = null
+        track.style.transform = `translate3d(-${caseRollDistance}px, 0, 0)`
+      }
+
+      caseAnimationFrameRef.current = window.requestAnimationFrame(animateCaseRoll)
     }, 80)
 
     return () => {
       window.clearTimeout(rollTimer)
-      caseAnimationRef.current?.cancel()
-      caseAnimationRef.current = null
+      cancelCaseRoll()
     }
-  }, [caseOpen, caseRunId, caseRollDistance])
+  }, [cancelCaseRoll, caseOpen, caseRunId, caseRollDistance])
 
   useEffect(() => {
     if (!caseOpen) {
@@ -121,8 +145,7 @@ export default function HomePage() {
   }, [caseOpen, closeCaseOpening])
 
   const handleCaseOpening = () => {
-    caseAnimationRef.current?.cancel()
-    caseAnimationRef.current = null
+    cancelCaseRoll()
     if (caseTrackRef.current) {
       caseTrackRef.current.style.transform = 'translate3d(0, 0, 0)'
     }
