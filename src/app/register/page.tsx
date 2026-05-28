@@ -87,10 +87,12 @@ export default function RegisterPage() {
         login(data.token, data.user)
         router.push('/dashboard')
       } else {
+        setShowRules(false)
         setError(data.error || 'Ein Fehler ist aufgetreten')
       }
     } catch (error) {
       console.error('Registration error:', error)
+      setShowRules(false)
       setError('Ein Fehler ist aufgetreten')
     } finally {
       setLoading(false)
