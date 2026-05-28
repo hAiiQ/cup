@@ -153,6 +153,17 @@ export default function Navigation() {
                   <path d="M7 2C4.243 2 2 4.243 2 7v10c0 2.757 2.243 5 5 5h10c2.757 0 5-2.243 5-5V7c0-2.757-2.243-5-5-5ZM4 7c0-1.654 1.346-3 3-3h10c1.654 0 3 1.346 3 3v10c0 1.654-1.346 3-3 3H7c-1.654 0-3-1.346-3-3Zm12.5 1A1.5 1.5 0 1 0 18 9.5 1.5 1.5 0 0 0 16.5 8Zm-4.5 1a5 5 0 1 0 5 5 5 5 0 0 0-5-5m0 2a3 3 0 1 1-3 3 3.003 3.003 0 0 1 3-3"/>
                 </svg>
               </a>
+              <a
+                href="https://www.tiktok.com/@joetothedom"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-8 h-8 bg-black hover:bg-gray-900 rounded-lg flex items-center justify-center transition-colors group hover:scale-110"
+                title="TikTok"
+              >
+                <svg className="w-5 h-5 text-white group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.3 0 .6.05.88.14V9.4a6.47 6.47 0 0 0-.88-.06 6.34 6.34 0 0 0-5.86 8.74 6.34 6.34 0 0 0 11.98-2.86V8.28a8.16 8.16 0 0 0 4.77 1.52V6.36c-.26 0-.52-.03-.78-.08Z"/>
+                </svg>
+              </a>
             </div>
           </div>
           
