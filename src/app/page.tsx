@@ -186,7 +186,7 @@ export default function HomePage() {
                     ? `translate3d(-${CASE_WIN_INDEX * CASE_ITEM_SPAN}px, 0, 0)`
                     : 'translate3d(0, 0, 0)',
                   transition: caseRolling
-                    ? `transform ${CASE_ROLL_DURATION_MS}ms cubic-bezier(0.08, 0.78, 0.12, 1)`
+                    ? `transform ${CASE_ROLL_DURATION_MS}ms cubic-bezier(0.04, 0.92, 0.16, 1)`
                     : 'none',
                   willChange: 'transform',
                 }}
