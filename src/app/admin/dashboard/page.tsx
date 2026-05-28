@@ -358,6 +358,14 @@ export default function AdminDashboard() {
     }
   }
 
+  const closeValorantDetails = (userId: string) => {
+    setValorantDetailsByUser((prev) => {
+      const next = { ...prev }
+      delete next[userId]
+      return next
+    })
+  }
+
   const resetTeams = async () => {
     if (resettingTeams) {
       return
@@ -395,17 +403,12 @@ export default function AdminDashboard() {
   const getUserDisplayName = (user: User) => user.twitchName || user.username
 
   const getVerificationSummary = (user: User) => {
-    const socialItems = [
+    const allItems = [
       { value: user.twitchName, verified: user.twitchVerified },
-      { value: user.instagramName, verified: user.instagramVerified },
       { value: user.discordName, verified: user.discordVerified },
+      { value: user.instagramName, verified: user.instagramVerified },
       { value: user.tiktokName, verified: user.tiktokVerified },
-    ]
-    const gameItems = [
-      { value: user.inGameName, verified: user.inGameNameVerified },
-      { value: user.inGameRank, verified: user.inGameRankVerified },
-    ]
-    const allItems = [...socialItems, ...gameItems].filter((item) => item.value)
+    ].filter((item) => item.value)
     const verifiedCount = allItems.filter((item) => item.verified).length
     return {
       total: allItems.length,
@@ -653,8 +656,6 @@ export default function AdminDashboard() {
                     { key: 'discord' as const, label: 'Discord', value: user.discordName, verified: user.discordVerified },
                     { key: 'instagram' as const, label: 'Instagram', value: user.instagramName, verified: user.instagramVerified },
                     { key: 'tiktok' as const, label: 'TikTok', value: user.tiktokName, verified: user.tiktokVerified },
-                    { key: 'inGameName' as const, label: 'Riot ID', value: user.inGameName, verified: user.inGameNameVerified },
-                    { key: 'inGameRank' as const, label: 'Rank', value: user.inGameRank, verified: user.inGameRankVerified },
                   ]
 
                   return (
@@ -668,7 +669,6 @@ export default function AdminDashboard() {
                             </span>
                           </div>
                           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-400">
-                            <span>{user.inGameName || 'Riot ID offen'}</span>
                             <span>{user.team?.name || 'Kein Team'}</span>
                             <span>Seit {formatJoinDate(user.createdAt)}</span>
                           </div>
@@ -776,10 +776,10 @@ export default function AdminDashboard() {
                         <div>
                           <div className="flex items-center justify-between mb-2">
                             <label className="block text-xs font-semibold uppercase tracking-wide text-gray-400">
-                              Verifikation
+                              Social Media
                             </label>
                             <span className="text-xs text-gray-500">
-                              Mindestlevel {MIN_VALORANT_LEVEL}
+                              Handles & Verifikation
                             </span>
                           </div>
 
@@ -798,7 +798,10 @@ export default function AdminDashboard() {
                                 }`}
                               >
                                 <span className="block font-semibold">{item.label}</span>
-                                <span className="block mt-1 truncate">
+                                <span className={`mt-1 block truncate ${item.value ? 'text-white' : 'text-gray-600'}`}>
+                                  {item.value || 'Nicht angegeben'}
+                                </span>
+                                <span className="block mt-1 text-[11px] uppercase tracking-wide">
                                   {!item.value ? 'Fehlt' : item.verified ? 'Verifiziert' : 'Offen'}
                                 </span>
                               </button>
@@ -808,14 +811,20 @@ export default function AdminDashboard() {
                       </div>
 
                       {valorantDetails?.error && (
-                        <div className="mt-4 rounded-md border border-red-500/40 bg-red-600/15 p-3 text-sm text-red-200">
-                          {valorantDetails.error}
+                        <div className="mt-4 flex flex-col gap-3 rounded-md border border-red-500/40 bg-red-600/15 p-3 text-sm text-red-200 sm:flex-row sm:items-center sm:justify-between">
+                          <span>{valorantDetails.error}</span>
+                          <button
+                            onClick={() => closeValorantDetails(user.id)}
+                            className="self-start rounded-md border border-red-400/50 px-3 py-1 text-xs font-semibold text-red-100 transition-colors hover:bg-red-500/20 sm:self-auto"
+                          >
+                            Schliessen
+                          </button>
                         </div>
                       )}
 
                       {valorantDetails?.data && (
                         <div className="mt-5 rounded-lg border border-sky-500/25 bg-gray-950/50 p-4">
-                          <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                             <div>
                               <div className="text-xs font-semibold uppercase tracking-wide text-sky-300">
                                 Valorant Details
@@ -824,11 +833,19 @@ export default function AdminDashboard() {
                                 Region {valorantDetails.data.region.toUpperCase()} - letzte Competitive Matches
                               </div>
                             </div>
-                            {valorantDetails.data.leaderboardRank && (
-                              <div className="text-sm font-semibold text-yellow-200">
-                                Leaderboard #{formatNumber(valorantDetails.data.leaderboardRank)}
-                              </div>
-                            )}
+                            <div className="flex flex-wrap items-center gap-2">
+                              {valorantDetails.data.leaderboardRank && (
+                                <div className="text-sm font-semibold text-yellow-200">
+                                  Leaderboard #{formatNumber(valorantDetails.data.leaderboardRank)}
+                                </div>
+                              )}
+                              <button
+                                onClick={() => closeValorantDetails(user.id)}
+                                className="rounded-md border border-gray-600 px-3 py-1.5 text-xs font-semibold text-gray-200 transition-colors hover:border-sky-400 hover:text-sky-100"
+                              >
+                                Schliessen
+                              </button>
+                            </div>
                           </div>
 
                           <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
