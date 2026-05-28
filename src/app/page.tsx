@@ -1,13 +1,98 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+
+const CASE_ITEM_COUNT = 48
+const CASE_WIN_INDEX = 40
+const CASE_ITEM_SIZE = 132
+const CASE_ITEM_GAP = 16
+const CASE_ITEM_SPAN = CASE_ITEM_SIZE + CASE_ITEM_GAP
+const CASE_ROLL_DURATION_MS = 6000
 
 export default function HomePage() {
   const { isLoggedIn, loading } = useAuth()
+  const [caseOpen, setCaseOpen] = useState(false)
+  const [caseRolling, setCaseRolling] = useState(false)
+  const [caseFinished, setCaseFinished] = useState(false)
+  const [caseRunId, setCaseRunId] = useState(0)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
+  const caseItems = useMemo(
+    () =>
+      Array.from({ length: CASE_ITEM_COUNT }, (_, index) => ({
+        src: index === CASE_WIN_INDEX ? '/bild2.png' : '/bild1.png',
+        isWinner: index === CASE_WIN_INDEX,
+      })),
+    []
+  )
+
+  useEffect(() => {
+    if (!caseOpen) {
+      return
+    }
+
+    const rollTimer = window.setTimeout(() => {
+      setCaseRolling(true)
+    }, 80)
+    const finishTimer = window.setTimeout(() => {
+      setCaseFinished(true)
+    }, CASE_ROLL_DURATION_MS + 120)
+
+    return () => {
+      window.clearTimeout(rollTimer)
+      window.clearTimeout(finishTimer)
+    }
+  }, [caseOpen, caseRunId])
+
+  useEffect(() => {
+    if (!caseOpen) {
+      return
+    }
+
+    const handlePointerDown = () => {
+      setCaseOpen(false)
+      const audio = audioRef.current
+      if (audio) {
+        audio.pause()
+        audio.currentTime = 0
+      }
+    }
+
+    window.addEventListener('pointerdown', handlePointerDown)
+    return () => window.removeEventListener('pointerdown', handlePointerDown)
+  }, [caseOpen])
+
+  const closeCaseOpening = () => {
+    setCaseOpen(false)
+    const audio = audioRef.current
+    if (audio) {
+      audio.pause()
+      audio.currentTime = 0
+    }
+  }
+
+  const handleCaseOpening = () => {
+    setCaseRolling(false)
+    setCaseFinished(false)
+    setCaseOpen(true)
+    setCaseRunId((current) => current + 1)
+
+    const audio = audioRef.current
+    if (audio) {
+      audio.currentTime = 0
+      void audio.play().catch(() => {
+        // Browser may block audio in unusual cases.
+      })
+    }
+  }
 
   return (
     <>
+      <audio ref={audioRef} src="/caseopening.mp3" preload="auto" />
+
       {/* Hero Section */}
       <main className="min-h-screen flex flex-col justify-center items-center px-4 py-20 relative">
         
@@ -30,12 +115,17 @@ export default function HomePage() {
                 </div>
               </div>
               
-              <div className="bg-gradient-to-r from-yellow-500 to-orange-600 rounded-xl px-6 py-4 border-2 border-orange-300/50 shadow-[0_16px_38px_rgba(234,88,12,0.38),0_0_22px_rgba(250,204,21,0.24)] hover:shadow-[0_18px_44px_rgba(234,88,12,0.46),0_0_28px_rgba(250,204,21,0.3)] transform hover:scale-105 transition-all duration-300">
+              <button
+                type="button"
+                onClick={handleCaseOpening}
+                className="bg-gradient-to-r from-yellow-500 to-orange-600 rounded-xl px-6 py-4 border-2 border-orange-300/50 shadow-[0_16px_38px_rgba(234,88,12,0.38),0_0_22px_rgba(250,204,21,0.24)] hover:shadow-[0_18px_44px_rgba(234,88,12,0.46),0_0_28px_rgba(250,204,21,0.3)] transform hover:scale-105 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-100"
+                aria-label="Case Opening starten"
+              >
                 <div className="text-center">
                   <div className="text-2xl font-bold text-white mb-1">💰 100€ Preisgeld</div>
                   <div className="text-yellow-100 text-sm font-medium">Zu gewinnen</div>
                 </div>
-              </div>
+              </button>
             </div>
             
             <div className="space-y-4 mb-12">
@@ -87,6 +177,71 @@ export default function HomePage() {
           
         </div>
       </main>
+
+      {caseOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-md"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Case Opening"
+          onClickCapture={closeCaseOpening}
+        >
+          <div className="w-full max-w-3xl rounded-xl border border-white/20 bg-gray-950/95 p-4 shadow-2xl sm:p-6">
+            <div className="mb-5 text-center">
+              <div className="text-2xl font-bold text-white">Case Opening</div>
+              <div className="text-sm text-white/60">
+                {caseFinished ? 'Gewinn gelandet' : 'Case rollt...'}
+              </div>
+            </div>
+
+            <div className="relative overflow-hidden rounded-lg border border-white/15 bg-black/40 py-5">
+              <div className="pointer-events-none absolute inset-y-3 left-1/2 z-20 w-1 -translate-x-1/2 rounded-full bg-yellow-300 shadow-[0_0_24px_rgba(253,224,71,0.9)]" />
+              <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-gray-950 to-transparent" />
+              <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-gray-950 to-transparent" />
+
+              <div
+                className="flex"
+                style={{
+                  gap: `${CASE_ITEM_GAP}px`,
+                  paddingLeft: `calc(50% - ${CASE_ITEM_SIZE / 2}px)`,
+                  paddingRight: `calc(50% - ${CASE_ITEM_SIZE / 2}px)`,
+                  transform: caseRolling
+                    ? `translate3d(-${CASE_WIN_INDEX * CASE_ITEM_SPAN}px, 0, 0)`
+                    : 'translate3d(0, 0, 0)',
+                  transition: caseRolling
+                    ? `transform ${CASE_ROLL_DURATION_MS}ms cubic-bezier(0.08, 0.78, 0.12, 1)`
+                    : 'none',
+                  willChange: 'transform',
+                }}
+              >
+                {caseItems.map((item, index) => (
+                  <div
+                    key={`${caseRunId}-${index}`}
+                    className={`shrink-0 overflow-hidden rounded-lg border bg-white/5 shadow-lg ${
+                      item.isWinner
+                        ? 'border-yellow-300 shadow-yellow-300/30'
+                        : 'border-white/15'
+                    }`}
+                    style={{ width: CASE_ITEM_SIZE, height: CASE_ITEM_SIZE }}
+                  >
+                    <Image
+                      src={item.src}
+                      alt={item.isWinner ? 'Gewinn' : 'Case Bild'}
+                      width={CASE_ITEM_SIZE}
+                      height={CASE_ITEM_SIZE}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-lg border border-yellow-300/30 bg-yellow-300/10 px-4 py-3 text-center text-sm font-semibold text-yellow-100">
+              {caseFinished ? 'Bild 2 gewonnen' : 'Viel Glueck'}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
