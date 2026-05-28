@@ -8,6 +8,7 @@ interface User {
   inGameName: string
   inGameRank: string
   valorantLevel?: number | null
+  valorantCurrentRank?: string | null
   discordName: string
   twitchName: string
   instagramName: string

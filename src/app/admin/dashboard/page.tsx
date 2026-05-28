@@ -20,6 +20,7 @@ interface User {
   inGameName?: string
   inGameRank?: string
   valorantLevel?: number | null
+  valorantCurrentRank?: string | null
   discordName?: string
   twitchName?: string
   instagramName?: string
@@ -47,6 +48,48 @@ interface AdminTeam {
   position: number
 }
 
+interface ValorantMatchSummary {
+  matchId?: string
+  map?: string
+  mode?: string
+  startedAt?: string
+  agent?: string
+  rank?: string
+  won?: boolean
+  roundsWon?: number
+  roundsLost?: number
+  kills: number
+  deaths: number
+  assists: number
+  score?: number
+  damage?: number
+}
+
+interface ValorantDetails {
+  region: string
+  accountLevel?: number
+  peakRank: string
+  currentRank?: string
+  rankRating?: number
+  lastRankChange?: number
+  mmr?: number
+  leaderboardRank?: number
+  matches: ValorantMatchSummary[]
+  totals: {
+    kills: number
+    deaths: number
+    assists: number
+    kdRatio: number | null
+  }
+  matchHistoryError?: string
+}
+
+type ValorantDetailsState = {
+  loading: boolean
+  error?: string
+  data?: ValorantDetails
+}
+
 export default function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([])
   const [teamOptions, setTeamOptions] = useState<AdminTeam[]>([])
@@ -59,6 +102,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('users')
   const [deletingUser, setDeletingUser] = useState<string | null>(null)
   const [resettingTeams, setResettingTeams] = useState(false)
+  const [valorantDetailsByUser, setValorantDetailsByUser] = useState<Record<string, ValorantDetailsState>>({})
   const router = useRouter()
   const resolvedTeamOptions = teamOptions.length > 0
     ? [...teamOptions].sort((a, b) => a.position - b.position)
@@ -267,6 +311,53 @@ export default function AdminDashboard() {
     }
   }
 
+  const loadValorantDetails = async (userId: string) => {
+    setValorantDetailsByUser((prev) => ({
+      ...prev,
+      [userId]: { ...prev[userId], loading: true, error: undefined },
+    }))
+
+    try {
+      const response = await fetch(`/api/admin/users/${userId}/valorant-details`)
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Valorant Details konnten nicht geladen werden')
+      }
+
+      const details = data.details as ValorantDetails
+
+      setValorantDetailsByUser((prev) => ({
+        ...prev,
+        [userId]: { loading: false, data: details },
+      }))
+
+      setUsers((prev) =>
+        prev.map((user) =>
+          user.id === userId
+            ? {
+                ...user,
+                inGameRank: details.peakRank || user.inGameRank,
+                valorantCurrentRank: details.currentRank || user.valorantCurrentRank,
+                valorantLevel:
+                  typeof details.accountLevel === 'number'
+                    ? details.accountLevel
+                    : user.valorantLevel,
+              }
+            : user
+        )
+      )
+    } catch (error) {
+      setValorantDetailsByUser((prev) => ({
+        ...prev,
+        [userId]: {
+          loading: false,
+          error: error instanceof Error ? error.message : 'Valorant Details konnten nicht geladen werden',
+        },
+      }))
+    }
+  }
+
   const resetTeams = async () => {
     if (resettingTeams) {
       return
@@ -329,6 +420,29 @@ export default function AdminDashboard() {
     return Number.isNaN(date.getTime())
       ? 'Datum offen'
       : date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' })
+  }
+
+  const formatMatchDate = (value?: string) => {
+    if (!value) {
+      return 'Datum offen'
+    }
+
+    const date = new Date(value)
+    return Number.isNaN(date.getTime())
+      ? 'Datum offen'
+      : date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+  }
+
+  const formatNumber = (value?: number | null) => {
+    return typeof value === 'number' ? value.toLocaleString('de-DE') : '--'
+  }
+
+  const formatKdRatio = (value: number | null, hasMatches = true) => {
+    if (!hasMatches) {
+      return '--'
+    }
+
+    return typeof value === 'number' ? value.toFixed(2) : 'Perfect'
   }
 
   if (loading) {
@@ -517,6 +631,7 @@ export default function AdminDashboard() {
                   const tierBadgeLabel = tierKey ? formatTierShortLabel(tierKey) : 'KEIN TIER'
                   const levelKnown = typeof user.valorantLevel === 'number'
                   const levelReady = levelKnown && user.valorantLevel! >= MIN_VALORANT_LEVEL
+                  const valorantDetails = valorantDetailsByUser[user.id]
                   const verificationLabel =
                     verification.total === 0
                       ? 'Keine Daten'
@@ -580,8 +695,11 @@ export default function AdminDashboard() {
                         >
                           {levelKnown ? `LVL ${user.valorantLevel}` : 'LVL OFFEN'}
                         </span>
-                        <span className="px-3 py-1 rounded-full border border-blue-500/60 bg-blue-600/20 text-blue-200 text-xs font-bold">
-                          {user.inGameRank || 'RANK OFFEN'}
+                        <span className="px-3 py-1 rounded-full border border-sky-500/60 bg-sky-600/20 text-sky-200 text-xs font-bold">
+                          {user.valorantCurrentRank ? `AKTUELL ${user.valorantCurrentRank}` : 'AKTUELL OFFEN'}
+                        </span>
+                        <span className="px-3 py-1 rounded-full border border-indigo-500/60 bg-indigo-600/20 text-indigo-200 text-xs font-bold">
+                          {user.inGameRank ? `PEAK ${user.inGameRank}` : 'PEAK OFFEN'}
                         </span>
                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${tierBadgeClass}`}>
                           {tierBadgeLabel}
@@ -641,6 +759,18 @@ export default function AdminDashboard() {
                           >
                             {user.isStreamer ? 'Streamer entfernen' : 'Als Streamer markieren'}
                           </button>
+
+                          <button
+                            onClick={() => loadValorantDetails(user.id)}
+                            disabled={valorantDetails?.loading || !user.inGameName}
+                            className="w-full rounded-md border border-sky-500/50 bg-sky-600/20 px-3 py-2 text-sm font-semibold text-sky-100 transition-colors hover:bg-sky-600/30 disabled:cursor-not-allowed disabled:border-gray-700 disabled:bg-gray-800 disabled:text-gray-500"
+                          >
+                            {valorantDetails?.loading
+                              ? 'Lade Valorant Daten...'
+                              : valorantDetails?.data
+                                ? 'Valorant Daten aktualisieren'
+                                : 'Valorant Daten anzeigen'}
+                          </button>
                         </div>
 
                         <div>
@@ -676,6 +806,138 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                       </div>
+
+                      {valorantDetails?.error && (
+                        <div className="mt-4 rounded-md border border-red-500/40 bg-red-600/15 p-3 text-sm text-red-200">
+                          {valorantDetails.error}
+                        </div>
+                      )}
+
+                      {valorantDetails?.data && (
+                        <div className="mt-5 rounded-lg border border-sky-500/25 bg-gray-950/50 p-4">
+                          <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                            <div>
+                              <div className="text-xs font-semibold uppercase tracking-wide text-sky-300">
+                                Valorant Details
+                              </div>
+                              <div className="mt-1 text-sm text-gray-400">
+                                Region {valorantDetails.data.region.toUpperCase()} - letzte Competitive Matches
+                              </div>
+                            </div>
+                            {valorantDetails.data.leaderboardRank && (
+                              <div className="text-sm font-semibold text-yellow-200">
+                                Leaderboard #{formatNumber(valorantDetails.data.leaderboardRank)}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                            <div className="rounded-md border border-gray-700 bg-gray-900/70 p-3">
+                              <div className="text-xs uppercase tracking-wide text-gray-500">Aktueller Rank</div>
+                              <div className="mt-1 text-lg font-bold text-sky-200">
+                                {valorantDetails.data.currentRank || 'Offen'}
+                              </div>
+                            </div>
+                            <div className="rounded-md border border-gray-700 bg-gray-900/70 p-3">
+                              <div className="text-xs uppercase tracking-wide text-gray-500">RR</div>
+                              <div className="mt-1 text-lg font-bold text-green-200">
+                                {formatNumber(valorantDetails.data.rankRating)}
+                              </div>
+                            </div>
+                            <div className="rounded-md border border-gray-700 bg-gray-900/70 p-3">
+                              <div className="text-xs uppercase tracking-wide text-gray-500">MMR</div>
+                              <div className="mt-1 text-lg font-bold text-purple-200">
+                                {formatNumber(valorantDetails.data.mmr)}
+                              </div>
+                            </div>
+                            <div className="rounded-md border border-gray-700 bg-gray-900/70 p-3">
+                              <div className="text-xs uppercase tracking-wide text-gray-500">K/D</div>
+                              <div className="mt-1 text-lg font-bold text-red-200">
+                                {formatKdRatio(
+                                  valorantDetails.data.totals.kdRatio,
+                                  valorantDetails.data.matches.length > 0
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 rounded-md border border-gray-700 bg-gray-900/50 p-3">
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-300">
+                              <span>Kills {valorantDetails.data.totals.kills}</span>
+                              <span>Deaths {valorantDetails.data.totals.deaths}</span>
+                              <span>Assists {valorantDetails.data.totals.assists}</span>
+                              {typeof valorantDetails.data.lastRankChange === 'number' && (
+                                <span>
+                                  Letzte RR-Aenderung {valorantDetails.data.lastRankChange > 0 ? '+' : ''}
+                                  {valorantDetails.data.lastRankChange}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {valorantDetails.data.matchHistoryError && (
+                            <div className="mt-3 rounded-md border border-yellow-500/40 bg-yellow-600/15 p-3 text-sm text-yellow-100">
+                              {valorantDetails.data.matchHistoryError}
+                            </div>
+                          )}
+
+                          <div className="mt-4 space-y-2">
+                            {valorantDetails.data.matches.length === 0 ? (
+                              <div className="rounded-md border border-gray-700 bg-gray-900/60 p-3 text-sm text-gray-400">
+                                Keine Match-History gefunden.
+                              </div>
+                            ) : (
+                              valorantDetails.data.matches.map((match, index) => (
+                                <div
+                                  key={match.matchId || `${user.id}-match-${index}`}
+                                  className="rounded-md border border-gray-700 bg-gray-900/60 p-3"
+                                >
+                                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="min-w-0">
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <span
+                                          className={`rounded-full border px-2.5 py-1 text-xs font-bold ${
+                                            match.won === true
+                                              ? 'border-green-500/60 bg-green-600/20 text-green-200'
+                                              : match.won === false
+                                                ? 'border-red-500/60 bg-red-600/20 text-red-200'
+                                                : 'border-gray-600 bg-gray-700/70 text-gray-300'
+                                          }`}
+                                        >
+                                          {match.won === true ? 'WIN' : match.won === false ? 'LOSS' : 'OFFEN'}
+                                        </span>
+                                        <span className="font-semibold text-white">
+                                          {match.map || 'Map offen'}
+                                        </span>
+                                        <span className="text-sm text-gray-400">
+                                          {match.agent || 'Agent offen'}
+                                        </span>
+                                        {match.roundsWon !== undefined && match.roundsLost !== undefined && (
+                                          <span className="text-sm text-gray-500">
+                                            {match.roundsWon}:{match.roundsLost}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="mt-1 text-xs text-gray-500">
+                                        {formatMatchDate(match.startedAt)} - {match.mode || 'Modus offen'}
+                                      </div>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-gray-200">
+                                      <span>{match.kills}/{match.deaths}/{match.assists}</span>
+                                      <span className="text-gray-500">K/D/A</span>
+                                      {match.rank && (
+                                        <span className="rounded-full border border-sky-500/40 bg-sky-600/15 px-2 py-1 text-xs text-sky-200">
+                                          {match.rank}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )
                 })}

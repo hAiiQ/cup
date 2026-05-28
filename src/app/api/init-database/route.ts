@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
         "inGameName" TEXT,
         "inGameRank" TEXT,
         "valorantLevel" INTEGER,
+        "valorantCurrentRank" TEXT,
         "discordName" TEXT,
         "twitchName" TEXT,
         "instagramName" TEXT,

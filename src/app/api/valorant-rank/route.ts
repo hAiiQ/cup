@@ -19,6 +19,8 @@ export async function GET(request: NextRequest) {
       rank: result.rank,
       currentRank: result.currentRank,
       level: result.accountLevel,
+      rankRating: result.rankRating,
+      mmr: result.mmr,
       minimumLevel: MIN_VALORANT_LEVEL,
       region: result.region,
       name,

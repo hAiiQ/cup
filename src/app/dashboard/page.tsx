@@ -12,6 +12,7 @@ interface User {
   inGameName: string
   inGameRank: string
   valorantLevel?: number | null
+  valorantCurrentRank?: string | null
   discordName: string
   twitchName: string
   instagramName: string
@@ -336,6 +337,22 @@ export default function DashboardPage() {
                             </span>
                           )}
 
+                          {user?.valorantCurrentRank ? (
+                            <span className="bg-blue-600/20 text-blue-200 px-3 py-1 rounded-full text-xs font-bold border border-blue-400/60">
+                              AKTUELL {user.valorantCurrentRank}
+                            </span>
+                          ) : (
+                            <span className="bg-gray-600/20 text-gray-300 px-3 py-1 rounded-full text-xs font-bold border border-gray-500/60">
+                              AKTUELL offen
+                            </span>
+                          )}
+
+                          {user?.inGameRank && (
+                            <span className="bg-indigo-600/20 text-indigo-200 px-3 py-1 rounded-full text-xs font-bold border border-indigo-400/60">
+                              PEAK {user.inGameRank}
+                            </span>
+                          )}
+
                           {user?.tier ? (
                             <span className="bg-purple-600/20 text-purple-300 px-3 py-1 rounded-full text-xs font-bold border border-purple-500">
                               {user.tier.toUpperCase()}
@@ -482,6 +499,16 @@ export default function DashboardPage() {
                             {typeof user?.valorantLevel === 'number' && (
                               <span className="bg-emerald-600/20 text-emerald-200 px-3 py-1 rounded-full text-xs font-bold border border-emerald-400/60">
                                 LVL {user.valorantLevel}
+                              </span>
+                            )}
+                            {user?.valorantCurrentRank && (
+                              <span className="bg-blue-600/20 text-blue-200 px-3 py-1 rounded-full text-xs font-bold border border-blue-400/60">
+                                AKTUELL {user.valorantCurrentRank}
+                              </span>
+                            )}
+                            {user?.inGameRank && (
+                              <span className="bg-indigo-600/20 text-indigo-200 px-3 py-1 rounded-full text-xs font-bold border border-indigo-400/60">
+                                PEAK {user.inGameRank}
                               </span>
                             )}
                             {user?.tier ? (
