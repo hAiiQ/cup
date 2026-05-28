@@ -12,9 +12,14 @@ interface User {
   discordName: string
   twitchName: string
   instagramName: string
+  tiktokName: string
   tier: string
   isStreamer?: boolean
   isVerified: boolean
+  twitchVerified?: boolean
+  instagramVerified?: boolean
+  discordVerified?: boolean
+  tiktokVerified?: boolean
   rulesAccepted: boolean
 }
 

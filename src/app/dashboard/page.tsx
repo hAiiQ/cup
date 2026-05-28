@@ -16,16 +16,20 @@ interface User {
   discordName: string
   twitchName: string
   instagramName: string
+  tiktokName: string
   tier: string
   isStreamer?: boolean
   isVerified: boolean
   twitchVerified: boolean
   instagramVerified: boolean
   discordVerified: boolean
+  tiktokVerified: boolean
   inGameNameVerified: boolean
   inGameRankVerified: boolean
   rulesAccepted: boolean
 }
+
+type EditableProfileField = 'instagramName' | 'tiktokName'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -33,10 +37,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [editMode, setEditMode] = useState(false)
   const [editForm, setEditForm] = useState({
-    inGameName: '',
-    discordName: '',
-    twitchName: '',
-    instagramName: ''
+    instagramName: '',
+    tiktokName: ''
   })
 
   useEffect(() => {
@@ -82,10 +84,8 @@ export default function DashboardPage() {
           
           // Update edit form with current user data
           setEditForm({
-            inGameName: data.user.inGameName || '',
-            discordName: data.user.discordName || '',
-            twitchName: data.user.twitchName || '',
-            instagramName: data.user.instagramName || ''
+            instagramName: data.user.instagramName || '',
+            tiktokName: data.user.tiktokName || ''
           })
           
           // Regel-Überprüfung entfernt - gehe direkt zum Dashboard
@@ -131,10 +131,8 @@ export default function DashboardPage() {
     // Reset form to current user data
     if (user) {
       setEditForm({
-        inGameName: user.inGameName || '',
-        discordName: user.discordName || '',
-        twitchName: user.twitchName || '',
-        instagramName: user.instagramName || ''
+        instagramName: user.instagramName || '',
+        tiktokName: user.tiktokName || ''
       })
     }
   }
@@ -150,7 +148,10 @@ export default function DashboardPage() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(editForm)
+        body: JSON.stringify({
+          instagramName: editForm.instagramName,
+          tiktokName: editForm.tiktokName
+        })
       })
 
       if (response.ok) {
@@ -165,7 +166,7 @@ export default function DashboardPage() {
     }
   }
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: EditableProfileField, value: string) => {
     setEditForm(prev => ({
       ...prev,
       [field]: value
@@ -199,15 +200,16 @@ export default function DashboardPage() {
                 </div>
                 <div className="hidden md:block">
                   {(() => {
-                    const hasAccounts = user?.twitchName || user?.instagramName || user?.discordName
+                    const hasAccounts = user?.twitchName || user?.instagramName || user?.discordName || user?.tiktokName
                     const hasInGameInfo = user?.inGameName || user?.inGameRank
                     const allSocialVerified = (!user?.twitchName || user?.twitchVerified) && 
                                              (!user?.instagramName || user?.instagramVerified) && 
-                                             (!user?.discordName || user?.discordVerified)
+                                             (!user?.discordName || user?.discordVerified) &&
+                                             (!user?.tiktokName || user?.tiktokVerified)
                     const allInGameVerified = (!user?.inGameName || user?.inGameNameVerified) && 
                                              (!user?.inGameRank || user?.inGameRankVerified)
                     const hasVerified = user?.twitchVerified || user?.instagramVerified || user?.discordVerified || 
-                                      user?.inGameNameVerified || user?.inGameRankVerified
+                                      user?.tiktokVerified || user?.inGameNameVerified || user?.inGameRankVerified
                     
                     if (!hasAccounts && !hasInGameInfo) {
                       return (
@@ -436,6 +438,26 @@ export default function DashboardPage() {
                           )}
                         </div>
                       </div>
+
+                      <div className="bg-white/5 rounded-lg p-4">
+                        <div className="text-white/70 text-sm mb-1 flex items-center">
+                          TikTok
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-white font-medium">
+                            {user?.tiktokName || <span className="text-gray-400 italic">Nicht angegeben</span>}
+                          </span>
+                          {user?.tiktokName && (
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              user?.tiktokVerified
+                                ? 'bg-green-600/20 text-green-300 border border-green-500'
+                                : 'bg-yellow-600/20 text-yellow-300 border border-yellow-500'
+                            }`}>
+                              {user?.tiktokVerified ? 'Verifiziert' : 'Ausstehend'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -462,14 +484,9 @@ export default function DashboardPage() {
                         </div>
 
                         <div className="bg-white/5 rounded-lg p-4">
-                          <label className="block text-white/70 text-sm mb-2">In-Game Name</label>
-                          <input
-                            type="text"
-                            value={editForm.inGameName}
-                            onChange={(e) => handleInputChange('inGameName', e.target.value)}
-                            className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:border-blue-500"
-                            placeholder="Dein In-Game Name"
-                          />
+                          <div className="text-white/70 text-sm mb-1">In-Game Name</div>
+                          <div className="text-white font-medium">{user?.inGameName || 'Nicht angegeben'}</div>
+                          <div className="text-xs text-gray-400 mt-1">Valorant Name kann im Dashboard nicht geaendert werden</div>
                         </div>
 
                         <div className="bg-white/5 rounded-lg p-4">
@@ -544,13 +561,8 @@ export default function DashboardPage() {
                             <span className="mr-2">💬</span>
                             Discord
                           </label>
-                          <input
-                            type="text"
-                            value={editForm.discordName}
-                            onChange={(e) => handleInputChange('discordName', e.target.value)}
-                            className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:border-blue-500"
-                            placeholder="Dein Discord Name (z.B. username#1234)"
-                          />
+                          <div className="text-white font-medium">{user?.discordName || 'Nicht angegeben'}</div>
+                          <div className="text-xs text-gray-400 mt-1">Discord kann im Dashboard nicht geaendert werden</div>
                         </div>
 
                         <div className="bg-white/5 rounded-lg p-4">
@@ -558,13 +570,8 @@ export default function DashboardPage() {
                             <span className="mr-2">🎥</span>
                             Twitch
                           </label>
-                          <input
-                            type="text"
-                            value={editForm.twitchName}
-                            onChange={(e) => handleInputChange('twitchName', e.target.value)}
-                            className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:border-blue-500"
-                            placeholder="Dein Twitch Kanal Name"
-                          />
+                          <div className="text-white font-medium">{user?.twitchName || user?.username || 'Nicht angegeben'}</div>
+                          <div className="text-xs text-gray-400 mt-1">Twitch kann im Dashboard nicht geaendert werden</div>
                         </div>
 
                         <div className="bg-white/5 rounded-lg p-4">
@@ -578,6 +585,19 @@ export default function DashboardPage() {
                             onChange={(e) => handleInputChange('instagramName', e.target.value)}
                             className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:border-blue-500"
                             placeholder="Dein Instagram Name"
+                          />
+                        </div>
+
+                        <div className="bg-white/5 rounded-lg p-4">
+                          <label className="block text-white/70 text-sm mb-2 flex items-center">
+                            TikTok
+                          </label>
+                          <input
+                            type="text"
+                            value={editForm.tiktokName}
+                            onChange={(e) => handleInputChange('tiktokName', e.target.value)}
+                            className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:border-blue-500"
+                            placeholder="Dein TikTok Name"
                           />
                         </div>
                       </div>

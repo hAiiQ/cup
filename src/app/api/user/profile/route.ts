@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
 
@@ -117,17 +118,54 @@ export async function PUT(request: NextRequest) {
     }
 
     console.log('Token verified, userId:', decoded.userId)
-    const { inGameName, discordName, twitchName, instagramName } = await request.json()
-    console.log('Update data:', { inGameName, discordName, twitchName, instagramName })
+    const { instagramName, tiktokName } = await request.json()
+    const currentUser = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: {
+        instagramName: true,
+        tiktokName: true,
+      },
+    })
+
+    if (!currentUser) {
+      return NextResponse.json(
+        { error: 'Benutzer nicht gefunden', success: false },
+        { status: 404 }
+      )
+    }
+
+    const updateData: Prisma.UserUpdateInput = {}
+
+    if (typeof instagramName === 'string') {
+      const cleanedInstagramName = instagramName.trim().replace(/^@/, '')
+      updateData.instagramName = cleanedInstagramName || null
+
+      if ((currentUser.instagramName || '') !== cleanedInstagramName) {
+        updateData.instagramVerified = false
+      }
+    }
+
+    if (typeof tiktokName === 'string') {
+      const cleanedTikTokName = tiktokName.trim().replace(/^@/, '')
+      updateData.tiktokName = cleanedTikTokName || null
+
+      if ((currentUser.tiktokName || '') !== cleanedTikTokName) {
+        updateData.tiktokVerified = false
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json(
+        { error: 'Keine bearbeitbaren Profildaten angegeben', success: false },
+        { status: 400 }
+      )
+    }
+
+    console.log('Update data:', updateData)
 
     const user = await prisma.user.update({
       where: { id: decoded.userId },
-      data: {
-        inGameName: inGameName || null,
-        discordName: discordName || null,
-        twitchName: twitchName || null,
-        instagramName: instagramName || null,
-      },
+      data: updateData,
       select: {
         id: true,
         username: true,
