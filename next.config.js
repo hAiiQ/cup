@@ -16,6 +16,15 @@ const nextConfig = {
           },
         ],
       },
+      {
+        source: '/dashboard',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, max-age=0',
+          },
+        ],
+      },
     ]
   },
 }

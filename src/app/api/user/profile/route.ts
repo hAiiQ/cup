@@ -142,6 +142,7 @@ export async function PUT(request: NextRequest) {
 
       if ((currentUser.instagramName || '') !== cleanedInstagramName) {
         updateData.instagramVerified = false
+        updateData.isVerified = false
       }
     }
 
@@ -151,6 +152,7 @@ export async function PUT(request: NextRequest) {
 
       if ((currentUser.tiktokName || '') !== cleanedTikTokName) {
         updateData.tiktokVerified = false
+        updateData.isVerified = false
       }
     }
 

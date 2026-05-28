@@ -16,7 +16,7 @@ const gameNames = [
   'TurquoiseWave', 'MagentaMoon', 'IndigoStar', 'VioletSun'
 ]
 
-const ranks = ['Gold', 'Platinum', 'Diamond', 'Grandmaster', 'Celestial', 'Eternity']
+const ranks = ['Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Ascendant', 'Immortal', 'Radiant']
 
 const discordNames = [
   'gamer_pro#1234', 'elite_player#5678', 'noob_slayer#9999', 'team_leader#4567',
@@ -73,6 +73,7 @@ async function createRandomUsers() {
     const discordName = discordNames[i] || `discord_user${i + 1}#${Math.floor(Math.random() * 9999).toString().padStart(4, '0')}`
     const twitchName = twitchNames[i] || `twitch_user${i + 1}`
     const instagramName = instagramNames[i] || `insta_user${i + 1}`
+    const tiktokName = `tiktok_user${i + 1}`
     
     // 80% der User sind verifiziert und haben Regeln akzeptiert
     const isVerified = Math.random() > 0.2
@@ -88,6 +89,7 @@ async function createRandomUsers() {
           discordName,
           twitchName,
           instagramName,
+          tiktokName,
           isVerified,
           rulesAccepted,
           tier: null, // Admin wird später Tiers zuweisen
