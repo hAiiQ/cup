@@ -252,6 +252,12 @@ export default function RulesPage() {
                 2. Tournament Format
               </h2>
               <div className="space-y-4">
+                <div className="bg-blue-500/20 rounded-lg p-3 border border-blue-500/30">
+                  <div className="flex items-start">
+                    <span className="text-blue-400 mr-3 text-xl mt-1">ℹ️</span>
+                    <span className="text-white/90"><strong>Tournament Format:</strong> Noch unbekannt - das finale Format wird noch bekanntgegeben</span>
+                  </div>
+                </div>
                 <div className="bg-yellow-500/20 rounded-lg p-3 border border-yellow-500/30">
                   <div className="flex items-start">
                     <span className="text-yellow-400 mr-3 text-xl mt-1">⚡</span>

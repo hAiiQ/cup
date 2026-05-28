@@ -23,14 +23,14 @@ export default function HomePage() {
             
             {/* Tournament Details */}
             <div className="flex justify-center gap-6 mb-8 flex-wrap">
-              <div className="bg-gradient-to-r from-yellow-400 via-orange-400 to-pink-500 rounded-xl px-6 py-4 border-2 border-yellow-400/50 shadow-2xl transform hover:scale-105 transition-all duration-300">
+              <div className="bg-gradient-to-r from-yellow-400 via-orange-400 to-pink-500 rounded-xl px-6 py-4 border-2 border-yellow-400/50 shadow-[0_16px_38px_rgba(251,146,60,0.36),0_0_24px_rgba(236,72,153,0.28)] hover:shadow-[0_18px_44px_rgba(251,146,60,0.44),0_0_30px_rgba(236,72,153,0.34)] transform hover:scale-105 transition-all duration-300">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-white mb-1">📅 19.06.2026 - 21.06.2026</div>
                   <div className="text-orange-100 text-sm font-medium">Sommerturnier</div>
                 </div>
               </div>
               
-              <div className="bg-gradient-to-r from-yellow-500 to-orange-600 rounded-xl px-6 py-4 border-2 border-orange-300/50 shadow-2xl transform hover:scale-105 transition-all duration-300">
+              <div className="bg-gradient-to-r from-yellow-500 to-orange-600 rounded-xl px-6 py-4 border-2 border-orange-300/50 shadow-[0_16px_38px_rgba(234,88,12,0.38),0_0_22px_rgba(250,204,21,0.24)] hover:shadow-[0_18px_44px_rgba(234,88,12,0.46),0_0_28px_rgba(250,204,21,0.3)] transform hover:scale-105 transition-all duration-300">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-white mb-1">💰 100€ Preisgeld</div>
                   <div className="text-yellow-100 text-sm font-medium">Zu gewinnen</div>

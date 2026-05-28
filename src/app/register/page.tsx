@@ -493,6 +493,12 @@ export default function RegisterPage() {
                   2. Tournament Format
                 </h3>
                 <div className="space-y-3">
+                  <div className="bg-blue-500/20 rounded-lg p-2 border border-blue-500/30">
+                    <div className="flex items-start">
+                      <span className="text-blue-400 mr-2 text-lg mt-1">ℹ️</span>
+                      <span className="text-white/90 text-sm"><strong>Tournament Format:</strong> Noch unbekannt - das finale Format wird noch bekanntgegeben</span>
+                    </div>
+                  </div>
                   <div className="bg-yellow-500/20 rounded-lg p-2 border border-yellow-500/30">
                     <div className="flex items-start">
                       <span className="text-yellow-400 mr-2 text-lg mt-1">⚡</span>
