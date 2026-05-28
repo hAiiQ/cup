@@ -171,9 +171,6 @@ export default function Navigation() {
                 <Link href="/dashboard" className="text-white hover:text-purple-300 transition-colors px-3 py-1 rounded">
                   Dashboard
                 </Link>
-                <Link href="/verify" className="text-white hover:text-purple-300 transition-colors px-3 py-1 rounded">
-                  Verifizieren
-                </Link>
                 <Link href="/rules" className="text-white hover:text-purple-300 transition-colors px-3 py-1 rounded">
                   Regeln
                 </Link>
