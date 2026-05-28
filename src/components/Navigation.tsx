@@ -4,11 +4,64 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import Image from 'next/image'
+import { useEffect, useMemo, useState } from 'react'
 
+const CASE_ITEM_COUNT = 42
+const CASE_WIN_INDEX = 34
+const CASE_ITEM_SIZE = 132
+const CASE_ITEM_GAP = 16
+const CASE_ITEM_SPAN = CASE_ITEM_SIZE + CASE_ITEM_GAP
+const CASE_ROLL_DURATION_MS = 4300
 
 export default function Navigation() {
   const router = useRouter()
-  const { user, isLoggedIn, logout } = useAuth()
+  const { isLoggedIn, logout } = useAuth()
+  const [caseOpen, setCaseOpen] = useState(false)
+  const [caseRolling, setCaseRolling] = useState(false)
+  const [caseFinished, setCaseFinished] = useState(false)
+  const [caseRunId, setCaseRunId] = useState(0)
+
+  const caseItems = useMemo(
+    () =>
+      Array.from({ length: CASE_ITEM_COUNT }, (_, index) => ({
+        src: index === CASE_WIN_INDEX ? '/bild2.png' : '/bild1.png',
+        isWinner: index === CASE_WIN_INDEX,
+      })),
+    []
+  )
+
+  useEffect(() => {
+    if (!caseOpen) {
+      return
+    }
+
+    const rollTimer = window.setTimeout(() => {
+      setCaseRolling(true)
+    }, 80)
+    const finishTimer = window.setTimeout(() => {
+      setCaseFinished(true)
+    }, CASE_ROLL_DURATION_MS + 120)
+
+    return () => {
+      window.clearTimeout(rollTimer)
+      window.clearTimeout(finishTimer)
+    }
+  }, [caseOpen, caseRunId])
+
+  useEffect(() => {
+    if (!caseOpen) {
+      return
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setCaseOpen(false)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [caseOpen])
 
   const handleLogout = async () => {
     // Use the logout function from AuthContext which handles everything
@@ -18,12 +71,24 @@ export default function Navigation() {
     router.push('/')
   }
 
+  const handleCaseOpening = () => {
+    setCaseRolling(false)
+    setCaseFinished(false)
+    setCaseOpen(true)
+    setCaseRunId((current) => current + 1)
+  }
+
   return (
     <header className="bg-white/10 backdrop-blur-sm border-b border-white/20">
       <div className="container mx-auto px-4 py-4">
         <nav className="flex justify-between items-center">
           <div className="flex items-center space-x-3">
-            <Link href="/" className="group flex items-center space-x-3 hover:scale-105 transition-all duration-300">
+            <button
+              type="button"
+              onClick={handleCaseOpening}
+              className="group flex items-center space-x-3 hover:scale-105 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 rounded-md"
+              aria-label="Case Opening starten"
+            >
               {/* Logo */}
               <Image
                 src="/logo.png"
@@ -51,7 +116,7 @@ export default function Navigation() {
                   by JoeDom
                 </div>
               </div>
-            </Link>
+            </button>
             
             {/* Social Buttons */}
             <div className="flex items-center space-x-2 ml-6">
@@ -159,6 +224,84 @@ export default function Navigation() {
           </div>
         </nav>
       </div>
+
+      {caseOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-md"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Case Opening"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setCaseOpen(false)
+            }
+          }}
+        >
+          <div className="w-full max-w-3xl rounded-xl border border-white/20 bg-gray-950/95 p-4 shadow-2xl sm:p-6">
+            <div className="mb-5 flex items-center justify-between gap-4">
+              <div>
+                <div className="text-xl font-bold text-white">Case Opening</div>
+                <div className="text-sm text-white/60">
+                  {caseFinished ? 'Gewinn gelandet' : 'Case rollt...'}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCaseOpen(false)}
+                className="rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+              >
+                Schliessen
+              </button>
+            </div>
+
+            <div className="relative overflow-hidden rounded-lg border border-white/15 bg-black/40 py-5">
+              <div className="pointer-events-none absolute inset-y-3 left-1/2 z-20 w-1 -translate-x-1/2 rounded-full bg-yellow-300 shadow-[0_0_24px_rgba(253,224,71,0.9)]" />
+              <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-20 bg-gradient-to-r from-gray-950 to-transparent" />
+              <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-20 bg-gradient-to-l from-gray-950 to-transparent" />
+
+              <div
+                className="flex"
+                style={{
+                  gap: `${CASE_ITEM_GAP}px`,
+                  paddingLeft: `calc(50% - ${CASE_ITEM_SIZE / 2}px)`,
+                  paddingRight: `calc(50% - ${CASE_ITEM_SIZE / 2}px)`,
+                  transform: caseRolling
+                    ? `translate3d(-${CASE_WIN_INDEX * CASE_ITEM_SPAN}px, 0, 0)`
+                    : 'translate3d(0, 0, 0)',
+                  transition: caseRolling
+                    ? `transform ${CASE_ROLL_DURATION_MS}ms cubic-bezier(0.08, 0.78, 0.12, 1)`
+                    : 'none',
+                  willChange: 'transform',
+                }}
+              >
+                {caseItems.map((item, index) => (
+                  <div
+                    key={`${caseRunId}-${index}`}
+                    className={`shrink-0 overflow-hidden rounded-lg border bg-white/5 shadow-lg ${
+                      item.isWinner
+                        ? 'border-yellow-300 shadow-yellow-300/30'
+                        : 'border-white/15'
+                    }`}
+                    style={{ width: CASE_ITEM_SIZE, height: CASE_ITEM_SIZE }}
+                  >
+                    <Image
+                      src={item.src}
+                      alt={item.isWinner ? 'Gewinn' : 'Case Bild'}
+                      width={CASE_ITEM_SIZE}
+                      height={CASE_ITEM_SIZE}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-lg border border-yellow-300/30 bg-yellow-300/10 px-4 py-3 text-center text-sm font-semibold text-yellow-100">
+              {caseFinished ? 'Bild 2 gewonnen' : 'Viel Glueck'}
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   )
 }
