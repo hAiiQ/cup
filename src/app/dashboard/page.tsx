@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { TEAM_CAPACITY_FULL_LABEL, TEAM_CAPACITY_SHORT_LABEL } from '@/lib/teamCapacity'
 
 interface User {
   id: string
@@ -192,7 +193,7 @@ export default function DashboardPage() {
                     🎮 Willkommen, {user?.inGameName || user?.username}!
                   </h1>
                   <p className="text-white/80 text-lg">
-                    Du bist für das JOE'S SUMMER CUP Tournament registriert
+                    Du bist für den Summer Cup registriert
                   </p>
                 </div>
                 <div className="hidden md:block">
@@ -275,7 +276,7 @@ export default function DashboardPage() {
                       <h3 className="text-lg font-medium text-white/90 mb-3 border-b border-white/20 pb-2">🎮 Spieler Daten</h3>
                       
                       <div className="bg-white/5 rounded-lg p-4">
-                        <div className="text-white/70 text-sm mb-1">Username</div>
+                        <div className="text-white/70 text-sm mb-1">Twitch Name</div>
                         <div className="text-white font-medium text-lg">{user?.username}</div>
                       </div>
 
@@ -415,9 +416,9 @@ export default function DashboardPage() {
                         <h3 className="text-lg font-medium text-white/90 mb-3 border-b border-white/20 pb-2">🎮 Spieler Daten</h3>
                         
                         <div className="bg-white/5 rounded-lg p-4">
-                          <div className="text-white/70 text-sm mb-1">Username</div>
+                          <div className="text-white/70 text-sm mb-1">Twitch Name</div>
                           <div className="text-white font-medium">{user?.username}</div>
-                          <div className="text-xs text-gray-400 mt-1">Username kann nicht geändert werden</div>
+                          <div className="text-xs text-gray-400 mt-1">Login-Name kann nicht geändert werden</div>
                         </div>
 
                         <div className="bg-white/5 rounded-lg p-4">
@@ -545,8 +546,8 @@ export default function DashboardPage() {
                 <div className="space-y-4">
                   <div className="bg-gradient-to-r from-yellow-400/30 via-orange-300/30 to-pink-500/30 border border-yellow-300 rounded-lg p-4">
                     <div className="text-orange-200 font-medium text-sm">Registriert für:</div>
-                    <div className="text-white text-lg font-bold mt-1">JOE'S SUMMER CUP</div>
-                    <div className="text-orange-200 text-sm mt-1">Sommer Cup Tournament</div>
+                    <div className="text-white text-lg font-bold mt-1">SUMMER CUP</div>
+                    <div className="text-orange-200 text-sm mt-1">Summer Cup</div>
                   </div>
                   
                   <div className="bg-white/5 rounded-lg p-4">
@@ -576,19 +577,19 @@ export default function DashboardPage() {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-white/70">Format:</span>
-                    <span className="text-white font-medium">Double Elimination</span>
+                    <span className="text-white font-medium">Wird bekanntgegeben</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-white/70">Teams:</span>
-                    <span className="text-white font-medium">8 Teams</span>
+                    <span className="text-white font-medium">Wird bekanntgegeben</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-white/70">Max Spieler:</span>
-                    <span className="text-white font-medium">6 pro Team</span>
+                    <span className="text-white font-medium">{TEAM_CAPACITY_SHORT_LABEL}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-white/70">Event:</span>
-                    <span className="text-white font-medium">Joe's Summer Cup</span>
+                    <span className="text-white font-medium">Summer Cup</span>
                   </div>
                 </div>
               </div>
@@ -632,19 +633,19 @@ export default function DashboardPage() {
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="bg-white/10 rounded-lg p-4">
                 <div className="text-blue-300 font-medium text-sm mb-1">Format</div>
-                <div className="text-white text-lg font-semibold">Double Elimination</div>
-                <div className="text-blue-200 text-xs mt-1">Winner & Loser Bracket</div>
+                <div className="text-white text-lg font-semibold">Wird bekanntgegeben</div>
+                <div className="text-blue-200 text-xs mt-1">Finales System steht noch nicht fest</div>
               </div>
               
               <div className="bg-white/10 rounded-lg p-4">
                 <div className="text-purple-300 font-medium text-sm mb-1">Teams</div>
-                <div className="text-white text-lg font-semibold">8 Teams</div>
-                <div className="text-purple-200 text-xs mt-1">Max. 6 Spieler pro Team</div>
+                <div className="text-white text-lg font-semibold">Wird bekanntgegeben</div>
+                <div className="text-purple-200 text-xs mt-1">{TEAM_CAPACITY_FULL_LABEL}</div>
               </div>
               
               <div className="bg-white/10 rounded-lg p-4">
                 <div className="text-pink-300 font-medium text-sm mb-1">Event</div>
-                <div className="text-white text-lg font-semibold">Joe's Summer Cup</div>
+                <div className="text-white text-lg font-semibold">Summer Cup</div>
                 <div className="text-pink-200 text-xs mt-1">Sommer Cup Edition</div>
               </div>
               

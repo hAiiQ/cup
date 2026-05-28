@@ -18,7 +18,7 @@ export default function HomePage() {
               <br />
             </h1>
             <p className="text-xl text-white/80 mb-8 max-w-2xl mx-auto">
-              Nimm teil am Joe's Summer Cup. Registriere dich, entdecke neue Spieler und kämpfe um den Sieg!
+              Nimm teil am Summer Cup. Registriere dich, entdecke neue Spieler und kämpfe um den Sieg!
             </p>
             
             {/* Tournament Details */}

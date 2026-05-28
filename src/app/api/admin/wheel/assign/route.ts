@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
+import { TEAM_PLAYER_LIMIT } from '@/lib/teamCapacity'
 
 // Helper function to verify admin
 async function verifyAdmin(request: NextRequest) {
@@ -93,9 +94,9 @@ export async function POST(request: NextRequest) {
       where: { teamId: teamId }
     })
 
-    if (teamMemberCount >= 6) {
+    if (teamMemberCount >= TEAM_PLAYER_LIMIT) {
       return NextResponse.json(
-        { error: 'Team ist bereits voll (6/6 Mitglieder)' },
+        { error: `Team ist bereits voll (${TEAM_PLAYER_LIMIT}/${TEAM_PLAYER_LIMIT} Mitglieder)` },
         { status: 400 }
       )
     }

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatTierLabel, TIER_SELECT_OPTIONS } from '@/lib/tierConfig'
+import { TEAM_PLAYER_LIMIT } from '@/lib/teamCapacity'
 
 interface User {
   id: string
@@ -350,7 +351,7 @@ export default function WheelPage() {
     }
   }, [])
 
-  const availableTeams = teams.filter(team => team.memberCount < 6)
+  const availableTeams = teams.filter(team => team.memberCount < TEAM_PLAYER_LIMIT)
 
   return (
     <div className="min-h-screen bg-gray-900">
@@ -455,7 +456,7 @@ export default function WheelPage() {
                     <option value="">-- Team wählen --</option>
                     {availableTeams.map(team => (
                       <option key={team.id} value={team.id}>
-                        {team.name} ({team.memberCount}/6)
+                        {team.name} ({team.memberCount}/{TEAM_PLAYER_LIMIT})
                       </option>
                     ))}
                   </select>
@@ -531,48 +532,6 @@ export default function WheelPage() {
                 </div>
               </div>
             )}
-          </div>
-        </div>
-      </main>
-    </div>
-  )
-}
-                    width={600}
-                    height={600}
-                    className="border-2 border-purple-500 rounded-full mx-auto shadow-2xl shadow-purple-500/30"
-                  />
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Team auswählen:
-                      </label>
-                      <select
-                        value={selectedTeam}
-                        onChange={(e) => setSelectedTeam(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white text-lg"
-                        disabled={isSpinning}
-                      >
-                        <option value="">-- Team wählen --</option>
-                        {availableTeams.map(team => (
-                          <option key={team.id} value={team.id}>
-                            {team.name} ({team.memberCount}/6 Mitglieder)
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    
-                    <button
-                      onClick={spinWheel}
-                      disabled={!selectedTeam || isSpinning || filteredUsers.length === 0}
-                      className="w-full px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xl font-bold rounded-lg hover:from-purple-700 hover:to-pink-700 disabled:bg-gray-600 disabled:cursor-not-allowed transition-all duration-300 shadow-lg"
-                    >
-                      {isSpinning ? '🌀 Dreht sich... (12s)' : '🎯 RAD DREHEN (12s)'}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </main>

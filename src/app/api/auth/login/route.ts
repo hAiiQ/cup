@@ -6,22 +6,28 @@ import { verifyPassword, generateToken } from '@/lib/auth'
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
 
+function normalizeLoginName(value: string): string {
+  return value.trim().replace(/^@/, '').toLowerCase()
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { username, password } = await request.json()
+    const loginName = typeof username === 'string' ? normalizeLoginName(username) : ''
+    const plainPassword = typeof password === 'string' ? password : ''
 
     // Validation
-    if (!username || !password) {
+    if (!loginName || !plainPassword) {
       return NextResponse.json(
-        { error: 'Benutzername und Passwort sind erforderlich' },
+        { error: 'Twitch Name und Passwort sind erforderlich' },
         { status: 400 }
       )
     }
 
     // Find user (case-insensitive search)
     const allUsers = await prisma.user.findMany()
-    const user = allUsers.find(u => 
-      u.username.toLowerCase() === username.toLowerCase().trim()
+    const user = allUsers.find(u =>
+      normalizeLoginName(u.username) === loginName
     )
 
     if (!user) {
@@ -32,7 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify password
-    const isValid = await verifyPassword(password, user.password)
+    const isValid = await verifyPassword(plainPassword, user.password)
     
     if (!isValid) {
       return NextResponse.json(

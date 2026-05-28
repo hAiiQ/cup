@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { TEAM_PLAYER_LIMIT } from '@/lib/teamCapacity'
 
 interface TeamMember {
   id: string
@@ -146,7 +147,7 @@ export default function TeamsPage() {
               🏆 TOURNAMENT TEAMS
             </h1>
             <p className="text-xl text-white/80 mb-4">
-              {teams.length > 0 ? `${teams.length} Teams` : 'Keine Teams'} • Double Elimination • Marvel Rivals
+              {teams.length > 0 ? `${teams.length} Teams` : 'Keine Teams'} • Format offen • Marvel Rivals
             </p>
             
             <div className="flex justify-center gap-4 mt-6">
@@ -201,7 +202,7 @@ export default function TeamsPage() {
                     <div className="mb-3">
                       <div className="flex justify-between text-sm mb-1">
                         <span className="text-white/70">Team-Stärke</span>
-                        <span className="text-white/90">{team.members.length}/6 Mitglieder</span>
+                        <span className="text-white/90">{team.members.length}/{TEAM_PLAYER_LIMIT} Mitglieder</span>
                       </div>
                       <div className="w-full bg-white/20 rounded-full h-2">
                         <div 

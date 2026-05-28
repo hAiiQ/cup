@@ -83,10 +83,10 @@ export default function RulesPage() {
                 🏆 Tournament Regeln
               </h1>
               <p className="text-xl text-white/80 max-w-3xl mx-auto">
-                JOE'S SUMMER CUP - Sommer Cup Tournament
+                Summer Cup
               </p>
               <div className="mt-4 inline-block bg-gradient-to-r from-yellow-400/20 via-orange-400/20 to-pink-500/20 border border-orange-300 rounded-lg px-6 py-2">
-                <span className="text-orange-200 font-medium">📅 Double Elimination • 8 Teams • Summer Cup</span>
+                <span className="text-orange-200 font-medium">Format & Teamanzahl werden noch bekanntgegeben</span>
               </div>
             </div>
           </div>
@@ -232,7 +232,7 @@ export default function RulesPage() {
                 </div>
                 <div className="flex items-start">
                   <span className="text-blue-400 mr-3 text-xl mt-1">👥</span>
-                  <span className="text-white/90">Teams bestehen aus maximal 6 Spielern pro Team</span>
+                  <span className="text-white/90">Teams bestehen aus 5 Spielern plus 2 Reserve-Slots</span>
                 </div>
                 <div className="flex items-start">
                   <span className="text-purple-400 mr-3 text-xl mt-1">🔒</span>
@@ -266,19 +266,19 @@ export default function RulesPage() {
                 </div>
                 <div className="flex items-start">
                   <span className="text-green-400 mr-3 text-xl mt-1">🔄</span>
-                  <span className="text-white/90">Double Elimination System mit 8 Teams</span>
+                  <span className="text-white/90">Turnierformat und Teamanzahl werden noch bekanntgegeben</span>
                 </div>
                 <div className="flex items-start">
                   <span className="text-blue-400 mr-3 text-xl mt-1">🏅</span>
-                  <span className="text-white/90">Winner Bracket und Loser Bracket</span>
+                  <span className="text-white/90">Bracket Details werden vor Turnierstart bekanntgegeben</span>
                 </div>
                 <div className="flex items-start">
                   <span className="text-purple-400 mr-3 text-xl mt-1">⚔️</span>
-                  <span className="text-white/90">Best of 3 in allen Runden außer dem Finale</span>
+                  <span className="text-white/90">Matchlängen werden vor Turnierstart bekanntgegeben</span>
                 </div>
                 <div className="flex items-start">
                   <span className="text-pink-400 mr-3 text-xl mt-1">👑</span>
-                  <span className="text-white/90">Finale ist Best of 5 für den ultimativen Champion</span>
+                  <span className="text-white/90">Finale-Regeln werden vor Turnierstart bekanntgegeben</span>
                 </div>
               </div>
             </div>

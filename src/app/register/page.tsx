@@ -8,7 +8,6 @@ import { SOCIAL_REQUIREMENTS } from '@/lib/socialRequirements'
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
-    username: '',
     password: '',
     confirmPassword: '',
     inGameName: '',
@@ -60,6 +59,7 @@ export default function RegisterPage() {
   }
 
   const handleFinalRegistration = async () => {
+    setError('')
     setLoading(true)
 
     try {
@@ -69,7 +69,6 @@ export default function RegisterPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          username: formData.username,
           password: formData.password,
           inGameName: formData.inGameName,
           inGameRank: formData.inGameRank,
@@ -86,18 +85,7 @@ export default function RegisterPage() {
 
       if (response.ok && data.token && data.user) {
         login(data.token, data.user)
-
-        sessionStorage.setItem(
-          'pendingVerification',
-          JSON.stringify({
-            twitch: formData.twitchName,
-            discord: formData.discordName,
-            instagram: formData.instagramName,
-            tiktok: formData.tiktokName,
-          })
-        )
-
-        router.push('/verify')
+        router.push('/dashboard')
       } else {
         setError(data.error || 'Ein Fehler ist aufgetreten')
       }
@@ -174,21 +162,6 @@ export default function RegisterPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="username" className="block text-white mb-2">
-              Benutzername *
-            </label>
-            <input
-              type="text"
-              id="username"
-              required
-              className="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-purple-500"
-              placeholder="Dein Benutzername"
-              value={formData.username}
-              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-            />
-          </div>
-
-          <div>
             <label htmlFor="password" className="block text-white mb-2">
               Passwort *
             </label>
@@ -261,7 +234,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="bg-white/5 border border-white/20 rounded-lg p-4 mb-2">
-            <p className="text-white font-medium mb-3">Social Media (Pflicht — wird nach der Registrierung geprüft)</p>
+            <p className="text-white font-medium mb-3">Social Media (Pflicht - Twitch & Discord werden vor der Registrierung geprüft)</p>
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="twitchName" className="block text-white mb-2">
@@ -276,6 +249,9 @@ export default function RegisterPage() {
                   value={formData.twitchName}
                   onChange={(e) => setFormData({ ...formData, twitchName: e.target.value })}
                 />
+                <p className="text-xs text-white/60 mt-2">
+                  Dein Twitch Name wird automatisch dein Login-Name.
+                </p>
                 <a href={SOCIAL_REQUIREMENTS.twitch.url} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-300 hover:underline mt-1 inline-block">
                   → {SOCIAL_REQUIREMENTS.twitch.action}
                 </a>
@@ -373,10 +349,10 @@ export default function RegisterPage() {
                 🏆 Tournament Regeln
               </h2>
               <p className="text-xl text-white/80">
-                JOE'S SUMMER CUP - Sommer Cup Tournament
+                Summer Cup
               </p>
               <div className="mt-4 inline-block bg-gradient-to-r from-yellow-400/20 via-orange-400/20 to-pink-500/20 border border-orange-300 rounded-lg px-6 py-2">
-                <span className="text-orange-200 font-medium">📅 Double Elimination • 8 Teams • Summer Cup</span>
+                <span className="text-orange-200 font-medium">Format & Teamanzahl werden noch bekanntgegeben</span>
               </div>
             </div>
 
@@ -455,7 +431,7 @@ export default function RegisterPage() {
                   </div>
                   <div className="flex items-start">
                     <span className="text-blue-400 mr-2 text-lg mt-1">👥</span>
-                    <span className="text-white/90 text-sm">Teams bestehen aus maximal 6 Spielern pro Team</span>
+                    <span className="text-white/90 text-sm">Teams bestehen aus 5 Spielern plus 2 Reserve-Slots</span>
                   </div>
                   <div className="flex items-start">
                     <span className="text-purple-400 mr-2 text-lg mt-1">🔒</span>
@@ -489,19 +465,19 @@ export default function RegisterPage() {
                   </div>
                   <div className="flex items-start">
                     <span className="text-green-400 mr-2 text-lg mt-1">🔄</span>
-                    <span className="text-white/90 text-sm">Double Elimination System mit 8 Teams</span>
+                    <span className="text-white/90 text-sm">Turnierformat und Teamanzahl werden noch bekanntgegeben</span>
                   </div>
                   <div className="flex items-start">
                     <span className="text-blue-400 mr-2 text-lg mt-1">🏅</span>
-                    <span className="text-white/90 text-sm">Winner Bracket und Loser Bracket</span>
+                    <span className="text-white/90 text-sm">Bracket Details werden vor Turnierstart bekanntgegeben</span>
                   </div>
                   <div className="flex items-start">
                     <span className="text-purple-400 mr-2 text-lg mt-1">⚔️</span>
-                    <span className="text-white/90 text-sm">Best of 3 in allen Runden außer dem Finale</span>
+                    <span className="text-white/90 text-sm">Matchlängen werden vor Turnierstart bekanntgegeben</span>
                   </div>
                   <div className="flex items-start">
                     <span className="text-pink-400 mr-2 text-lg mt-1">👑</span>
-                    <span className="text-white/90 text-sm">Finale ist Best of 5 für den ultimativen Champion</span>
+                    <span className="text-white/90 text-sm">Finale-Regeln werden vor Turnierstart bekanntgegeben</span>
                   </div>
                 </div>
               </div>
@@ -602,6 +578,12 @@ export default function RegisterPage() {
                 </p>
               </div>
             </div>
+
+            {error && (
+              <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-3 text-red-200 mb-6">
+                {error}
+              </div>
+            )}
 
             <div className="flex gap-4 justify-center">
               <button

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { MAX_TEAMS, getDefaultTeamName, normalizeTeamName } from '@/lib/teamDefaults'
+import { TEAM_PLAYER_LIMIT } from '@/lib/teamCapacity'
 
 interface TeamMember {
   id: string
@@ -235,7 +236,7 @@ export default function TeamsPage() {
                     <div className="mb-3">
                       <div className="flex justify-between text-sm mb-1">
                         <span className="text-white/70">Team-Stärke</span>
-                        <span className="text-white/90">{team.members.length}/6 Mitglieder</span>
+                        <span className="text-white/90">{team.members.length}/{TEAM_PLAYER_LIMIT} Mitglieder</span>
                       </div>
                       <div className="w-full bg-white/20 rounded-full h-2">
                         <div 

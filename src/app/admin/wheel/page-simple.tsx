@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { TEAM_PLAYER_LIMIT } from '@/lib/teamCapacity'
 
 interface User {
   id: string
@@ -296,7 +297,7 @@ export default function SimpleWheelPage() {
     }
   }, [])
 
-  const availableTeams = teams.filter(team => team.memberCount < 6)
+  const availableTeams = teams.filter(team => team.memberCount < TEAM_PLAYER_LIMIT)
 
   return (
     <div className="min-h-screen bg-gray-900">
@@ -354,7 +355,7 @@ export default function SimpleWheelPage() {
                       <option value="">-- Team wählen --</option>
                       {availableTeams.map(team => (
                         <option key={team.id} value={team.id}>
-                          {team.name} ({team.memberCount}/6 Mitglieder)
+                          {team.name} ({team.memberCount}/{TEAM_PLAYER_LIMIT} Mitglieder)
                         </option>
                       ))}
                     </select>

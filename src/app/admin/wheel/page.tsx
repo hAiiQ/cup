@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatTierLabel, TIER_SELECT_OPTIONS } from '@/lib/tierConfig'
+import { TEAM_PLAYER_LIMIT } from '@/lib/teamCapacity'
 
 interface User {
   id: string
@@ -402,7 +403,7 @@ export default function WheelPage() {
     }
   }, [])
 
-  const availableTeams = teams.filter(team => team.memberCount < 6)
+  const availableTeams = teams.filter(team => team.memberCount < TEAM_PLAYER_LIMIT)
 
   // Show loading screen while checking authentication
   if (isLoading) {
@@ -524,7 +525,7 @@ export default function WheelPage() {
                     <option value="">-- Team wählen --</option>
                     {availableTeams.map(team => (
                       <option key={team.id} value={team.id}>
-                        {team.name} ({team.memberCount}/6)
+                        {team.name} ({team.memberCount}/{TEAM_PLAYER_LIMIT})
                       </option>
                     ))}
                   </select>

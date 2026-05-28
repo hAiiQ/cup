@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { TEAM_PLAYER_LIMIT } from '@/lib/teamCapacity'
 
 interface TeamMember {
   id: string
@@ -150,7 +151,7 @@ export default function TeamsPage() {
             </span>
           </h1>
           <p className="text-xl text-white/80 mb-8 max-w-2xl mx-auto">
-            {teams.length > 0 ? `${teams.length} Teams bereit für das Double Elimination Tournament` : 'Teams werden vom Admin-System erstellt'}
+            {teams.length > 0 ? `${teams.length} Teams bereit` : 'Teams werden vom Admin-System erstellt'}
           </p>
           
           <div className="flex justify-center gap-4 mt-6">
@@ -204,7 +205,7 @@ export default function TeamsPage() {
                     <div className="mb-4">
                       <div className="flex justify-between text-sm mb-2">
                         <span className="text-white/80 font-medium">Team-Stärke</span>
-                        <span className="text-white font-bold">{team.members.length}/6 Mitglieder</span>
+                        <span className="text-white font-bold">{team.members.length}/{TEAM_PLAYER_LIMIT} Mitglieder</span>
                       </div>
                       <div className="w-full bg-white/20 rounded-full h-3">
                         <div 
@@ -260,7 +261,7 @@ export default function TeamsPage() {
                       <div className="space-y-4">
                         <h4 className="text-xl font-bold text-white mb-4 flex items-center">
                           <span className="mr-2">👥</span>
-                          Team Roster ({team.members.length}/6)
+                          Team Roster ({team.members.length}/{TEAM_PLAYER_LIMIT})
                         </h4>
                         
                         {team.members.map((member, index) => (

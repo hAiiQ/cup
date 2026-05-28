@@ -573,7 +573,7 @@ export default function AdminBracketPage() {
         <div className="container mx-auto px-4 py-4">
           <nav className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="text-2xl font-bold text-orange-300">
-              🏆 JOE'S SUMMER CUP BRACKET (ADMIN)
+              🏆 SUMMER CUP BRACKET (ADMIN)
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <div className="text-gray-300 text-sm">
