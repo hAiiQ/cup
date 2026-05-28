@@ -329,7 +329,7 @@ export default function HomePage() {
         >
           <div className="w-full max-w-4xl">
             <div className="relative overflow-hidden rounded-xl border-4 border-yellow-300 bg-black/55 py-5 shadow-[0_0_38px_rgba(253,224,71,0.45)]">
-              <div className="pointer-events-none absolute inset-y-3 left-1/2 z-20 w-1 -translate-x-1/2 rounded-full bg-yellow-300 shadow-[0_0_24px_rgba(253,224,71,0.9)]" />
+              <div className="pointer-events-none absolute inset-y-3 left-1/2 z-20 w-1 -translate-x-1/2 rounded-full bg-yellow-300/25 shadow-[0_0_24px_rgba(253,224,71,0.25)]" />
               <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-black/80 to-transparent" />
               <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-black/80 to-transparent" />
 
