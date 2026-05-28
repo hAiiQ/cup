@@ -10,7 +10,7 @@ async function checkTeams() {
     if (teams.length === 0) {
       console.log('No teams found. Creating teams...');
       
-      const teamNames = ['Alpha', 'Beta', 'Gamma', 'Delta', 'Echo', 'Foxtrot', 'Golf', 'Hotel'];
+      const teamNames = Array.from({ length: 16 }, (_, index) => `Team ${index + 1}`);
       
       for (let i = 0; i < teamNames.length; i++) {
         await prisma.team.create({

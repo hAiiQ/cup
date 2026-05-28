@@ -39,6 +39,8 @@ export async function POST(request: NextRequest) {
       CREATE TABLE IF NOT EXISTS "Team" (
         id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
         name TEXT UNIQUE NOT NULL,
+        position INTEGER UNIQUE DEFAULT 0,
+        "imageUrl" TEXT,
         "isLive" BOOLEAN DEFAULT false,
         "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -86,11 +88,13 @@ export async function POST(request: NextRequest) {
     console.log('✅ Admin user created');
     
     // Create teams
-    for (const teamName of DEFAULT_TEAM_NAMES) {
+    for (let index = 0; index < DEFAULT_TEAM_NAMES.length; index++) {
+      const teamName = DEFAULT_TEAM_NAMES[index]
+      const position = index + 1
       await prisma.$executeRaw`
-        INSERT INTO "Team" (id, name) 
-        VALUES (gen_random_uuid()::text, ${teamName})
-        ON CONFLICT (name) DO NOTHING;
+        INSERT INTO "Team" (id, name, position)
+        VALUES (gen_random_uuid()::text, ${teamName}, ${position})
+        ON CONFLICT (position) DO UPDATE SET name = ${teamName};
       `;
     }
     

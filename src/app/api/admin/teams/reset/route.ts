@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { DEFAULT_TEAM_NAMES } from '@/lib/teamDefaults'
 import { verifyToken } from '@/lib/auth'
-
-const MAX_TEAM_NAME_LENGTH = 40
+import { resetTeamsToDefaultNames } from '@/lib/teamMaintenance'
+import { updateBracketSettings } from '@/lib/bracketSettings'
+import { clearMatchStates } from '@/lib/matchState'
 
 async function verifyAdmin(request: NextRequest) {
   const token = request.cookies.get('admin_token')?.value
@@ -33,36 +33,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
     }
 
-    const payload = await request.json().catch(() => ({}))
-    const requestedName = typeof payload?.name === 'string' ? payload.name.trim() : ''
-    const normalizedName = requestedName.length > 0 ? requestedName : null
-
     const createdTeams = await prisma.$transaction(async (tx) => {
       await tx.user.updateMany({ data: { teamId: null } })
       await tx.teamMember.deleteMany({})
       await tx.match.deleteMany({})
-      await tx.team.deleteMany({})
-
-      const teams = []
-
-      for (let index = 0; index < DEFAULT_TEAM_NAMES.length; index++) {
-        const baseName = normalizedName ?? DEFAULT_TEAM_NAMES[index]
-        const safeName = baseName.slice(0, MAX_TEAM_NAME_LENGTH)
-        const position = index + 1
-
-        const team = await tx.team.create({
-          data: {
-            id: `team-${position}`,
-            name: safeName,
-            position
-          }
-        })
-
-        teams.push(team)
-      }
-
-      return teams
+      return resetTeamsToDefaultNames(tx)
     })
+    await updateBracketSettings({ tournamentStarted: false })
+    clearMatchStates()
 
     return NextResponse.json({ teams: createdTeams })
   } catch (error) {

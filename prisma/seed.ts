@@ -17,19 +17,15 @@ async function main() {
     }
   })
 
-  const defaultTeams = [
-    'Team Alpha', 'Team Beta', 'Team Gamma', 'Team Delta',
-    'Team Echo', 'Team Foxtrot', 'Team Golf', 'Team Hotel',
-    'Team Indigo', 'Team Jade'
-  ]
+  const defaultTeams = Array.from({ length: 16 }, (_, index) => `Team ${index + 1}`)
 
   for (let i = 0; i < defaultTeams.length; i++) {
     await prisma.team.upsert({
-      where: { position: i },
-      update: {},
+      where: { position: i + 1 },
+      update: { name: defaultTeams[i] },
       create: {
         name: defaultTeams[i],
-        position: i
+        position: i + 1
       }
     })
   }

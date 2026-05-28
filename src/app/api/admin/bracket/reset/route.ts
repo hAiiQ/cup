@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
 import { clearMatchStates } from '@/lib/matchState'
 import { updateBracketSettings } from '@/lib/bracketSettings'
+import { resetTeamsToDefaultNames } from '@/lib/teamMaintenance'
 
 // Helper function to verify admin
 async function verifyAdmin(request: NextRequest) {
@@ -41,18 +42,21 @@ export async function POST(request: NextRequest) {
 
     console.log('🔄 Tournament reset requested by admin:', admin.username)
 
-    // RENDER FIX: Simplified tournament reset
-    // Delete all matches to reset tournament
-    const deleteResult = await prisma.match.deleteMany({})
+    const resetResult = await prisma.$transaction(async (tx) => {
+      const deleteResult = await tx.match.deleteMany({})
+      const teams = await resetTeamsToDefaultNames(tx)
+      return { deletedMatches: deleteResult.count, resetTeams: teams.length }
+    })
     await updateBracketSettings({ tournamentStarted: false })
     clearMatchStates()
     
-    console.log(`✅ Tournament reset: ${deleteResult.count} matches deleted`)
+    console.log(`Tournament reset: ${resetResult.deletedMatches} matches deleted, ${resetResult.resetTeams} teams reset`)
 
     return NextResponse.json({ 
       success: true, 
       message: 'Tournament erfolgreich zurückgesetzt',
-      deletedMatches: deleteResult.count
+      deletedMatches: resetResult.deletedMatches,
+      resetTeams: resetResult.resetTeams
     })
 
   } catch (error) {

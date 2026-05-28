@@ -13,19 +13,19 @@ async function testTeamAssignment() {
     
     console.log('Test user:', user.username);
     
-    // Get Alpha team
-    const alphaTeam = await prisma.team.findFirst({
-      where: { name: 'Alpha' }
+    // Get Team 1
+    const teamOne = await prisma.team.findFirst({
+      where: { name: 'Team 1' }
     });
     
-    if (!alphaTeam) {
-      console.log('Alpha team not found');
+    if (!teamOne) {
+      console.log('Team 1 not found');
       return;
     }
     
-    console.log('Alpha team found:', alphaTeam.name, alphaTeam.id);
+    console.log('Team 1 found:', teamOne.name, teamOne.id);
     
-    // Assign user to Alpha team
+    // Assign user to Team 1
     await prisma.teamMember.deleteMany({
       where: { userId: user.id }
     });
@@ -33,12 +33,12 @@ async function testTeamAssignment() {
     await prisma.teamMember.create({
       data: {
         userId: user.id,
-        teamId: alphaTeam.id,
+        teamId: teamOne.id,
         role: 'member'
       }
     });
     
-    console.log(`Assigned ${user.username} to ${alphaTeam.name} team`);
+    console.log(`Assigned ${user.username} to ${teamOne.name}`);
     
     // Verify assignment
     const userWithTeam = await prisma.user.findUnique({

@@ -274,9 +274,6 @@ export default function AdminDashboard() {
       return
     }
 
-    const customNameInput = window.prompt('Optional: Wie sollen die neuen Teams heißen? (Leer lassen für Team 1–10)', '')
-    const trimmedName = customNameInput?.trim() || undefined
-
     setResettingTeams(true)
 
     try {
@@ -285,7 +282,7 @@ export default function AdminDashboard() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(trimmedName ? { name: trimmedName } : {}),
+        body: JSON.stringify({}),
       })
 
       if (response.ok) {

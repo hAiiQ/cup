@@ -14,13 +14,13 @@ async function assignStreamerToTeam() {
       return
     }
     
-    // Find Alpha team
+    // Find Team 1
     const team = await prisma.team.findFirst({
-      where: { name: 'Alpha' }
+      where: { name: 'Team 1' }
     })
     
     if (!team) {
-      console.log('❌ Team Alpha nicht gefunden')
+      console.log('❌ Team 1 nicht gefunden')
       return
     }
     
@@ -29,7 +29,7 @@ async function assignStreamerToTeam() {
       where: { userId: user.id }
     })
     
-    // Add to Alpha team
+    // Add to Team 1
     await prisma.teamMember.create({
       data: {
         userId: user.id,
@@ -38,7 +38,7 @@ async function assignStreamerToTeam() {
       }
     })
     
-    console.log('✅ TestStreamer wurde Team Alpha zugewiesen')
+    console.log('✅ TestStreamer wurde Team 1 zugewiesen')
     console.log('🎥 Streamer Status:', user.isStreamer)
     console.log('🏆 Team:', team.name)
     

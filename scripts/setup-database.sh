@@ -46,16 +46,15 @@ async function setupDatabase() {
         console.log('✅ Admin user created: admin/rootmr');
     
     // Create default teams
-    const teamNames = [
-      'Team Alpha', 'Team Beta', 'Team Gamma', 'Team Delta',
-      'Team Epsilon', 'Team Zeta', 'Team Eta', 'Team Theta'
-    ];
+    const teamNames = Array.from({ length: 16 }, (_, index) => 'Team ' + (index + 1));
     
-    for (const teamName of teamNames) {
+    for (let index = 0; index < teamNames.length; index++) {
+      const teamName = teamNames[index];
+      const position = index + 1;
       await prisma.team.upsert({
-        where: { name: teamName },
-        update: {},
-        create: { name: teamName }
+        where: { position },
+        update: { name: teamName },
+        create: { name: teamName, position }
       });
     }
     

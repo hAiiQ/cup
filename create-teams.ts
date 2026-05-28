@@ -8,7 +8,7 @@ async function createTeams() {
     // Delete existing teams first
     await prisma.team.deleteMany()
     
-    // Create the tournament teams (10 slots)
+    // Create the tournament teams (16 slots)
     const teams = DEFAULT_TEAM_NAMES.map((name, index) => ({
       id: `team-${index + 1}`,
       name,

@@ -38,6 +38,7 @@ async function setupDatabase() {
       CREATE TABLE IF NOT EXISTS "Team" (
         "id" TEXT NOT NULL PRIMARY KEY,
         "name" TEXT NOT NULL UNIQUE,
+        "position" INTEGER UNIQUE DEFAULT 0,
         "isLive" BOOLEAN NOT NULL DEFAULT false,
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -114,16 +115,15 @@ async function setupDatabase() {
     
     // Create default teams
     console.log('🏆 Creating default teams...');
-    const teamNames = [
-      'Team Alpha', 'Team Beta', 'Team Gamma', 'Team Delta',
-      'Team Epsilon', 'Team Zeta', 'Team Eta', 'Team Theta'
-    ];
+    const teamNames = Array.from({ length: 16 }, (_, index) => `Team ${index + 1}`);
     
-    for (const teamName of teamNames) {
+    for (let index = 0; index < teamNames.length; index++) {
+      const teamName = teamNames[index];
+      const position = index + 1;
       await prisma.team.upsert({
-        where: { name: teamName },
-        update: {},
-        create: { name: teamName }
+        where: { position },
+        update: { name: teamName },
+        create: { name: teamName, position }
       });
     }
     console.log('✅ Default teams created');

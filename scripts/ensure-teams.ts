@@ -12,16 +12,11 @@ async function ensureTeams() {
     if (existingTeams.length === 0) {
       console.log('🎯 Creating default teams...')
       
-      const teams = [
-        { name: 'Team Alpha', position: 1, imageUrl: null },
-        { name: 'Team Beta', position: 2, imageUrl: null },
-        { name: 'Team Gamma', position: 3, imageUrl: null },
-        { name: 'Team Delta', position: 4, imageUrl: null },
-        { name: 'Team Epsilon', position: 5, imageUrl: null },
-        { name: 'Team Zeta', position: 6, imageUrl: null },
-        { name: 'Team Eta', position: 7, imageUrl: null },
-        { name: 'Team Theta', position: 8, imageUrl: null }
-      ]
+      const teams = Array.from({ length: 16 }, (_, index) => ({
+        name: `Team ${index + 1}`,
+        position: index + 1,
+        imageUrl: null
+      }))
       
       for (const teamData of teams) {
         await prisma.team.create({

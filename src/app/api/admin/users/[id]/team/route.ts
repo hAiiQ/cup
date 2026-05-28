@@ -19,7 +19,7 @@ export async function POST(
     // RENDER FIX: Use direct teamId assignment instead of TeamMember table
     
     if (teamName && teamName !== '') {
-      // Check if team exists (try both formats: "Alpha" and "Team Alpha")
+      // Check if team exists by the selected admin-facing team name.
       let team = await prisma.team.findFirst({
         where: { name: teamName }
       })
