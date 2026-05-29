@@ -527,7 +527,7 @@ export default function WheelPage() {
     <div className="min-h-screen bg-gray-950 text-white">
       {/* Header */}
       <header className="border-b border-gray-800 bg-gray-950/95">
-        <div className="mx-auto max-w-7xl px-4 py-5">
+        <div className="mx-auto max-w-[1800px] px-4 py-5 sm:px-6 lg:px-8">
           <nav className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <div className="text-xs font-semibold uppercase tracking-[0.25em] text-purple-300">
@@ -549,7 +549,7 @@ export default function WheelPage() {
       </header>
 
       {/* Main Content - 3 Column Layout */}
-      <main className="mx-auto max-w-7xl px-4 py-6">
+      <main className="mx-auto max-w-[1800px] px-4 py-6 sm:px-6 lg:px-8">
         <div className="mb-6 grid gap-3 md:grid-cols-4">
           <div className="rounded-lg border border-gray-800 bg-gray-900/80 p-4">
             <div className="text-2xl font-bold text-purple-200">{filteredUsers.length}</div>
@@ -569,7 +569,7 @@ export default function WheelPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[320px_minmax(0,1fr)_340px]">
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[260px_minmax(0,1fr)_260px] 2xl:grid-cols-[280px_minmax(0,1fr)_280px]">
           
           {/* Left Column - Filters & Controls */}
           <div className="space-y-4">
@@ -683,14 +683,11 @@ export default function WheelPage() {
           </div>
           
           {/* Center Column - Main Wheel (Larger) */}
-          <div className="flex flex-col items-center justify-center">
-            <div className="w-full rounded-lg border border-gray-800 bg-gray-900/80 p-5">
-              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 flex-col items-center justify-center">
+            <div className="flex min-h-[780px] w-full flex-col rounded-lg border border-gray-800 bg-gray-900/80 p-5 xl:min-h-[840px] 2xl:min-h-[900px]">
+              <div className="mb-5 flex items-center justify-between gap-3">
                 <div>
                   <h2 className="text-2xl font-bold text-white">Ziehung</h2>
-                  <p className="text-sm text-gray-400">
-                    Jeder Trenner im Rad spielt beim Überqueren den Tick-Sound.
-                  </p>
                 </div>
                 <div className={`rounded-full border px-3 py-1 text-xs font-semibold ${
                   isSpinning
@@ -707,12 +704,12 @@ export default function WheelPage() {
                   <p className="mt-1 text-sm text-gray-500">Passe die Filter an oder prüfe, ob noch Spieler ohne Team offen sind.</p>
                 </div>
               ) : (
-                <div className="text-center">
+                <div className="flex flex-1 items-center justify-center">
                   <canvas
                     ref={canvasRef}
-                    width={750}
-                    height={750}
-                    className="mx-auto aspect-square w-full max-w-[760px] rounded-full border border-purple-400/50 bg-gray-950 shadow-2xl shadow-purple-900/40"
+                    width={900}
+                    height={900}
+                    className="aspect-square w-full max-w-[900px] rounded-full border border-purple-400/50 bg-gray-950 shadow-2xl shadow-purple-900/40"
                   />
                 </div>
               )}
