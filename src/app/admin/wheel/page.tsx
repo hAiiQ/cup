@@ -5,6 +5,12 @@ import { useRouter } from 'next/navigation'
 import { formatTierLabel, TIER_SELECT_OPTIONS } from '@/lib/tierConfig'
 import { TEAM_PLAYER_LIMIT } from '@/lib/teamCapacity'
 
+const WHEEL_TICK_SOUND_SRC = '/wheelspin.mp3'
+const WHEEL_TICK_POOL_SIZE = 10
+const WHEEL_TICK_VOLUME = 0.45
+const WHEEL_TICK_STAGGER_MS = 14
+const MAX_TICKS_PER_FRAME = 12
+
 interface User {
   id: string
   username: string
@@ -27,6 +33,10 @@ export default function WheelPage() {
   const router = useRouter()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animationRef = useRef<number>()
+  const tickAudioPoolRef = useRef<HTMLAudioElement[]>([])
+  const tickAudioIndexRef = useRef(0)
+  const tickTimeoutsRef = useRef<number[]>([])
+  const lastSegmentCrossingRef = useRef<number | null>(null)
   
   const [users, setUsers] = useState<User[]>([])
   const [teams, setTeams] = useState<Team[]>([])
@@ -46,6 +56,24 @@ export default function WheelPage() {
   // Admin Authentication Check
   useEffect(() => {
     checkAdminAuth()
+  }, [])
+
+  useEffect(() => {
+    tickAudioPoolRef.current = Array.from({ length: WHEEL_TICK_POOL_SIZE }, () => {
+      const audio = new Audio(WHEEL_TICK_SOUND_SRC)
+      audio.preload = 'auto'
+      audio.volume = WHEEL_TICK_VOLUME
+      return audio
+    })
+
+    return () => {
+      tickTimeoutsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId))
+      tickTimeoutsRef.current = []
+      tickAudioPoolRef.current.forEach((audio) => {
+        audio.pause()
+        audio.currentTime = 0
+      })
+    }
   }, [])
 
   const checkAdminAuth = async () => {
@@ -139,6 +167,47 @@ export default function WheelPage() {
     setFilteredUsers(filtered)
   }
 
+  const playWheelTick = () => {
+    const pool = tickAudioPoolRef.current
+    if (pool.length === 0) return
+
+    const audio = pool[tickAudioIndexRef.current % pool.length]
+    tickAudioIndexRef.current += 1
+    audio.currentTime = 0
+    void audio.play().catch(() => {
+      // The browser can block audio until an admin has interacted with the page.
+    })
+  }
+
+  const queueWheelTicks = (count: number) => {
+    const tickCount = Math.min(count, MAX_TICKS_PER_FRAME)
+    for (let index = 0; index < tickCount; index += 1) {
+      const timeoutId = window.setTimeout(() => {
+        playWheelTick()
+        tickTimeoutsRef.current = tickTimeoutsRef.current.filter((id) => id !== timeoutId)
+      }, index * WHEEL_TICK_STAGGER_MS)
+      tickTimeoutsRef.current.push(timeoutId)
+    }
+  }
+
+  const updateWheelTickSound = (absoluteAngle: number, segmentSize: number) => {
+    if (segmentSize <= 0) return
+
+    const currentBoundaryIndex = Math.floor(absoluteAngle / segmentSize)
+    const previousBoundaryIndex = lastSegmentCrossingRef.current
+
+    if (previousBoundaryIndex === null) {
+      lastSegmentCrossingRef.current = currentBoundaryIndex
+      return
+    }
+
+    const crossedLines = Math.abs(currentBoundaryIndex - previousBoundaryIndex)
+    if (crossedLines > 0) {
+      queueWheelTicks(crossedLines)
+      lastSegmentCrossingRef.current = currentBoundaryIndex
+    }
+  }
+
   const drawWheel = () => {
     const canvas = canvasRef.current
     if (!canvas || filteredUsers.length === 0) {
@@ -154,13 +223,20 @@ export default function WheelPage() {
 
     const centerX = canvas.width / 2
     const centerY = canvas.height / 2
-    const radius = Math.min(centerX, centerY) - 30  // Größerer Abstand für modernes Design
+    const radius = Math.min(centerX, centerY) - 42
 
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-    // Farben für die Segmente
-    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#FFB347']
+    const wheelBackground = ctx.createRadialGradient(centerX, centerY, 80, centerX, centerY, radius + 34)
+    wheelBackground.addColorStop(0, '#111827')
+    wheelBackground.addColorStop(1, '#020617')
+    ctx.fillStyle = wheelBackground
+    ctx.beginPath()
+    ctx.arc(centerX, centerY, radius + 32, 0, 2 * Math.PI)
+    ctx.fill()
+
+    const colors = ['#7c3aed', '#2563eb', '#0891b2', '#059669', '#ca8a04', '#dc2626', '#db2777', '#4f46e5']
 
     // Berechne Winkel pro Segment (in Radians)
     const anglePerSegment = (2 * Math.PI) / filteredUsers.length
@@ -173,22 +249,24 @@ export default function WheelPage() {
       const startAngle = (index * anglePerSegment) - (Math.PI / 2) + rotationInRadians
       const endAngle = ((index + 1) * anglePerSegment) - (Math.PI / 2) + rotationInRadians
 
-      // Zeichne Segment
-      ctx.fillStyle = colors[index % colors.length]
+      const segmentGradient = ctx.createRadialGradient(centerX, centerY, 72, centerX, centerY, radius)
+      segmentGradient.addColorStop(0, colors[index % colors.length])
+      segmentGradient.addColorStop(1, '#111827')
+
+      ctx.fillStyle = segmentGradient
       ctx.beginPath()
       ctx.moveTo(centerX, centerY)
       ctx.arc(centerX, centerY, radius, startAngle, endAngle)
       ctx.closePath()
       ctx.fill()
 
-      // Weiße Umrandung
-      ctx.strokeStyle = '#FFFFFF'
-      ctx.lineWidth = 2
+      ctx.strokeStyle = 'rgba(255,255,255,0.62)'
+      ctx.lineWidth = 2.5
       ctx.stroke()
 
       // Text im Segment - AUSSEN an der Kante für bessere Lesbarkeit
       const textAngle = startAngle + (anglePerSegment / 2)
-      const textRadius = radius * 0.85  // Näher am äußeren Rand
+      const textRadius = radius * 0.78
 
       ctx.save()
       
@@ -203,7 +281,7 @@ export default function WheelPage() {
       ctx.rotate(textAngle + Math.PI / 2)
       
       ctx.fillStyle = '#FFFFFF'
-      ctx.font = 'bold 16px Arial'  // Etwas kleiner für bessere Anpassung
+      ctx.font = '700 16px Arial'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       
@@ -211,7 +289,7 @@ export default function WheelPage() {
       const maxTextWidth = (radius * anglePerSegment) * 0.8 // 80% der Segmentbreite
       
       // Dynamische Textkürzung basierend auf verfügbarem Platz
-      let displayName = user.username
+      let displayName = user.twitchName || user.username
       const textMetrics = ctx.measureText(displayName)
       
       if (textMetrics.width > maxTextWidth) {
@@ -225,39 +303,51 @@ export default function WheelPage() {
       ctx.fillText(displayName, 0, -8)
       
       if (user.isStreamer) {
-        ctx.font = 'bold 18px Arial'  // Kleineres Emoji für bessere Anpassung
-        ctx.fillText('🎥', 0, 12)
+        ctx.font = '700 11px Arial'
+        ctx.fillStyle = '#fbcfe8'
+        ctx.fillText('STREAMER', 0, 13)
       }
       
       ctx.restore()
     })
 
-    // Mittelkreis - größer für modernes Design
-    ctx.fillStyle = '#2C3E50'
+    ctx.strokeStyle = 'rgba(216,180,254,0.95)'
+    ctx.lineWidth = 7
     ctx.beginPath()
-    ctx.arc(centerX, centerY, 60, 0, 2 * Math.PI)  // Größerer Mittelkreis
+    ctx.arc(centerX, centerY, radius + 3, 0, 2 * Math.PI)
+    ctx.stroke()
+
+    const centerGradient = ctx.createRadialGradient(centerX - 18, centerY - 22, 12, centerX, centerY, 68)
+    centerGradient.addColorStop(0, '#475569')
+    centerGradient.addColorStop(1, '#020617')
+    ctx.fillStyle = centerGradient
+    ctx.beginPath()
+    ctx.arc(centerX, centerY, 68, 0, 2 * Math.PI)
     ctx.fill()
     ctx.strokeStyle = '#FFFFFF'
     ctx.lineWidth = 4
     ctx.stroke()
 
-    // Logo im Zentrum - größer
     ctx.fillStyle = '#FFFFFF'
-    ctx.font = 'bold 36px Arial'  // Größeres Logo
+    ctx.font = '800 24px Arial'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillText('⚡', centerX, centerY)
+    ctx.fillText('SPIN', centerX, centerY)
 
-    // ZEIGER - lila, nach unten zeigend, kleiner und höher positioniert  
-    ctx.fillStyle = '#a855f7'  // Lila Farbe
+    ctx.save()
+    ctx.shadowColor = 'rgba(251,191,36,0.55)'
+    ctx.shadowBlur = 18
+    ctx.fillStyle = '#fbbf24'
     ctx.beginPath()
-    ctx.moveTo(centerX, 32)           // Spitze unten - 33px höher (65-33=32)
-    ctx.lineTo(centerX - 15, -8)      // Links oben - 33px höher (25-33=-8)
-    ctx.lineTo(centerX + 15, -8)      // Rechts oben - 33px höher (25-33=-8)
+    ctx.moveTo(centerX, 58)
+    ctx.lineTo(centerX - 18, 18)
+    ctx.lineTo(centerX + 18, 18)
     ctx.closePath()
     ctx.fill()
-    
-    // Kein weißer Rahmen mehr - Zeiger Umrandung entfernt
+    ctx.strokeStyle = '#FFFFFF'
+    ctx.lineWidth = 2
+    ctx.stroke()
+    ctx.restore()
   }
 
   const spinWheel = () => {
@@ -304,6 +394,7 @@ export default function WheelPage() {
     const spinDuration = 12000
     const startTime = Date.now()
     const startAngle = 0  // IMMER von 0° starten nach Reset
+    lastSegmentCrossingRef.current = Math.floor(startAngle / segmentSize)
 
     const animate = () => {
       const elapsed = Date.now() - startTime
@@ -313,6 +404,7 @@ export default function WheelPage() {
       const easeOut = 1 - Math.pow(1 - progress, 5)
       let newAngle = startAngle + (totalRotation * easeOut)
       
+      updateWheelTickSound(newAngle, segmentSize)
       setCurrentAngle(newAngle % 360)
 
       if (progress < 1) {
@@ -336,6 +428,7 @@ export default function WheelPage() {
         // Zentrierung Animation
         const centeringDuration = 800
         const centeringStartTime = Date.now()
+        lastSegmentCrossingRef.current = Math.floor(stopAngle / segmentSize)
         
         const centeringAnimate = () => {
           const centeringElapsed = Date.now() - centeringStartTime
@@ -347,6 +440,7 @@ export default function WheelPage() {
             : 1 - Math.pow(-2 * centeringProgress + 2, 2) / 2
           
           const currentCenteringAngle = stopAngle + (angleDifference * easeInOut)
+          updateWheelTickSound(currentCenteringAngle, segmentSize)
           setCurrentAngle(currentCenteringAngle % 360)
           
           if (centeringProgress < 1) {
@@ -404,6 +498,13 @@ export default function WheelPage() {
   }, [])
 
   const availableTeams = teams.filter(team => team.memberCount < TEAM_PLAYER_LIMIT)
+  const selectedTeamInfo = teams.find((team) => team.id === selectedTeam)
+  const openTeamSlots = availableTeams.reduce(
+    (total, team) => total + Math.max(TEAM_PLAYER_LIMIT - team.memberCount, 0),
+    0
+  )
+  const streamerCount = filteredUsers.filter((user) => user.isStreamer).length
+  const participantCount = filteredUsers.length - streamerCount
 
   // Show loading screen while checking authentication
   if (isLoading) {
@@ -423,17 +524,23 @@ export default function WheelPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-gray-950 text-white">
       {/* Header */}
-      <header className="bg-gray-800 border-b border-gray-700">
-        <div className="container mx-auto px-4 py-4">
-          <nav className="flex justify-between items-center">
-            <div className="text-2xl font-bold text-purple-400">
-              ⚡ GLÜCKSRAD
+      <header className="border-b border-gray-800 bg-gray-950/95">
+        <div className="mx-auto max-w-7xl px-4 py-5">
+          <nav className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-[0.25em] text-purple-300">
+                Admin Tool
+              </div>
+              <h1 className="mt-1 text-3xl font-bold text-white">Glücksrad</h1>
+              <p className="mt-1 text-sm text-gray-400">
+                Freie Spieler filtern, ziehen und direkt einem Team zuweisen.
+              </p>
             </div>
             <button
               onClick={() => router.push('/admin/dashboard')}
-              className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors"
+              className="self-start rounded-md border border-gray-700 bg-gray-900 px-4 py-2 text-sm font-semibold text-gray-100 transition-colors hover:border-purple-400 hover:text-purple-100 md:self-auto"
             >
               Zurück zum Dashboard
             </button>
@@ -442,14 +549,38 @@ export default function WheelPage() {
       </header>
 
       {/* Main Content - 3 Column Layout */}
-      <main className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+      <main className="mx-auto max-w-7xl px-4 py-6">
+        <div className="mb-6 grid gap-3 md:grid-cols-4">
+          <div className="rounded-lg border border-gray-800 bg-gray-900/80 p-4">
+            <div className="text-2xl font-bold text-purple-200">{filteredUsers.length}</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Im Rad</div>
+          </div>
+          <div className="rounded-lg border border-gray-800 bg-gray-900/80 p-4">
+            <div className="text-2xl font-bold text-pink-200">{streamerCount}</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Streamer</div>
+          </div>
+          <div className="rounded-lg border border-gray-800 bg-gray-900/80 p-4">
+            <div className="text-2xl font-bold text-cyan-200">{participantCount}</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Teilnehmer</div>
+          </div>
+          <div className="rounded-lg border border-gray-800 bg-gray-900/80 p-4">
+            <div className="text-2xl font-bold text-green-200">{openTeamSlots}</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Freie Slots</div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[320px_minmax(0,1fr)_340px]">
           
           {/* Left Column - Filters & Controls */}
-          <div className="xl:col-span-1 space-y-4">
+          <div className="space-y-4">
             {/* Filters */}
-            <div className="bg-gray-800 rounded-lg p-4">
-              <h3 className="text-lg font-bold text-white mb-3">🔍 Filter</h3>
+            <div className="rounded-lg border border-gray-800 bg-gray-900/80 p-4">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-bold text-white">Filter</h2>
+                <span className="rounded-full border border-purple-500/40 bg-purple-500/10 px-2.5 py-1 text-xs font-semibold text-purple-200">
+                  {filteredUsers.length} aktiv
+                </span>
+              </div>
               
               <div className="space-y-3">
                 <div>
@@ -459,7 +590,7 @@ export default function WheelPage() {
                   <select
                     value={verificationFilter}
                     onChange={(e) => setVerificationFilter(e.target.value)}
-                    className="w-full px-2 py-1.5 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+                    className="w-full rounded-md border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white focus:border-purple-400 focus:outline-none"
                   >
                     <option value="all">Alle Benutzer</option>
                     <option value="verified">Nur verifizierte</option>
@@ -474,7 +605,7 @@ export default function WheelPage() {
                   <select
                     value={streamerFilter}
                     onChange={(e) => setStreamerFilter(e.target.value)}
-                    className="w-full px-2 py-1.5 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+                    className="w-full rounded-md border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white focus:border-purple-400 focus:outline-none"
                   >
                     <option value="all">Alle</option>
                     <option value="streamers">Nur Streamer</option>
@@ -489,7 +620,7 @@ export default function WheelPage() {
                   <select
                     value={tierFilter}
                     onChange={(e) => setTierFilter(e.target.value)}
-                    className="w-full px-2 py-1.5 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+                    className="w-full rounded-md border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white focus:border-purple-400 focus:outline-none"
                   >
                     <option value="all">Alle Tiers</option>
                     {TIER_SELECT_OPTIONS.map((option) => (
@@ -502,14 +633,14 @@ export default function WheelPage() {
                 </div>
               </div>
               
-              <div className="mt-3 text-xs text-gray-400 bg-gray-700 rounded px-2 py-1">
-                Teilnehmer: {filteredUsers.length}
+              <div className="mt-4 rounded-md border border-gray-800 bg-gray-950 px-3 py-2 text-xs text-gray-400">
+                Nur Spieler ohne Team werden angezeigt.
               </div>
             </div>
 
             {/* Team Selection & Spin */}
-            <div className="bg-gray-800 rounded-lg p-4">
-              <h3 className="text-lg font-bold text-white mb-3">🎯 Aktion</h3>
+            <div className="rounded-lg border border-gray-800 bg-gray-900/80 p-4">
+              <h2 className="mb-4 text-lg font-bold text-white">Aktion</h2>
               
               <div className="space-y-3">
                 <div>
@@ -519,10 +650,10 @@ export default function WheelPage() {
                   <select
                     value={selectedTeam}
                     onChange={(e) => setSelectedTeam(e.target.value)}
-                    className="w-full px-2 py-1.5 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+                    className="w-full rounded-md border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white focus:border-purple-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
                     disabled={isSpinning}
                   >
-                    <option value="">-- Team wählen --</option>
+                    <option value="">Team wählen</option>
                     {availableTeams.map(team => (
                       <option key={team.id} value={team.id}>
                         {team.name} ({team.memberCount}/{TEAM_PLAYER_LIMIT})
@@ -531,27 +662,49 @@ export default function WheelPage() {
                   </select>
                 </div>
                 
+                {selectedTeamInfo && (
+                  <div className="rounded-md border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm text-green-100">
+                    <div className="font-semibold">{selectedTeamInfo.name}</div>
+                    <div className="text-xs text-green-200/80">
+                      {selectedTeamInfo.memberCount}/{TEAM_PLAYER_LIMIT} Spieler belegt
+                    </div>
+                  </div>
+                )}
+
                 <button
                   onClick={spinWheel}
                   disabled={!selectedTeam || isSpinning || filteredUsers.length === 0}
-                  className="w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-lg hover:from-purple-700 hover:to-pink-700 disabled:bg-gray-600 disabled:cursor-not-allowed transition-all duration-300 shadow-lg text-sm"
+                  className="w-full rounded-md bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-purple-900/30 transition-all hover:from-purple-500 hover:to-pink-500 disabled:cursor-not-allowed disabled:from-gray-700 disabled:to-gray-700 disabled:text-gray-400"
                 >
-                  {isSpinning ? '🌀 Dreht...' : '🎯 DREHEN'}
+                  {isSpinning ? 'Dreht...' : 'Rad drehen'}
                 </button>
               </div>
             </div>
           </div>
           
           {/* Center Column - Main Wheel (Larger) */}
-          <div className="xl:col-span-2 flex flex-col items-center justify-center">
-            <div className="bg-gray-800 rounded-lg p-6 w-full">
-              <h2 className="text-2xl font-bold text-white mb-4 text-center">
-                🎰 Glücksrad
-              </h2>
+          <div className="flex flex-col items-center justify-center">
+            <div className="w-full rounded-lg border border-gray-800 bg-gray-900/80 p-5">
+              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Ziehung</h2>
+                  <p className="text-sm text-gray-400">
+                    Jeder Trenner im Rad spielt beim Überqueren den Tick-Sound.
+                  </p>
+                </div>
+                <div className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                  isSpinning
+                    ? 'border-pink-400/60 bg-pink-500/15 text-pink-100'
+                    : 'border-gray-700 bg-gray-950 text-gray-300'
+                }`}>
+                  {isSpinning ? 'Spin läuft' : 'Bereit'}
+                </div>
+              </div>
               
               {filteredUsers.length === 0 ? (
-                <div className="text-center text-gray-400 py-12">
-                  <p>Keine verfügbaren Benutzer</p>
+                <div className="rounded-lg border border-dashed border-gray-700 bg-gray-950/60 py-16 text-center text-gray-400">
+                  <p className="text-lg font-semibold text-gray-200">Keine verfügbaren Spieler</p>
+                  <p className="mt-1 text-sm text-gray-500">Passe die Filter an oder prüfe, ob noch Spieler ohne Team offen sind.</p>
                 </div>
               ) : (
                 <div className="text-center">
@@ -559,7 +712,7 @@ export default function WheelPage() {
                     ref={canvasRef}
                     width={750}
                     height={750}
-                    className="border-2 border-purple-500 rounded-full mx-auto shadow-2xl shadow-purple-500/30 max-w-full"
+                    className="mx-auto aspect-square w-full max-w-[760px] rounded-full border border-purple-400/50 bg-gray-950 shadow-2xl shadow-purple-900/40"
                   />
                 </div>
               )}
@@ -567,40 +720,76 @@ export default function WheelPage() {
           </div>
 
           {/* Right Column - Winner Display */}
-          <div className="xl:col-span-1">
+          <div className="space-y-4">
             {selectedUser ? (
-              <div className="bg-green-800 rounded-lg p-4 sticky top-4">
-                <h3 className="text-lg font-bold text-white mb-3">🏆 GEWINNER!</h3>
-                <div className="bg-green-700 rounded-lg p-3">
-                  <p className="text-white font-bold text-lg">{selectedUser.username}</p>
-                  <p className="text-green-200 text-sm">
-                    {selectedUser.isStreamer ? '🎥 Streamer' : '👤 Teilnehmer'}
-                    {selectedUser.tier && ` • ${formatTierLabel(selectedUser.tier)}`}
-                  </p>
+              <div className="sticky top-4 rounded-lg border border-green-500/40 bg-green-500/10 p-4">
+                <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-green-300">Gewinner</div>
+                <div className="rounded-md border border-green-500/30 bg-gray-950/70 p-4">
+                  <p className="truncate text-2xl font-bold text-white">{selectedUser.twitchName || selectedUser.username}</p>
+                  <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold">
+                    <span className="rounded-full border border-green-500/40 bg-green-500/10 px-2.5 py-1 text-green-100">
+                      {selectedUser.isStreamer ? 'Streamer' : 'Teilnehmer'}
+                    </span>
+                    {selectedUser.tier && (
+                      <span className="rounded-full border border-purple-500/40 bg-purple-500/10 px-2.5 py-1 text-purple-100">
+                        {formatTierLabel(selectedUser.tier)}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <button
                   onClick={assignToTeam}
                   disabled={!selectedTeam}
-                  className="w-full mt-3 px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-600 transition-colors text-sm font-bold"
+                  className="mt-3 w-full rounded-md bg-green-600 px-3 py-2 text-sm font-bold text-white transition-colors hover:bg-green-500 disabled:cursor-not-allowed disabled:bg-gray-700 disabled:text-gray-400"
                 >
                   Zu Team hinzufügen
                 </button>
               </div>
             ) : (
-              <div className="bg-gray-800 rounded-lg p-4">
-                <h3 className="text-lg font-bold text-white mb-3">📊 Status</h3>
-                <div className="space-y-2">
-                  <div className="bg-gray-700 rounded p-2">
-                    <p className="text-purple-400 font-bold text-lg">{filteredUsers.length}</p>
-                    <p className="text-xs text-gray-300">Im Rad</p>
+              <div className="rounded-lg border border-gray-800 bg-gray-900/80 p-4">
+                <h2 className="mb-3 text-lg font-bold text-white">Status</h2>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-md border border-gray-800 bg-gray-950 p-3">
+                    <p className="text-2xl font-bold text-purple-200">{filteredUsers.length}</p>
+                    <p className="text-xs text-gray-500">Im Rad</p>
                   </div>
-                  <div className="bg-gray-700 rounded p-2">
-                    <p className="text-green-400 font-bold text-lg">{availableTeams.length}</p>
-                    <p className="text-xs text-gray-300">Teams verfügbar</p>
+                  <div className="rounded-md border border-gray-800 bg-gray-950 p-3">
+                    <p className="text-2xl font-bold text-green-200">{availableTeams.length}</p>
+                    <p className="text-xs text-gray-500">Teams frei</p>
                   </div>
                 </div>
               </div>
             )}
+
+            <div className="rounded-lg border border-gray-800 bg-gray-900/80 p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-lg font-bold text-white">Spieler im Rad</h2>
+                <span className="text-xs text-gray-500">{filteredUsers.length}</span>
+              </div>
+              <div className="max-h-[520px] space-y-2 overflow-y-auto pr-1">
+                {filteredUsers.length === 0 ? (
+                  <div className="rounded-md border border-gray-800 bg-gray-950 p-4 text-sm text-gray-500">
+                    Keine Spieler mit diesen Filtern.
+                  </div>
+                ) : (
+                  filteredUsers.map((user) => (
+                    <div key={user.id} className="rounded-md border border-gray-800 bg-gray-950/80 p-3">
+                      <div className="truncate font-semibold text-white">{user.twitchName || user.username}</div>
+                      <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] font-semibold">
+                        <span className="rounded-full bg-gray-800 px-2 py-0.5 text-gray-300">
+                          {user.tier ? formatTierLabel(user.tier) : 'Kein Tier'}
+                        </span>
+                        {user.isStreamer && (
+                          <span className="rounded-full bg-pink-500/15 px-2 py-0.5 text-pink-200">
+                            Streamer
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </main>
