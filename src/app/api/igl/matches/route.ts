@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { error: 'Nur IGLs koennen diese Seite nutzen' },
+        { error: 'Nur IGLs können diese Seite nutzen' },
         { status: 403 }
       )
     }

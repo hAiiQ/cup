@@ -486,7 +486,7 @@ export default function DashboardPage() {
                         <div className="bg-white/5 rounded-lg p-4">
                           <div className="text-white/70 text-sm mb-1">In-Game Name</div>
                           <div className="text-white font-medium">{user?.inGameName || 'Nicht angegeben'}</div>
-                          <div className="text-xs text-gray-400 mt-1">Valorant Name kann im Dashboard nicht geaendert werden</div>
+                          <div className="text-xs text-gray-400 mt-1">Valorant Name kann im Dashboard nicht geändert werden</div>
                         </div>
 
                         <div className="bg-white/5 rounded-lg p-4">
@@ -512,7 +512,7 @@ export default function DashboardPage() {
                               </span>
                             )}
                           </div>
-                          <div className="text-xs text-gray-400 mt-2">Ranks werden automatisch ueber die Henrik API gesetzt und koennen hier nicht geaendert werden.</div>
+                          <div className="text-xs text-gray-400 mt-2">Ranks werden automatisch über die Henrik API gesetzt und können hier nicht geändert werden.</div>
                         </div>
 
                         <div className="bg-white/5 rounded-lg p-4">
@@ -562,7 +562,7 @@ export default function DashboardPage() {
                             Discord
                           </label>
                           <div className="text-white font-medium">{user?.discordName || 'Nicht angegeben'}</div>
-                          <div className="text-xs text-gray-400 mt-1">Discord kann im Dashboard nicht geaendert werden</div>
+                          <div className="text-xs text-gray-400 mt-1">Discord kann im Dashboard nicht geändert werden</div>
                         </div>
 
                         <div className="bg-white/5 rounded-lg p-4">
@@ -571,7 +571,7 @@ export default function DashboardPage() {
                             Twitch
                           </label>
                           <div className="text-white font-medium">{user?.twitchName || user?.username || 'Nicht angegeben'}</div>
-                          <div className="text-xs text-gray-400 mt-1">Twitch kann im Dashboard nicht geaendert werden</div>
+                          <div className="text-xs text-gray-400 mt-1">Twitch kann im Dashboard nicht geändert werden</div>
                         </div>
 
                         <div className="bg-white/5 rounded-lg p-4">

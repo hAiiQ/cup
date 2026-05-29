@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
 
     const decoded = verifyToken(token)
     if (!decoded) {
-      return NextResponse.json({ error: 'Ungueltiger Token' }, { status: 401 })
+      return NextResponse.json({ error: 'Ungültiger Token' }, { status: 401 })
     }
 
     const user = await prisma.user.findUnique({ where: { id: decoded.userId } })
@@ -97,8 +97,8 @@ export async function POST(request: NextRequest) {
       autoVerified: user.twitchVerified && user.discordVerified,
       pendingManual: !instagramVerified || !tiktokVerified,
       message: allVerified
-        ? 'Alle Voraussetzungen erfuellt - du bist verifiziert!'
-        : 'Instagram/TikTok werden vom Admin nach dem Follow bestaetigt.',
+        ? 'Alle Voraussetzungen erfüllt - du bist verifiziert!'
+        : 'Instagram/TikTok werden vom Admin nach dem Follow bestätigt.',
     })
   } catch (error) {
     console.error('Social verification error:', error)

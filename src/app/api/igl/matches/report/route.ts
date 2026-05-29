@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { error: 'Nur IGLs koennen Ergebnisse melden' },
+        { error: 'Nur IGLs können Ergebnisse melden' },
         { status: 403 }
       )
     }
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     const winnerSlot = getWinnerSlot(team1Score, team2Score)
     if (!winnerSlot) {
       return NextResponse.json(
-        { error: 'Ein Ergebnis braucht einen Gewinner. Unentschieden koennen nicht gemeldet werden.' },
+        { error: 'Ein Ergebnis braucht einen Gewinner. Unentschieden können nicht gemeldet werden.' },
         { status: 400 }
       )
     }
@@ -56,14 +56,14 @@ export async function POST(request: NextRequest) {
 
     if (!ownMatch) {
       return NextResponse.json(
-        { error: 'Du kannst nur Ergebnisse fuer Matches deines Teams melden' },
+        { error: 'Du kannst nur Ergebnisse für Matches deines Teams melden' },
         { status: 403 }
       )
     }
 
     if (!ownMatch.match.isLive || ownMatch.match.isFinished || ownMatch.match.autoAdvance) {
       return NextResponse.json(
-        { error: 'Ergebnisse koennen erst gemeldet werden, wenn dein Match live ist' },
+        { error: 'Ergebnisse können erst gemeldet werden, wenn dein Match live ist' },
         { status: 400 }
       )
     }
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     const existingReport = data.reports.find((report) => report.matchId === matchId)
     if (existingReport?.status === 'confirmed') {
       return NextResponse.json(
-        { error: 'Dieses Ergebnis wurde bereits bestaetigt' },
+        { error: 'Dieses Ergebnis wurde bereits bestätigt' },
         { status: 409 }
       )
     }
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Ergebnis gemeldet. Das Gegnerteam muss es noch bestaetigen.',
+      message: 'Ergebnis gemeldet. Das Gegnerteam muss es noch bestätigen.',
       report,
     })
   } catch (error) {

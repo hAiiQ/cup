@@ -624,18 +624,6 @@ export default function AdminDashboard() {
                     <div className="text-xs text-gray-400 uppercase tracking-wide">Verifiziert</div>
                   </div>
                   <div className="bg-gray-900/70 border border-gray-700 rounded-lg p-3 min-w-28">
-                    <div className="text-2xl font-bold text-cyan-300">
-                      {
-                        users.filter(
-                          (user) =>
-                            typeof user.valorantLevel === 'number' &&
-                            user.valorantLevel >= MIN_VALORANT_LEVEL
-                        ).length
-                      }
-                    </div>
-                    <div className="text-xs text-gray-400 uppercase tracking-wide">Level OK</div>
-                  </div>
-                  <div className="bg-gray-900/70 border border-gray-700 rounded-lg p-3 min-w-28">
                     <div className="text-2xl font-bold text-blue-300">
                       {users.filter((user) => user.team).length}
                     </div>
@@ -711,7 +699,7 @@ export default function AdminDashboard() {
                           disabled={deletingUser === user.id}
                           className="md:self-start rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-gray-600"
                         >
-                          {deletingUser === user.id ? 'Loesche...' : 'Loeschen'}
+                          {deletingUser === user.id ? 'Lösche...' : 'Löschen'}
                         </button>
                       </div>
 
@@ -865,7 +853,7 @@ export default function AdminDashboard() {
                             onClick={() => closeValorantDetails(user.id)}
                             className="self-start rounded-md border border-red-400/50 px-3 py-1 text-xs font-semibold text-red-100 transition-colors hover:bg-red-500/20 sm:self-auto"
                           >
-                            Schliessen
+                            Schließen
                           </button>
                         </div>
                       )}
@@ -891,7 +879,7 @@ export default function AdminDashboard() {
                                 onClick={() => closeValorantDetails(user.id)}
                                 className="rounded-md border border-gray-600 px-3 py-1.5 text-xs font-semibold text-gray-200 transition-colors hover:border-sky-400 hover:text-sky-100"
                               >
-                                Schliessen
+                                Schließen
                               </button>
                             </div>
                           </div>
@@ -933,7 +921,7 @@ export default function AdminDashboard() {
                               <span>Assists {valorantDetails.data.totals.assists}</span>
                               {typeof valorantDetails.data.lastRankChange === 'number' && (
                                 <span>
-                                  Letzte RR-Aenderung {valorantDetails.data.lastRankChange > 0 ? '+' : ''}
+                                  Letzte RR-Änderung {valorantDetails.data.lastRankChange > 0 ? '+' : ''}
                                   {valorantDetails.data.lastRankChange}
                                 </span>
                               )}

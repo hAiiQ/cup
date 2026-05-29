@@ -339,7 +339,7 @@ export default function IglPage() {
               Gegnerteam meldet: {match.report.team1Score} - {match.report.team2Score}
             </div>
             <p className="mt-1 text-xs text-yellow-100/70">
-              Bitte nur bestaetigen, wenn das Ergebnis stimmt.
+              Bitte nur bestätigen, wenn das Ergebnis stimmt.
             </p>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               <button
@@ -347,7 +347,7 @@ export default function IglPage() {
                 disabled={busyMatchId === match.id}
                 className="rounded-md bg-green-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-green-500 disabled:cursor-not-allowed disabled:bg-gray-700"
               >
-                Ergebnis bestaetigen
+                Ergebnis bestätigen
               </button>
               <button
                 onClick={() => confirmResult(match, 'reject')}
@@ -398,7 +398,7 @@ export default function IglPage() {
 
         {pendingFromOwnTeam && (
           <p className="mt-3 rounded-md border border-blue-500/30 bg-blue-600/10 px-3 py-2 text-sm text-blue-100">
-            Dein Team hat ein Ergebnis gemeldet. Warte auf die Bestaetigung des Gegnerteams.
+            Dein Team hat ein Ergebnis gemeldet. Warte auf die Bestätigung des Gegnerteams.
           </p>
         )}
       </div>
@@ -444,7 +444,7 @@ export default function IglPage() {
               </div>
               <h1 className="mt-2 text-3xl font-bold text-white">Ergebnisse melden</h1>
               <p className="mt-2 text-sm text-gray-400">
-                Live-Matches deines Teams eintragen und Gegner-Reports bestaetigen.
+                Live-Matches deines Teams eintragen und Gegner-Reports bestätigen.
               </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
@@ -500,7 +500,7 @@ export default function IglPage() {
             <div>
               <h2 className="text-2xl font-bold">Deine Live-Matches</h2>
               <p className="mt-1 text-sm text-gray-400">
-                Ergebnisse werden erst offiziell, wenn das andere Team bestaetigt.
+                Ergebnisse werden erst offiziell, wenn das andere Team bestätigt.
               </p>
             </div>
             <div className="rounded-full border border-gray-700 bg-gray-950 px-3 py-1 text-xs font-semibold text-gray-300">

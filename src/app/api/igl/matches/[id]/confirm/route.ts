@@ -20,7 +20,7 @@ export async function POST(
 
     if (!user) {
       return NextResponse.json(
-        { error: 'Nur IGLs koennen Ergebnisse bestaetigen' },
+        { error: 'Nur IGLs können Ergebnisse bestätigen' },
         { status: 403 }
       )
     }
@@ -42,7 +42,7 @@ export async function POST(
 
     if (!ownMatch) {
       return NextResponse.json(
-        { error: 'Du kannst nur Ergebnisse fuer Matches deines Teams bearbeiten' },
+        { error: 'Du kannst nur Ergebnisse für Matches deines Teams bearbeiten' },
         { status: 403 }
       )
     }
@@ -56,7 +56,7 @@ export async function POST(
 
     if (report.reporterTeamId === user.teamId) {
       return NextResponse.json(
-        { error: 'Das Ergebnis muss vom Gegnerteam bestaetigt werden' },
+        { error: 'Das Ergebnis muss vom Gegnerteam bestätigt werden' },
         { status: 409 }
       )
     }
@@ -144,13 +144,13 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      message: 'Ergebnis bestaetigt und ins Bracket uebernommen.',
+      message: 'Ergebnis bestätigt und ins Bracket übernommen.',
       state: updatedState,
     })
   } catch (error) {
     console.error('IGL confirm result error:', error)
     return NextResponse.json(
-      { error: 'Ergebnis konnte nicht bestaetigt werden' },
+      { error: 'Ergebnis konnte nicht bestätigt werden' },
       { status: 500 }
     )
   }
