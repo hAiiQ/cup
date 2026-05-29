@@ -27,6 +27,7 @@ interface User {
   tiktokName?: string
   tier?: string
   isStreamer: boolean
+  isIGL: boolean
   isVerified: boolean
   rulesAccepted: boolean
   twitchVerified: boolean
@@ -305,6 +306,31 @@ export default function AdminDashboard() {
         ))
       } else {
         alert('Fehler beim Aktualisieren des Streamer Status')
+      }
+    } catch (error) {
+      alert('Ein Fehler ist aufgetreten')
+    }
+  }
+
+  const toggleIglStatus = async (userId: string) => {
+    try {
+      const response = await fetch('/api/admin/toggle-igl', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setUsers(prev => prev.map(u =>
+          u.id === userId
+            ? { ...u, isIGL: data.isIGL }
+            : u
+        ))
+      } else {
+        alert('Fehler beim Aktualisieren des IGL Status')
       }
     } catch (error) {
       alert('Ein Fehler ist aufgetreten')
@@ -615,6 +641,12 @@ export default function AdminDashboard() {
                     </div>
                     <div className="text-xs text-gray-400 uppercase tracking-wide">Im Team</div>
                   </div>
+                  <div className="bg-gray-900/70 border border-gray-700 rounded-lg p-3 min-w-28">
+                    <div className="text-2xl font-bold text-blue-300">
+                      {users.filter((user) => user.isIGL).length}
+                    </div>
+                    <div className="text-xs text-gray-400 uppercase tracking-wide">IGL</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -709,6 +741,11 @@ export default function AdminDashboard() {
                             STREAMER
                           </span>
                         )}
+                        {user.isIGL && (
+                          <span className="px-3 py-1 rounded-full border border-blue-500/60 bg-blue-600/20 text-blue-200 text-xs font-bold">
+                            IGL
+                          </span>
+                        )}
                       </div>
 
                       <div className="mt-5 grid gap-4 lg:grid-cols-2">
@@ -758,6 +795,17 @@ export default function AdminDashboard() {
                             }`}
                           >
                             {user.isStreamer ? 'Streamer entfernen' : 'Als Streamer markieren'}
+                          </button>
+
+                          <button
+                            onClick={() => toggleIglStatus(user.id)}
+                            className={`w-full rounded-md px-3 py-2 text-sm font-semibold transition-colors ${
+                              user.isIGL
+                                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                            }`}
+                          >
+                            {user.isIGL ? 'IGL entfernen' : 'Als IGL markieren'}
                           </button>
 
                           <button

@@ -35,6 +35,20 @@ export async function GET() {
       console.log('Database error:', error instanceof Error ? error.message : String(error))
     }
     
+    let confirmedReports: Array<{ matchId: string; winnerSlot: string | null }> = []
+    try {
+      confirmedReports = await prisma.matchResultReport.findMany({
+        where: { status: 'confirmed' },
+        select: {
+          matchId: true,
+          winnerSlot: true,
+        },
+      })
+    } catch (reportError) {
+      console.log('⚠️ Confirmed IGL reports not available:', reportError instanceof Error ? reportError.message : String(reportError))
+    }
+    const confirmedReportsByMatch = new Map(confirmedReports.map((report) => [report.matchId, report]))
+
     // Get in-memory states (always available as fallback)
     const memoryStates = getAllMatchStates()
     console.log(`📊 In-memory states: ${memoryStates.size} matches`)
@@ -47,14 +61,19 @@ export async function GET() {
       for (const dbMatch of dbMatches) {
         const team1Score = dbMatch.team1Score || 0
         const team2Score = dbMatch.team2Score || 0
-        const derivedWinner = determineWinnerSlot(dbMatch.id, team1Score, team2Score)
+        const confirmedReport = confirmedReportsByMatch.get(dbMatch.id)
+        const derivedWinner = confirmedReport?.winnerSlot || determineWinnerSlot(dbMatch.id, team1Score, team2Score)
+        const storedWinner =
+          dbMatch.winnerId === 'team1' || dbMatch.winnerId === 'team2'
+            ? dbMatch.winnerId
+            : undefined
 
         combinedStates.set(dbMatch.id, {
-          isLive: dbMatch.isLive,
+          isLive: confirmedReport ? false : dbMatch.isLive,
           team1Score,
           team2Score,
-          isFinished: dbMatch.isFinished || false,
-          winnerId: dbMatch.winnerId || derivedWinner,
+          isFinished: Boolean(confirmedReport || dbMatch.isFinished),
+          winnerId: storedWinner || derivedWinner,
           lastUpdated: dbMatch.updatedAt?.getTime() || Date.now(),
           source: 'database'
         })

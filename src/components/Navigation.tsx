@@ -7,7 +7,7 @@ import Image from 'next/image'
 
 export default function Navigation() {
   const router = useRouter()
-  const { isLoggedIn, logout } = useAuth()
+  const { isLoggedIn, user, logout } = useAuth()
 
   const handleLogout = async () => {
     // Use the logout function from AuthContext which handles everything
@@ -149,6 +149,12 @@ export default function Navigation() {
                   Registrieren
                 </Link>
               </>
+            )}
+
+            {isLoggedIn && user?.isIGL && (
+              <Link href="/igl" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors text-sm font-semibold">
+                IGL
+              </Link>
             )}
             
             {/* Admin Panel Button - Ganz rechts */}

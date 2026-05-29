@@ -15,6 +15,7 @@ interface User {
   tiktokName: string
   tier: string
   isStreamer?: boolean
+  isIGL?: boolean
   isVerified: boolean
   twitchVerified?: boolean
   instagramVerified?: boolean

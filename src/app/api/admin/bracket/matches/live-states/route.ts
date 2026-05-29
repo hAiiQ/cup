@@ -23,6 +23,20 @@ export async function GET() {
     
     console.log(`📊 Found ${dbMatches.length} matches in database`)
     
+    let confirmedReports: Array<{ matchId: string; winnerSlot: string | null }> = []
+    try {
+      confirmedReports = await prisma.matchResultReport.findMany({
+        where: { status: 'confirmed' },
+        select: {
+          matchId: true,
+          winnerSlot: true
+        }
+      })
+    } catch (reportError) {
+      console.log('⚠️ Confirmed IGL reports not available:', reportError instanceof Error ? reportError.message : String(reportError))
+    }
+    const confirmedReportsByMatch = new Map(confirmedReports.map((report) => [report.matchId, report]))
+
     // Get current in-memory match states as fallback
     const memoryStates = getAllMatchStates()
     console.log(`📊 Found ${memoryStates.size} in-memory match states`)
@@ -32,13 +46,14 @@ export async function GET() {
     
     // Add database states
     for (const dbMatch of dbMatches) {
-      const derivedWinner = determineWinnerSlot(dbMatch.id, dbMatch.team1Score, dbMatch.team2Score)
+      const confirmedReport = confirmedReportsByMatch.get(dbMatch.id)
+      const derivedWinner = confirmedReport?.winnerSlot || determineWinnerSlot(dbMatch.id, dbMatch.team1Score, dbMatch.team2Score)
       states.push({
         matchId: dbMatch.id,
-        isLive: dbMatch.isLive,
+        isLive: confirmedReport ? false : dbMatch.isLive,
         team1Score: dbMatch.team1Score,
         team2Score: dbMatch.team2Score,
-        isFinished: dbMatch.isFinished,
+        isFinished: Boolean(confirmedReport || dbMatch.isFinished),
         winnerId: derivedWinner,
         lastUpdated: dbMatch.updatedAt.getTime(),
         source: 'database'

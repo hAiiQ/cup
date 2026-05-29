@@ -44,18 +44,24 @@ export async function POST(request: NextRequest) {
 
     const resetResult = await prisma.$transaction(async (tx) => {
       const deleteResult = await tx.match.deleteMany({})
+      const reportDeleteResult = await tx.matchResultReport.deleteMany({})
       const teams = await resetTeamsToDefaultNames(tx)
-      return { deletedMatches: deleteResult.count, resetTeams: teams.length }
+      return {
+        deletedMatches: deleteResult.count,
+        deletedReports: reportDeleteResult.count,
+        resetTeams: teams.length
+      }
     })
     await updateBracketSettings({ tournamentStarted: false })
     clearMatchStates()
     
-    console.log(`Tournament reset: ${resetResult.deletedMatches} matches deleted, ${resetResult.resetTeams} teams reset`)
+    console.log(`Tournament reset: ${resetResult.deletedMatches} matches deleted, ${resetResult.deletedReports} IGL reports deleted, ${resetResult.resetTeams} teams reset`)
 
     return NextResponse.json({ 
       success: true, 
       message: 'Tournament erfolgreich zurückgesetzt',
       deletedMatches: resetResult.deletedMatches,
+      deletedReports: resetResult.deletedReports,
       resetTeams: resetResult.resetTeams
     })
 

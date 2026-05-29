@@ -213,6 +213,7 @@ export async function POST(request: NextRequest) {
         discordVerified: user.discordVerified,
         instagramVerified: user.instagramVerified,
         tiktokVerified: user.tiktokVerified,
+        isIGL: user.isIGL,
         rulesAccepted: user.rulesAccepted,
       },
     })

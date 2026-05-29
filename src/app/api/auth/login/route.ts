@@ -65,7 +65,8 @@ export async function POST(request: NextRequest) {
         inGameRank: user.inGameRank,
         valorantLevel: user.valorantLevel,
         valorantCurrentRank: user.valorantCurrentRank,
-        tier: user.tier
+        tier: user.tier,
+        isIGL: user.isIGL
       }
     })
 
