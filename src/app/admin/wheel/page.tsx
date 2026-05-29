@@ -10,6 +10,11 @@ const WHEEL_TICK_POOL_SIZE = 10
 const WHEEL_TICK_VOLUME = 0.45
 const WHEEL_TICK_STAGGER_MS = 14
 const MAX_TICKS_PER_FRAME = 12
+const WHEEL_CANVAS_SIZE = 900
+const WHEEL_SIZE_STORAGE_KEY = 'adminWheelSizePercent'
+const DEFAULT_WHEEL_SIZE_PERCENT = 100
+const MIN_WHEEL_SIZE_PERCENT = 70
+const MAX_WHEEL_SIZE_PERCENT = 120
 
 interface User {
   id: string
@@ -47,6 +52,7 @@ export default function WheelPage() {
   const [currentAngle, setCurrentAngle] = useState(0)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [wheelSizePercent, setWheelSizePercent] = useState(DEFAULT_WHEEL_SIZE_PERCENT)
   
   // Filter states
   const [verificationFilter, setVerificationFilter] = useState('all')
@@ -56,6 +62,17 @@ export default function WheelPage() {
   // Admin Authentication Check
   useEffect(() => {
     checkAdminAuth()
+  }, [])
+
+  useEffect(() => {
+    const storedSize = window.localStorage.getItem(WHEEL_SIZE_STORAGE_KEY)
+    const parsedSize = storedSize ? Number(storedSize) : DEFAULT_WHEEL_SIZE_PERCENT
+
+    if (Number.isFinite(parsedSize)) {
+      setWheelSizePercent(
+        Math.min(Math.max(parsedSize, MIN_WHEEL_SIZE_PERCENT), MAX_WHEEL_SIZE_PERCENT)
+      )
+    }
   }, [])
 
   useEffect(() => {
@@ -139,6 +156,12 @@ export default function WheelPage() {
     } catch (error) {
       console.error('❌ Error fetching data:', error)
     }
+  }
+
+  const updateWheelSize = (value: number) => {
+    const nextSize = Math.min(Math.max(value, MIN_WHEEL_SIZE_PERCENT), MAX_WHEEL_SIZE_PERCENT)
+    setWheelSizePercent(nextSize)
+    window.localStorage.setItem(WHEEL_SIZE_STORAGE_KEY, String(nextSize))
   }
 
   const applyFilters = () => {
@@ -505,6 +528,7 @@ export default function WheelPage() {
   )
   const streamerCount = filteredUsers.filter((user) => user.isStreamer).length
   const participantCount = filteredUsers.length - streamerCount
+  const wheelPixelSize = Math.round((WHEEL_CANVAS_SIZE * wheelSizePercent) / 100)
 
   // Show loading screen while checking authentication
   if (isLoading) {
@@ -685,16 +709,47 @@ export default function WheelPage() {
           {/* Center Column - Main Wheel (Larger) */}
           <div className="flex min-w-0 flex-col items-center justify-center">
             <div className="flex min-h-[780px] w-full flex-col rounded-lg border border-gray-800 bg-gray-900/80 p-5 xl:min-h-[840px] 2xl:min-h-[900px]">
-              <div className="mb-5 flex items-center justify-between gap-3">
+              <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <h2 className="text-2xl font-bold text-white">Ziehung</h2>
                 </div>
-                <div className={`rounded-full border px-3 py-1 text-xs font-semibold ${
-                  isSpinning
-                    ? 'border-pink-400/60 bg-pink-500/15 text-pink-100'
-                    : 'border-gray-700 bg-gray-950 text-gray-300'
-                }`}>
-                  {isSpinning ? 'Spin läuft' : 'Bereit'}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <div className="min-w-[220px] rounded-md border border-gray-800 bg-gray-950/80 px-3 py-2">
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <label htmlFor="wheel-size" className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                        Radgröße
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => updateWheelSize(DEFAULT_WHEEL_SIZE_PERCENT)}
+                        className="text-xs font-semibold text-purple-200 transition-colors hover:text-white"
+                      >
+                        Reset
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input
+                        id="wheel-size"
+                        type="range"
+                        min={MIN_WHEEL_SIZE_PERCENT}
+                        max={MAX_WHEEL_SIZE_PERCENT}
+                        step={5}
+                        value={wheelSizePercent}
+                        onChange={(event) => updateWheelSize(Number(event.target.value))}
+                        className="w-full accent-purple-500"
+                      />
+                      <span className="w-12 text-right text-sm font-bold text-purple-100">
+                        {wheelSizePercent}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className={`self-start rounded-full border px-3 py-1 text-xs font-semibold sm:self-auto ${
+                    isSpinning
+                      ? 'border-pink-400/60 bg-pink-500/15 text-pink-100'
+                      : 'border-gray-700 bg-gray-950 text-gray-300'
+                  }`}>
+                    {isSpinning ? 'Spin läuft' : 'Bereit'}
+                  </div>
                 </div>
               </div>
               
@@ -707,9 +762,10 @@ export default function WheelPage() {
                 <div className="flex flex-1 items-center justify-center">
                   <canvas
                     ref={canvasRef}
-                    width={900}
-                    height={900}
-                    className="aspect-square w-full max-w-[900px] rounded-full border border-purple-400/50 bg-gray-950 shadow-2xl shadow-purple-900/40"
+                    width={WHEEL_CANVAS_SIZE}
+                    height={WHEEL_CANVAS_SIZE}
+                    className="aspect-square w-full rounded-full border border-purple-400/50 bg-gray-950 shadow-2xl shadow-purple-900/40 transition-[max-width] duration-200"
+                    style={{ maxWidth: `${wheelPixelSize}px` }}
                   />
                 </div>
               )}
