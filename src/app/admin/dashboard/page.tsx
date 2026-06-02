@@ -13,6 +13,7 @@ const TIER_BADGE_CLASSES: Record<TierKey, string> = {
   tier3: 'bg-yellow-600 text-white',
   tier4: 'bg-orange-600 text-white'
 }
+const VALORANT_BULK_SYNC_DELAY_MS = 3000
 
 interface User {
   id: string
@@ -91,6 +92,33 @@ type ValorantDetailsState = {
   data?: ValorantDetails
 }
 
+type ValorantBulkSyncState = {
+  isRunning: boolean
+  total: number
+  completed: number
+  failed: number
+  remainingSeconds: number
+  currentName?: string
+}
+
+const wait = (milliseconds: number) =>
+  new Promise((resolve) => window.setTimeout(resolve, milliseconds))
+
+const getValorantBulkSyncSeconds = (playerCount: number) =>
+  Math.ceil((playerCount * VALORANT_BULK_SYNC_DELAY_MS) / 1000)
+
+const formatDuration = (totalSeconds: number) => {
+  const safeSeconds = Math.max(Math.ceil(totalSeconds), 0)
+  const minutes = Math.floor(safeSeconds / 60)
+  const seconds = safeSeconds % 60
+
+  if (minutes === 0) {
+    return `${seconds}s`
+  }
+
+  return `${minutes}m ${seconds.toString().padStart(2, '0')}s`
+}
+
 export default function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([])
   const [teamOptions, setTeamOptions] = useState<AdminTeam[]>([])
@@ -104,6 +132,13 @@ export default function AdminDashboard() {
   const [deletingUser, setDeletingUser] = useState<string | null>(null)
   const [resettingTeams, setResettingTeams] = useState(false)
   const [valorantDetailsByUser, setValorantDetailsByUser] = useState<Record<string, ValorantDetailsState>>({})
+  const [valorantBulkSync, setValorantBulkSync] = useState<ValorantBulkSyncState>({
+    isRunning: false,
+    total: 0,
+    completed: 0,
+    failed: 0,
+    remainingSeconds: 0,
+  })
   const router = useRouter()
   const resolvedTeamOptions = teamOptions.length > 0
     ? [...teamOptions].sort((a, b) => a.position - b.position)
@@ -112,10 +147,31 @@ export default function AdminDashboard() {
         name,
         position: index + 1
       }))
+  const valorantBulkSyncUsers = users.filter((user) => user.inGameName?.trim())
+  const valorantBulkEstimatedSeconds = getValorantBulkSyncSeconds(valorantBulkSyncUsers.length)
+  const valorantBulkProgressPercent = valorantBulkSync.total > 0
+    ? Math.round((valorantBulkSync.completed / valorantBulkSync.total) * 100)
+    : 0
 
   useEffect(() => {
     fetchData()
   }, [])
+
+  useEffect(() => {
+    if (!valorantBulkSync.isRunning) {
+      return
+    }
+
+    const intervalId = window.setInterval(() => {
+      setValorantBulkSync((prev) =>
+        prev.isRunning
+          ? { ...prev, remainingSeconds: Math.max(prev.remainingSeconds - 1, 0) }
+          : prev
+      )
+    }, 1000)
+
+    return () => window.clearInterval(intervalId)
+  }, [valorantBulkSync.isRunning])
 
   const fetchData = async () => {
     try {
@@ -373,6 +429,7 @@ export default function AdminDashboard() {
             : user
         )
       )
+      return true
     } catch (error) {
       setValorantDetailsByUser((prev) => ({
         ...prev,
@@ -381,7 +438,67 @@ export default function AdminDashboard() {
           error: error instanceof Error ? error.message : 'Valorant Details konnten nicht geladen werden',
         },
       }))
+      return false
     }
+  }
+
+  const runValorantBulkSync = async () => {
+    if (valorantBulkSync.isRunning) {
+      return
+    }
+
+    if (valorantBulkSyncUsers.length === 0) {
+      alert('Keine Spieler mit Valorant Name gefunden.')
+      return
+    }
+
+    setValorantBulkSync({
+      isRunning: true,
+      total: valorantBulkSyncUsers.length,
+      completed: 0,
+      failed: 0,
+      remainingSeconds: valorantBulkEstimatedSeconds,
+    })
+
+    let failed = 0
+
+    for (let index = 0; index < valorantBulkSyncUsers.length; index += 1) {
+      const user = valorantBulkSyncUsers[index]
+
+      setValorantBulkSync((prev) => ({
+        ...prev,
+        currentName: getUserDisplayName(user),
+      }))
+
+      const success = await loadValorantDetails(user.id)
+      if (!success) {
+        failed += 1
+      }
+
+      const completed = index + 1
+      const remainingPlayers = valorantBulkSyncUsers.length - completed
+
+      setValorantBulkSync((prev) => ({
+        ...prev,
+        completed,
+        failed,
+        remainingSeconds: Math.max(
+          prev.remainingSeconds,
+          getValorantBulkSyncSeconds(remainingPlayers)
+        ),
+      }))
+
+      if (remainingPlayers > 0) {
+        await wait(VALORANT_BULK_SYNC_DELAY_MS)
+      }
+    }
+
+    setValorantBulkSync((prev) => ({
+      ...prev,
+      isRunning: false,
+      currentName: undefined,
+      remainingSeconds: 0,
+    }))
   }
 
   const closeValorantDetails = (userId: string) => {
@@ -637,6 +754,60 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               </div>
+
+              <div className="mt-5 rounded-lg border border-sky-500/25 bg-sky-950/30 p-4">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <div className="text-sm font-semibold uppercase tracking-wide text-sky-300">
+                      Valorant Rank Sync
+                    </div>
+                    <div className="mt-1 text-sm text-gray-300">
+                      Aktualisiert alle gespeicherten Valorant Ranks mit maximal 20 Spielern pro Minute.
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400">
+                      <span>{valorantBulkSyncUsers.length} Spieler in der Queue</span>
+                      <span>
+                        {valorantBulkSync.isRunning
+                          ? `Fertig in ca. ${formatDuration(valorantBulkSync.remainingSeconds)}`
+                          : `Dauer ca. ${formatDuration(valorantBulkEstimatedSeconds)}`}
+                      </span>
+                      {valorantBulkSync.currentName && (
+                        <span>Aktuell: {valorantBulkSync.currentName}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={runValorantBulkSync}
+                    disabled={valorantBulkSync.isRunning || valorantBulkSyncUsers.length === 0}
+                    className="rounded-md bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-sky-500 disabled:cursor-not-allowed disabled:bg-gray-700 disabled:text-gray-400"
+                  >
+                    {valorantBulkSync.isRunning ? 'Ranks werden aktualisiert...' : 'Alle Ranks aktualisieren'}
+                  </button>
+                </div>
+
+                {(valorantBulkSync.isRunning || valorantBulkSync.completed > 0) && (
+                  <div className="mt-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-400">
+                      <span>
+                        {valorantBulkSync.completed}/{valorantBulkSync.total} fertig
+                      </span>
+                      <span>
+                        {valorantBulkSync.failed > 0
+                          ? `${valorantBulkSync.failed} Fehler`
+                          : `${valorantBulkProgressPercent}%`}
+                      </span>
+                    </div>
+                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-900">
+                      <div
+                        className="h-full rounded-full bg-sky-400 transition-all duration-300"
+                        style={{ width: `${valorantBulkProgressPercent}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {users.length === 0 ? (
@@ -798,7 +969,7 @@ export default function AdminDashboard() {
 
                           <button
                             onClick={() => loadValorantDetails(user.id)}
-                            disabled={valorantDetails?.loading || !user.inGameName}
+                            disabled={valorantBulkSync.isRunning || valorantDetails?.loading || !user.inGameName}
                             className="w-full rounded-md border border-sky-500/50 bg-sky-600/20 px-3 py-2 text-sm font-semibold text-sky-100 transition-colors hover:bg-sky-600/30 disabled:cursor-not-allowed disabled:border-gray-700 disabled:bg-gray-800 disabled:text-gray-500"
                           >
                             {valorantDetails?.loading
