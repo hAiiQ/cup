@@ -14,7 +14,7 @@ const TIER_BADGE_CLASSES: Record<TierKey, string> = {
   tier4: 'bg-orange-600 text-white'
 }
 const HENRIK_BULK_REQUEST_LIMIT_PER_MINUTE = 20
-const HENRIK_REQUESTS_PER_PLAYER_REFRESH = 3
+const HENRIK_REQUESTS_PER_PLAYER_REFRESH = 2
 const VALORANT_BULK_SYNC_DELAY_MS = Math.ceil(
   (60000 * HENRIK_REQUESTS_PER_PLAYER_REFRESH) / HENRIK_BULK_REQUEST_LIMIT_PER_MINUTE
 )
@@ -88,6 +88,11 @@ interface ValorantDetails {
     kdRatio: number | null
   }
   matchHistoryError?: string
+}
+
+interface ValorantRankRefresh {
+  peakRank: string
+  currentRank?: string | null
 }
 
 type ValorantDetailsState = {
@@ -446,6 +451,52 @@ export default function AdminDashboard() {
     }
   }
 
+  const refreshValorantRank = async (userId: string) => {
+    setValorantDetailsByUser((prev) => ({
+      ...prev,
+      [userId]: { ...prev[userId], loading: true, error: undefined },
+    }))
+
+    try {
+      const response = await fetch(`/api/admin/users/${userId}/valorant-rank`)
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Valorant Rank konnte nicht aktualisiert werden')
+      }
+
+      const rank = data.rank as ValorantRankRefresh
+
+      setValorantDetailsByUser((prev) => ({
+        ...prev,
+        [userId]: { ...prev[userId], loading: false, error: undefined },
+      }))
+
+      setUsers((prev) =>
+        prev.map((user) =>
+          user.id === userId
+            ? {
+                ...user,
+                inGameRank: rank.peakRank || user.inGameRank,
+                valorantCurrentRank: rank.currentRank || user.valorantCurrentRank,
+              }
+            : user
+        )
+      )
+      return true
+    } catch (error) {
+      setValorantDetailsByUser((prev) => ({
+        ...prev,
+        [userId]: {
+          ...prev[userId],
+          loading: false,
+          error: error instanceof Error ? error.message : 'Valorant Rank konnte nicht aktualisiert werden',
+        },
+      }))
+      return false
+    }
+  }
+
   const runValorantBulkSync = async () => {
     if (valorantBulkSync.isRunning) {
       return
@@ -474,7 +525,7 @@ export default function AdminDashboard() {
         currentName: getUserDisplayName(user),
       }))
 
-      const success = await loadValorantDetails(user.id)
+      const success = await refreshValorantRank(user.id)
       if (!success) {
         failed += 1
       }
@@ -766,7 +817,7 @@ export default function AdminDashboard() {
                       Valorant Rank Sync
                     </div>
                     <div className="mt-1 text-sm text-gray-300">
-                      Aktualisiert alle gespeicherten Valorant Ranks mit maximal 20 Henrik-Requests pro Minute.
+                      Aktualisiert nur aktuellen Rank und Peak Rank mit maximal 20 Henrik-Requests pro Minute.
                     </div>
                     <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400">
                       <span>{valorantBulkSyncUsers.length} Spieler in der Queue</span>
