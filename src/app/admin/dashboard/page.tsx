@@ -13,7 +13,11 @@ const TIER_BADGE_CLASSES: Record<TierKey, string> = {
   tier3: 'bg-yellow-600 text-white',
   tier4: 'bg-orange-600 text-white'
 }
-const VALORANT_BULK_SYNC_DELAY_MS = 3000
+const HENRIK_BULK_REQUEST_LIMIT_PER_MINUTE = 20
+const HENRIK_REQUESTS_PER_PLAYER_REFRESH = 3
+const VALORANT_BULK_SYNC_DELAY_MS = Math.ceil(
+  (60000 * HENRIK_REQUESTS_PER_PLAYER_REFRESH) / HENRIK_BULK_REQUEST_LIMIT_PER_MINUTE
+)
 
 interface User {
   id: string
@@ -762,10 +766,11 @@ export default function AdminDashboard() {
                       Valorant Rank Sync
                     </div>
                     <div className="mt-1 text-sm text-gray-300">
-                      Aktualisiert alle gespeicherten Valorant Ranks mit maximal 20 Spielern pro Minute.
+                      Aktualisiert alle gespeicherten Valorant Ranks mit maximal 20 Henrik-Requests pro Minute.
                     </div>
                     <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400">
                       <span>{valorantBulkSyncUsers.length} Spieler in der Queue</span>
+                      <span>Ca. {HENRIK_REQUESTS_PER_PLAYER_REFRESH} Requests pro Spieler</span>
                       <span>
                         {valorantBulkSync.isRunning
                           ? `Fertig in ca. ${formatDuration(valorantBulkSync.remainingSeconds)}`
