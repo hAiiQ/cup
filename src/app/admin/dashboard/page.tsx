@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { formatTierShortLabel, resolveTierKey, TIER_SELECT_OPTIONS, type TierKey } from '@/lib/tierConfig'
@@ -18,6 +18,7 @@ const HENRIK_REQUESTS_PER_PLAYER_REFRESH = 2
 const VALORANT_BULK_SYNC_DELAY_MS = Math.ceil(
   (60000 * HENRIK_REQUESTS_PER_PLAYER_REFRESH) / HENRIK_BULK_REQUEST_LIMIT_PER_MINUTE
 )
+const VALORANT_BULK_RETRY_DELAY_MS = 60000
 
 interface User {
   id: string
@@ -103,15 +104,36 @@ type ValorantDetailsState = {
 
 type ValorantBulkSyncState = {
   isRunning: boolean
+  isCancelling: boolean
+  isWaitingAfterError: boolean
   total: number
   completed: number
-  failed: number
+  retries: number
   remainingSeconds: number
   currentName?: string
+  status?: string
 }
 
-const wait = (milliseconds: number) =>
-  new Promise((resolve) => window.setTimeout(resolve, milliseconds))
+const wait = (milliseconds: number, shouldCancel?: () => boolean) =>
+  new Promise<boolean>((resolve) => {
+    const startedAt = Date.now()
+
+    const tick = () => {
+      if (shouldCancel?.()) {
+        resolve(false)
+        return
+      }
+
+      if (Date.now() - startedAt >= milliseconds) {
+        resolve(true)
+        return
+      }
+
+      window.setTimeout(tick, 250)
+    }
+
+    tick()
+  })
 
 const getValorantBulkSyncSeconds = (playerCount: number) =>
   Math.ceil((playerCount * VALORANT_BULK_SYNC_DELAY_MS) / 1000)
@@ -143,11 +165,14 @@ export default function AdminDashboard() {
   const [valorantDetailsByUser, setValorantDetailsByUser] = useState<Record<string, ValorantDetailsState>>({})
   const [valorantBulkSync, setValorantBulkSync] = useState<ValorantBulkSyncState>({
     isRunning: false,
+    isCancelling: false,
+    isWaitingAfterError: false,
     total: 0,
     completed: 0,
-    failed: 0,
+    retries: 0,
     remainingSeconds: 0,
   })
+  const valorantBulkCancelRef = useRef(false)
   const router = useRouter()
   const resolvedTeamOptions = teamOptions.length > 0
     ? [...teamOptions].sort((a, b) => a.position - b.position)
@@ -502,57 +527,130 @@ export default function AdminDashboard() {
       return
     }
 
-    if (valorantBulkSyncUsers.length === 0) {
+    const syncQueue = [...valorantBulkSyncUsers]
+
+    if (syncQueue.length === 0) {
       alert('Keine Spieler mit Valorant Name gefunden.')
       return
     }
 
+    valorantBulkCancelRef.current = false
     setValorantBulkSync({
       isRunning: true,
-      total: valorantBulkSyncUsers.length,
+      isCancelling: false,
+      isWaitingAfterError: false,
+      total: syncQueue.length,
       completed: 0,
-      failed: 0,
+      retries: 0,
       remainingSeconds: valorantBulkEstimatedSeconds,
+      status: undefined,
     })
 
-    let failed = 0
+    let retries = 0
+    let wasCancelled = false
 
-    for (let index = 0; index < valorantBulkSyncUsers.length; index += 1) {
-      const user = valorantBulkSyncUsers[index]
+    for (let index = 0; index < syncQueue.length; index += 1) {
+      const user = syncQueue[index]
+      let playerFinished = false
 
-      setValorantBulkSync((prev) => ({
-        ...prev,
-        currentName: getUserDisplayName(user),
-      }))
+      while (!playerFinished) {
+        if (valorantBulkCancelRef.current) {
+          wasCancelled = true
+          break
+        }
 
-      const success = await refreshValorantRank(user.id)
-      if (!success) {
-        failed += 1
+        setValorantBulkSync((prev) => ({
+          ...prev,
+          isWaitingAfterError: false,
+          currentName: getUserDisplayName(user),
+          status: undefined,
+        }))
+
+        const success = await refreshValorantRank(user.id)
+
+        if (valorantBulkCancelRef.current) {
+          wasCancelled = true
+          break
+        }
+
+        if (!success) {
+          retries += 1
+          setValorantBulkSync((prev) => ({
+            ...prev,
+            isWaitingAfterError: true,
+            retries,
+            remainingSeconds: Math.ceil(VALORANT_BULK_RETRY_DELAY_MS / 1000),
+            status: 'Fehler - neuer Versuch nach Wartezeit',
+          }))
+
+          const shouldContinue = await wait(
+            VALORANT_BULK_RETRY_DELAY_MS,
+            () => valorantBulkCancelRef.current
+          )
+
+          if (!shouldContinue) {
+            wasCancelled = true
+            break
+          }
+
+          continue
+        }
+
+        playerFinished = true
+
+        const completed = index + 1
+        const remainingPlayers = syncQueue.length - completed
+
+        setValorantBulkSync((prev) => ({
+          ...prev,
+          completed,
+          remainingSeconds: Math.max(
+            prev.remainingSeconds,
+            getValorantBulkSyncSeconds(remainingPlayers)
+          ),
+        }))
+
+        if (remainingPlayers > 0) {
+          const shouldContinue = await wait(
+            VALORANT_BULK_SYNC_DELAY_MS,
+            () => valorantBulkCancelRef.current
+          )
+
+          if (!shouldContinue) {
+            wasCancelled = true
+            break
+          }
+        }
       }
 
-      const completed = index + 1
-      const remainingPlayers = valorantBulkSyncUsers.length - completed
-
-      setValorantBulkSync((prev) => ({
-        ...prev,
-        completed,
-        failed,
-        remainingSeconds: Math.max(
-          prev.remainingSeconds,
-          getValorantBulkSyncSeconds(remainingPlayers)
-        ),
-      }))
-
-      if (remainingPlayers > 0) {
-        await wait(VALORANT_BULK_SYNC_DELAY_MS)
+      if (wasCancelled) {
+        break
       }
     }
 
     setValorantBulkSync((prev) => ({
       ...prev,
       isRunning: false,
+      isCancelling: false,
+      isWaitingAfterError: false,
       currentName: undefined,
       remainingSeconds: 0,
+      status: wasCancelled ? 'Abgebrochen' : 'Fertig',
+    }))
+  }
+
+  const cancelValorantBulkSync = () => {
+    if (!valorantBulkSync.isRunning) {
+      return
+    }
+
+    valorantBulkCancelRef.current = true
+    setValorantBulkSync((prev) => ({
+      ...prev,
+      isCancelling: true,
+      isWaitingAfterError: false,
+      remainingSeconds: 0,
+      status: 'Wird abgebrochen...',
     }))
   }
 
@@ -817,14 +915,15 @@ export default function AdminDashboard() {
                       Valorant Rank Sync
                     </div>
                     <div className="mt-1 text-sm text-gray-300">
-                      Aktualisiert nur aktuellen Rank und Peak Rank mit maximal 20 Henrik-Requests pro Minute.
+                      Aktualisiert aktuellen Rank und Peak Rank
                     </div>
                     <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400">
                       <span>{valorantBulkSyncUsers.length} Spieler in der Queue</span>
-                      <span>Ca. {HENRIK_REQUESTS_PER_PLAYER_REFRESH} Requests pro Spieler</span>
                       <span>
                         {valorantBulkSync.isRunning
-                          ? `Fertig in ca. ${formatDuration(valorantBulkSync.remainingSeconds)}`
+                          ? valorantBulkSync.isWaitingAfterError
+                            ? `Nächster Versuch in ca. ${formatDuration(valorantBulkSync.remainingSeconds)}`
+                            : `Fertig in ca. ${formatDuration(valorantBulkSync.remainingSeconds)}`
                           : `Dauer ca. ${formatDuration(valorantBulkEstimatedSeconds)}`}
                       </span>
                       {valorantBulkSync.currentName && (
@@ -833,14 +932,26 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={runValorantBulkSync}
-                    disabled={valorantBulkSync.isRunning || valorantBulkSyncUsers.length === 0}
-                    className="rounded-md bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-sky-500 disabled:cursor-not-allowed disabled:bg-gray-700 disabled:text-gray-400"
-                  >
-                    {valorantBulkSync.isRunning ? 'Ranks werden aktualisiert...' : 'Alle Ranks aktualisieren'}
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={runValorantBulkSync}
+                      disabled={valorantBulkSync.isRunning || valorantBulkSyncUsers.length === 0}
+                      className="rounded-md bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-sky-500 disabled:cursor-not-allowed disabled:bg-gray-700 disabled:text-gray-400"
+                    >
+                      {valorantBulkSync.isRunning ? 'Ranks werden aktualisiert...' : 'Alle Ranks aktualisieren'}
+                    </button>
+                    {valorantBulkSync.isRunning && (
+                      <button
+                        type="button"
+                        onClick={cancelValorantBulkSync}
+                        disabled={valorantBulkSync.isCancelling}
+                        className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-500 disabled:cursor-not-allowed disabled:bg-gray-700 disabled:text-gray-400"
+                      >
+                        {valorantBulkSync.isCancelling ? 'Bricht ab...' : 'Abbrechen'}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {(valorantBulkSync.isRunning || valorantBulkSync.completed > 0) && (
@@ -850,9 +961,10 @@ export default function AdminDashboard() {
                         {valorantBulkSync.completed}/{valorantBulkSync.total} fertig
                       </span>
                       <span>
-                        {valorantBulkSync.failed > 0
-                          ? `${valorantBulkSync.failed} Fehler`
-                          : `${valorantBulkProgressPercent}%`}
+                        {valorantBulkSync.status ||
+                          (valorantBulkSync.retries > 0
+                            ? `${valorantBulkSync.retries} Wiederholungen`
+                            : `${valorantBulkProgressPercent}%`)}
                       </span>
                     </div>
                     <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-900">
