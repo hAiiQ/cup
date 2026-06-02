@@ -117,6 +117,9 @@ export default function Navigation() {
             <Link href="/bracket" className="text-white hover:text-purple-300 transition-colors px-3 py-1 rounded">
               Bracket
             </Link>
+            <Link href="/userlist" className="text-white hover:text-purple-300 transition-colors px-3 py-1 rounded">
+              Userliste
+            </Link>
             <Link href="/teams" className="text-white hover:text-purple-300 transition-colors px-3 py-1 rounded">
               Teams
             </Link>
