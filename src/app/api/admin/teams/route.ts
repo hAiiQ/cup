@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
-import { DEFAULT_TEAM_NAMES } from '@/lib/teamDefaults'
+import { DEFAULT_TEAM_NAMES, getDefaultTeamName } from '@/lib/teamDefaults'
+import { getBracketSettings } from '@/lib/bracketSettings'
 
 const MAX_TEAM_NAME_LENGTH = 40
 
@@ -44,11 +45,26 @@ export async function GET(request: NextRequest) {
 
     // RENDER FIX: Get teams without problematic relations
     try {
+      const settings = await getBracketSettings()
+      const slotLimit = settings.teamSlots
+
+      for (let position = 1; position <= slotLimit; position++) {
+        await prisma.team.upsert({
+          where: { position },
+          update: {},
+          create: {
+            name: getDefaultTeamName(position),
+            position
+          }
+        })
+      }
+
       // Just get basic teams first
       const teams = await prisma.team.findMany({
         orderBy: {
           position: 'asc'
-        }
+        },
+        take: slotLimit
       })
 
       // For now, just return teams with empty members 
@@ -59,7 +75,7 @@ export async function GET(request: NextRequest) {
       }))
 
       console.log(`✅ Admin teams fetched: ${teams.length} teams (empty members)`)
-      return NextResponse.json({ teams: teamsWithEmptyMembers })
+      return NextResponse.json({ teams: teamsWithEmptyMembers, teamSlots: slotLimit })
       
     } catch (error) {
       console.log('⚠️ Teams fetch failed, using sample teams:', error)

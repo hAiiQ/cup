@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function createTeams() {
-  const teamNames = Array.from({ length: 16 }, (_, index) => `Team ${index + 1}`)
+  const teamNames = Array.from({ length: 32 }, (_, index) => `Team ${index + 1}`)
 
   for (let i = 0; i < teamNames.length; i++) {
     await prisma.team.upsert({

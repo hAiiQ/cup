@@ -1,4 +1,5 @@
 // Production schema for PostgreSQL
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,73 +10,123 @@ datasource db {
 }
 
 model User {
-  id              String    @id @default(cuid())
-  username        String    @unique
-  password        String
-  inGameName      String?
-  inGameRank      String?
-  valorantLevel   Int?
+  id                  String  @id @default(cuid())
+  username            String  @unique
+  password            String
+  inGameName          String?
+  inGameRank          String?
+  valorantLevel       Int?
   valorantCurrentRank String?
-  discordName     String?
-  twitchName      String?
-  instagramName   String?
-  tier            String?   // "tier1", "tier2", "tier3"
-  isStreamer      Boolean   @default(false)  // Separate streamer status
-  isVerified      Boolean   @default(false)
-  rulesAccepted   Boolean   @default(false)
-  
-  // Einzelne Social Media Verifikationen
-  twitchVerified    Boolean   @default(false)
-  instagramVerified Boolean   @default(false)
-  discordVerified   Boolean   @default(false)
-  
-  teamId          String?
-  team            Team?     @relation(fields: [teamId], references: [id])
-  
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  discordName         String?
+  twitchName          String?
+  instagramName       String?
+  tiktokName          String?
+  tier                String? // "tier1", "tier2", "tier3"
+  isStreamer          Boolean @default(false)
+  isIGL               Boolean @default(false)
+  isVerified          Boolean @default(false)
+  rulesAccepted       Boolean @default(false)
+
+  teamId String?
+
+  twitchVerified    Boolean @default(false)
+  instagramVerified Boolean @default(false)
+  discordVerified   Boolean @default(false)
+  tiktokVerified    Boolean @default(false)
+
+  inGameNameVerified Boolean @default(false)
+  inGameRankVerified Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  teamMemberships TeamMember[]
+  team            Team?        @relation(fields: [teamId], references: [id])
 }
 
 model Team {
-  id          String    @id @default(cuid())
-  name        String    @unique
-  members     User[]
-  isLive      Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  // Match relationships
-  homeMatches Match[]   @relation("HomeTeam")
-  awayMatches Match[]   @relation("AwayTeam")
-  wonMatches  Match[]   @relation("WinnerTeam")
-}
-
-model Admin {
   id        String   @id @default(cuid())
-  username  String   @unique
-  password  String
+  name      String   @default("Team")
+  imageUrl  String?
+  position  Int      @unique @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  members       TeamMember[]
+  users         User[]
+  winnerMatches Match[]      @relation("WinnerTeam")
+  team1Matches  Match[]      @relation("Team1")
+  team2Matches  Match[]      @relation("Team2")
+}
+
+model TeamMember {
+  id     String @id @default(cuid())
+  userId String
+  teamId String
+  role   String @default("member")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, teamId])
 }
 
 model Match {
   id          String    @id @default(cuid())
-  round       String    
-  bracketType String    // "winner" or "loser"
-  
-  homeTeamId  String?
-  homeTeam    Team?     @relation("HomeTeam", fields: [homeTeamId], references: [id])
-  
-  awayTeamId  String?
-  awayTeam    Team?     @relation("AwayTeam", fields: [awayTeamId], references: [id])
-  
+  round       Int
+  bracket     String
+  matchNumber Int       @default(1)
+  team1Id     String?
+  team2Id     String?
+  team1Score  Int       @default(0)
+  team2Score  Int       @default(0)
   winnerId    String?
-  winner      Team?     @relation("WinnerTeam", fields: [winnerId], references: [id])
-  
-  isCompleted Boolean   @default(false)
-  
+  isFinished  Boolean   @default(false)
+  isLive      Boolean   @default(false)
+  scheduledAt DateTime?
+  playedAt    DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  
-  @@unique([round, bracketType])
+
+  team1  Team? @relation("Team1", fields: [team1Id], references: [id])
+  team2  Team? @relation("Team2", fields: [team2Id], references: [id])
+  winner Team? @relation("WinnerTeam", fields: [winnerId], references: [id])
+}
+
+model MatchResultReport {
+  id                String   @id @default(cuid())
+  matchId           String   @unique
+  reporterTeamId    String
+  reporterUserId    String
+  team1Score        Int
+  team2Score        Int
+  winnerSlot        String?
+  status            String   @default("pending")
+  confirmedByTeamId String?
+  confirmedByUserId String?
+  rejectedByTeamId  String?
+  rejectedByUserId  String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([reporterTeamId])
+  @@index([status])
+}
+
+model Admin {
+  id       String @id @default(cuid())
+  username String @unique
+  password String
+  role     String @default("admin")
+}
+
+model BracketSetting {
+  id                String   @id
+  mode              String   @default("double")
+  teamSlots         Int      @default(16)
+  tournamentStarted Boolean  @default(false)
+  groupPhaseEnabled Boolean  @default(false)
+  groupCount        Int      @default(4)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }

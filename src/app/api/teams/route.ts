@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { DEFAULT_TEAM_NAMES } from '@/lib/teamDefaults'
+import { getDefaultTeamName } from '@/lib/teamDefaults'
 import { getBracketSettings } from '@/lib/bracketSettings'
 
 
@@ -24,20 +24,17 @@ export async function GET() {
     
     if (teamsCount === 0) {
       console.log('⚠️ No teams found, creating default teams...')
-      
-      // Create default teams if none exist
-      const defaultTeams = DEFAULT_TEAM_NAMES.slice(0, slotLimit || DEFAULT_TEAM_NAMES.length)
-      
-      for (let i = 0; i < defaultTeams.length; i++) {
-        await prisma.team.create({
-          data: {
-            name: defaultTeams[i],
-            position: i + 1
-          }
-        })
-      }
-      
-      console.log('✅ Default teams created')
+    }
+
+    for (let position = 1; position <= slotLimit; position++) {
+      await prisma.team.upsert({
+        where: { position },
+        update: {},
+        create: {
+          name: getDefaultTeamName(position),
+          position
+        }
+      })
     }
 
     // Fetch teams with their members using the new teamId structure

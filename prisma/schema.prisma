@@ -129,8 +129,10 @@ model Admin {
 model BracketSetting {
   id                String   @id
   mode              String   @default("double") // "single" or "double"
-  teamSlots         Int      @default(10) // Desired participant slots (2-16)
+  teamSlots         Int      @default(16) // Desired participant slots (2-32)
   tournamentStarted Boolean  @default(false)
+  groupPhaseEnabled Boolean  @default(false)
+  groupCount        Int      @default(4)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }

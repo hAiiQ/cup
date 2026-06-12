@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { buildBracketMatches, type BracketTeam } from '@/lib/bracketStructure'
 import { getBracketSettings } from '@/lib/bracketSettings'
 import { MAX_TEAMS } from '@/lib/teamDefaults'
+import { PLAYOFF_TEAM_COUNT, buildGroupPhase } from '@/lib/groupPhase'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -115,9 +116,15 @@ export async function GET() {
       console.log('💡 Database fetch error, falling back to placeholder teams:', error)
     }
 
-    const bracketResult = buildBracketMatches(dbTeams, combinedStates, {
+    const groupPhase = settings.groupPhaseEnabled
+      ? buildGroupPhase(dbTeams, settings.groupCount, PLAYOFF_TEAM_COUNT, requestedSlots)
+      : null
+    const bracketTeams = groupPhase?.advancingTeams || dbTeams
+    const bracketSlotCount = settings.groupPhaseEnabled ? PLAYOFF_TEAM_COUNT : requestedSlots
+
+    const bracketResult = buildBracketMatches(bracketTeams, combinedStates, {
       mode: settings.mode,
-      slotCount: requestedSlots,
+      slotCount: bracketSlotCount,
       autoAdvanceByes: settings.tournamentStarted
     })
 
@@ -131,6 +138,8 @@ export async function GET() {
       requestedSlotCount: bracketResult.requestedSlotCount,
       mode: bracketResult.mode,
       settings,
+      groupPhase,
+      playoffTeams: bracketTeams,
       teams: dbTeams,
       lastUpdated: new Date().toISOString(),
       adminControlled: combinedStates.size > 0,
@@ -145,6 +154,8 @@ export async function GET() {
         error: 'Failed to fetch bracket matches',
         matches: [],
         teams: [],
+        groupPhase: null,
+        playoffTeams: [],
         layout: [],
         connections: [],
         slotCount: 0,

@@ -11,6 +11,7 @@ import {
 } from '@/lib/bracketStructure'
 import BracketDiagram from '@/components/bracket/BracketDiagram'
 import { DEFAULT_TEAM_NAMES } from '@/lib/teamDefaults'
+import { PLAYOFF_TEAM_COUNT, type GroupPhaseResult } from '@/lib/groupPhase'
 
 export default function BracketPage() {
   const [bracket, setBracket] = useState<BracketMatch[]>([])
@@ -20,6 +21,7 @@ export default function BracketPage() {
   const [slotCount, setSlotCount] = useState(0)
   const [requestedSlotCount, setRequestedSlotCount] = useState(0)
   const [bracketMode, setBracketMode] = useState<'single' | 'double'>('double')
+  const [groupPhase, setGroupPhase] = useState<GroupPhaseResult | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -69,6 +71,7 @@ export default function BracketPage() {
 
         setLayout(Array.isArray(data.layout) ? data.layout : [])
         setConnections(Array.isArray(data.connections) ? data.connections : [])
+        setGroupPhase(data.groupPhase || null)
         setSlotCount(typeof data.slotCount === 'number' ? data.slotCount : 0)
           setRequestedSlotCount(typeof data.requestedSlotCount === 'number'
             ? data.requestedSlotCount
@@ -80,6 +83,7 @@ export default function BracketPage() {
         setTeams([])
         setLayout([])
         setConnections([])
+        setGroupPhase(null)
         setSlotCount(0)
         setRequestedSlotCount(0)
       }
@@ -90,10 +94,10 @@ export default function BracketPage() {
       setTeams([])
       setLayout([])
       setConnections([])
+      setGroupPhase(null)
       setSlotCount(0)
     } finally {
       setLoading(false)
-      setRequestedSlotCount(0)
     }
   }
 
@@ -160,7 +164,9 @@ export default function BracketPage() {
           <div className="text-center">
             <p className="text-purple-200 mb-2">
               {teams.length > 0
-                ? `${teams.length} Teams • ${bracketMode === 'single' ? 'Single' : 'Double'} Elimination (Konfiguriert: ${requestedSlotCount || '...'} Slots · Seeds: ${slotCount || '...'})`
+                ? groupPhase
+                  ? `${teams.length} Teams • ${groupPhase.groups.length} Gruppen • Top ${PLAYOFF_TEAM_COUNT} ${bracketMode === 'single' ? 'Single' : 'Double'} Elimination`
+                  : `${teams.length} Teams • ${bracketMode === 'single' ? 'Single' : 'Double'} Elimination (Konfiguriert: ${requestedSlotCount || '...'} Slots · Seeds: ${slotCount || '...'})`
                 : 'Teams werden geladen...'}
             </p>
             <div className="text-sm text-purple-300 flex items-center justify-center gap-4">
@@ -174,6 +180,50 @@ export default function BracketPage() {
             </div>
           </div>
         </div>
+
+        {groupPhase && (
+          <section className="bg-black/20 backdrop-blur-sm rounded-xl p-5 border border-cyan-500/45 mb-5">
+            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-white">GRUPPENPHASE</h2>
+                <p className="text-cyan-100 text-sm">
+                  Die markierten Teams ziehen aktuell als Top {PLAYOFF_TEAM_COUNT} in den Turnierbaum ein.
+                </p>
+              </div>
+              <div className="rounded-md border border-cyan-300/30 bg-cyan-500/10 px-3 py-2 text-sm font-semibold text-cyan-100">
+                {groupPhase.groups.length} Gruppen
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {groupPhase.groups.map((group) => (
+                <article key={group.name} className="rounded-lg border border-white/15 bg-gray-950/60 p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h3 className="text-lg font-bold text-white">{group.name}</h3>
+                    <span className="text-xs text-white/50">{group.teams.length} Teams</span>
+                  </div>
+                  <div className="space-y-2">
+                    {group.teams.map((team) => (
+                      <div
+                        key={team.id}
+                        className={`flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm ${team.playoffSeed ? 'border-emerald-300/40 bg-emerald-500/15 text-emerald-50' : 'border-white/10 bg-black/25 text-white/75'}`}
+                      >
+                        <span className="min-w-0 truncate font-semibold">{team.groupSeed}. {team.name}</span>
+                        {team.playoffSeed ? (
+                          <span className="shrink-0 rounded bg-emerald-400/20 px-2 py-1 text-xs font-bold text-emerald-100">
+                            Seed {team.playoffSeed}
+                          </span>
+                        ) : (
+                          <span className="shrink-0 text-xs text-white/40">Gruppe</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Combined Tournament Bracket */}
         <section className="bg-black/20 backdrop-blur-sm rounded-xl p-5 border border-purple-500/50">

@@ -117,7 +117,7 @@ async function setupDatabase() {
     
     // Create default teams
     console.log('🏆 Creating default teams...');
-    const teamNames = Array.from({ length: 16 }, (_, index) => `Team ${index + 1}`);
+    const teamNames = Array.from({ length: 32 }, (_, index) => `Team ${index + 1}`);
     
     for (let index = 0; index < teamNames.length; index++) {
       const teamName = teamNames[index];

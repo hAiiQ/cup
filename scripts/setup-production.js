@@ -1,7 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 
-const DEFAULT_TEAM_NAMES = Array.from({ length: 16 }, (_, index) => `Team ${index + 1}`);
+const DEFAULT_TEAM_NAMES = Array.from({ length: 32 }, (_, index) => `Team ${index + 1}`);
 
 async function resetTeamsToDefaultNames(prisma) {
   const existingTeams = await prisma.team.findMany({

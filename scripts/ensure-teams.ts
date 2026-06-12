@@ -12,7 +12,7 @@ async function ensureTeams() {
     if (existingTeams.length === 0) {
       console.log('🎯 Creating default teams...')
       
-      const teams = Array.from({ length: 16 }, (_, index) => ({
+      const teams = Array.from({ length: 32 }, (_, index) => ({
         name: `Team ${index + 1}`,
         position: index + 1,
         imageUrl: null

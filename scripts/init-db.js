@@ -92,7 +92,7 @@ async function createTables() {
     console.log('✅ Admin user created');
     
     // Create teams
-    const teams = Array.from({ length: 16 }, (_, index) => `Team ${index + 1}`);
+    const teams = Array.from({ length: 32 }, (_, index) => `Team ${index + 1}`);
     
     for (let index = 0; index < teams.length; index++) {
       const teamName = teams[index];

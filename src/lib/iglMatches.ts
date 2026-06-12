@@ -4,6 +4,7 @@ import { verifyToken } from '@/lib/auth'
 import { buildBracketMatches, type BracketMatch, type BracketTeam } from '@/lib/bracketStructure'
 import { getBracketSettings } from '@/lib/bracketSettings'
 import { MAX_TEAMS } from '@/lib/teamDefaults'
+import { PLAYOFF_TEAM_COUNT, buildGroupPhase, type GroupPhaseResult } from '@/lib/groupPhase'
 import { determineWinnerSlot, getAllMatchStates, type MatchState } from '@/lib/matchState'
 
 export type IglUser = {
@@ -48,6 +49,7 @@ export type IglBracketData = {
   requestedSlotCount: number
   mode: ReturnType<typeof buildBracketMatches>['mode']
   settings: Awaited<ReturnType<typeof getBracketSettings>>
+  groupPhase: GroupPhaseResult | null
 }
 
 export function getBearerOrCookieToken(request: NextRequest): string | undefined {
@@ -213,15 +215,21 @@ export async function loadIglBracketData(): Promise<IglBracketData> {
     }
   })
 
-  const bracketResult = buildBracketMatches(teams, stateMap, {
+  const groupPhase = settings.groupPhaseEnabled
+    ? buildGroupPhase(teams, settings.groupCount, PLAYOFF_TEAM_COUNT, requestedSlots)
+    : null
+  const bracketTeams = groupPhase?.advancingTeams || teams
+  const bracketSlotCount = settings.groupPhaseEnabled ? PLAYOFF_TEAM_COUNT : requestedSlots
+
+  const bracketResult = buildBracketMatches(bracketTeams, stateMap, {
     mode: settings.mode,
-    slotCount: requestedSlots,
+    slotCount: bracketSlotCount,
     autoAdvanceByes: settings.tournamentStarted,
   })
 
   return {
     ...bracketResult,
-    teams,
+    teams: bracketTeams,
     reports: reports.map((report) => ({
       id: report.id,
       matchId: report.matchId,
@@ -239,5 +247,6 @@ export async function loadIglBracketData(): Promise<IglBracketData> {
       updatedAt: report.updatedAt,
     })),
     settings,
+    groupPhase,
   }
 }

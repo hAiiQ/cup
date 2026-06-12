@@ -17,7 +17,7 @@ async function main() {
     }
   })
 
-  const defaultTeams = Array.from({ length: 16 }, (_, index) => `Team ${index + 1}`)
+  const defaultTeams = Array.from({ length: 32 }, (_, index) => `Team ${index + 1}`)
 
   for (let i = 0; i < defaultTeams.length; i++) {
     await prisma.team.upsert({

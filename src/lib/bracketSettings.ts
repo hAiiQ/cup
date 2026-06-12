@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { MAX_TEAMS } from '@/lib/teamDefaults'
+import { clampGroupCount } from '@/lib/groupPhase'
 
 export type BracketMode = 'single' | 'double'
 
@@ -7,12 +8,16 @@ export interface BracketSettings {
   mode: BracketMode
   teamSlots: number
   tournamentStarted: boolean
+  groupPhaseEnabled: boolean
+  groupCount: number
 }
 
 const DEFAULT_SETTINGS: BracketSettings = {
   mode: 'double',
   teamSlots: 16,
-  tournamentStarted: false
+  tournamentStarted: false,
+  groupPhaseEnabled: false,
+  groupCount: 4
 }
 
 const MIN_TEAM_SLOTS = 2
@@ -72,6 +77,8 @@ const ensureBracketSettingsTable = async () => {
             mode TEXT NOT NULL DEFAULT 'double',
             "teamSlots" INTEGER NOT NULL DEFAULT 16,
             "tournamentStarted" BOOLEAN NOT NULL DEFAULT FALSE,
+            "groupPhaseEnabled" BOOLEAN NOT NULL DEFAULT FALSE,
+            "groupCount" INTEGER NOT NULL DEFAULT 4,
             "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
           );
@@ -80,6 +87,14 @@ const ensureBracketSettingsTable = async () => {
         await prisma.$executeRawUnsafe(`
           ALTER TABLE "BracketSetting"
           ADD COLUMN IF NOT EXISTS "tournamentStarted" BOOLEAN NOT NULL DEFAULT FALSE;
+        `)
+        await prisma.$executeRawUnsafe(`
+          ALTER TABLE "BracketSetting"
+          ADD COLUMN IF NOT EXISTS "groupPhaseEnabled" BOOLEAN NOT NULL DEFAULT FALSE;
+        `)
+        await prisma.$executeRawUnsafe(`
+          ALTER TABLE "BracketSetting"
+          ADD COLUMN IF NOT EXISTS "groupCount" INTEGER NOT NULL DEFAULT 4;
         `)
       }
 
@@ -90,7 +105,9 @@ const ensureBracketSettingsTable = async () => {
             id: SETTINGS_ID,
             mode: DEFAULT_SETTINGS.mode,
             teamSlots: DEFAULT_SETTINGS.teamSlots,
-            tournamentStarted: DEFAULT_SETTINGS.tournamentStarted
+            tournamentStarted: DEFAULT_SETTINGS.tournamentStarted,
+            groupPhaseEnabled: DEFAULT_SETTINGS.groupPhaseEnabled,
+            groupCount: DEFAULT_SETTINGS.groupCount
           },
           update: {}
         })
@@ -120,7 +137,9 @@ export async function getBracketSettings(): Promise<BracketSettings> {
     return {
       mode: normalizeMode(record.mode),
       teamSlots: clampTeamSlots(record.teamSlots),
-      tournamentStarted: Boolean(record.tournamentStarted)
+      tournamentStarted: Boolean(record.tournamentStarted),
+      groupPhaseEnabled: Boolean(record.groupPhaseEnabled),
+      groupCount: clampGroupCount(record.groupCount, clampTeamSlots(record.teamSlots))
     }
   } catch (error) {
     console.warn('Failed to load bracket settings, falling back to defaults:', error)
@@ -139,6 +158,12 @@ export async function updateBracketSettings(
   const tournamentStarted = update.tournamentStarted === undefined
     ? current.tournamentStarted
     : Boolean(update.tournamentStarted)
+  const groupPhaseEnabled = update.groupPhaseEnabled === undefined
+    ? current.groupPhaseEnabled
+    : Boolean(update.groupPhaseEnabled)
+  const groupCount = update.groupCount === undefined
+    ? clampGroupCount(current.groupCount, teamSlots)
+    : clampGroupCount(update.groupCount, teamSlots)
 
   const saved = await prisma.bracketSetting.upsert({
     where: { id: SETTINGS_ID },
@@ -146,18 +171,24 @@ export async function updateBracketSettings(
       id: SETTINGS_ID,
       mode,
       teamSlots,
-      tournamentStarted
+      tournamentStarted,
+      groupPhaseEnabled,
+      groupCount
     },
     update: {
       mode,
       teamSlots,
-      tournamentStarted
+      tournamentStarted,
+      groupPhaseEnabled,
+      groupCount
     }
   })
 
   return {
     mode: normalizeMode(saved.mode),
     teamSlots: clampTeamSlots(saved.teamSlots),
-    tournamentStarted: Boolean(saved.tournamentStarted)
+    tournamentStarted: Boolean(saved.tournamentStarted),
+    groupPhaseEnabled: Boolean(saved.groupPhaseEnabled),
+    groupCount: clampGroupCount(saved.groupCount, clampTeamSlots(saved.teamSlots))
   }
 }

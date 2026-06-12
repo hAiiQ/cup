@@ -13,6 +13,8 @@ import {
 } from '@/lib/bracketStructure'
 import type { MatchState } from '@/lib/matchState'
 import BracketDiagram from '@/components/bracket/BracketDiagram'
+import { MAX_TEAMS } from '@/lib/teamDefaults'
+import { MAX_GROUP_COUNT, PLAYOFF_TEAM_COUNT, buildGroupPhase, clampGroupCount, type GroupPhaseResult } from '@/lib/groupPhase'
 
 const createStateMap = (states: any[]): Map<string, MatchState> => {
   const map = new Map<string, MatchState>()
@@ -36,10 +38,12 @@ type BracketSettingsState = {
   mode: BracketMode
   teamSlots: number
   tournamentStarted: boolean
+  groupPhaseEnabled: boolean
+  groupCount: number
 }
 
 const MIN_TEAM_SLOTS = 2
-const MAX_TEAM_SLOTS = 16
+const MAX_TEAM_SLOTS = MAX_TEAMS
 
 const clampTeamSlots = (value: number): number => {
   const numericValue = Number.isFinite(value) ? value : Number(value)
@@ -49,8 +53,10 @@ const clampTeamSlots = (value: number): number => {
 
 const DEFAULT_BRACKET_SETTINGS: BracketSettingsState = {
   mode: 'double',
-  teamSlots: MAX_TEAM_SLOTS,
-  tournamentStarted: false
+  teamSlots: 16,
+  tournamentStarted: false,
+  groupPhaseEnabled: false,
+  groupCount: 4
 }
 
 const MODE_LABELS: Record<BracketMode, string> = {
@@ -64,6 +70,7 @@ export default function AdminBracketPage() {
   const [bracket, setBracket] = useState<BracketMatch[]>([])
   const [layout, setLayout] = useState<BracketNodeLayout[]>([])
   const [connections, setConnections] = useState<BracketConnection[]>([])
+  const [groupPhase, setGroupPhase] = useState<GroupPhaseResult | null>(null)
   const [slotCount, setSlotCount] = useState<number>(0)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -82,11 +89,16 @@ export default function AdminBracketPage() {
   const [settingsSaving, setSettingsSaving] = useState(false)
   const [tournamentStartLoading, setTournamentStartLoading] = useState(false)
   const [settingsAlert, setSettingsAlert] = useState<{ type: 'success' | 'error', text: string } | null>(null)
-  const settingsChanged = settingsDraft.mode !== bracketSettings.mode || settingsDraft.teamSlots !== bracketSettings.teamSlots
+  const settingsChanged =
+    settingsDraft.mode !== bracketSettings.mode ||
+    settingsDraft.teamSlots !== bracketSettings.teamSlots ||
+    settingsDraft.groupPhaseEnabled !== bracketSettings.groupPhaseEnabled ||
+    settingsDraft.groupCount !== bracketSettings.groupCount
   const modeOptions: BracketMode[] = ['double', 'single']
   const configuredSlotCount = bracketSettings.teamSlots
+  const activeBracketSlots = bracketSettings.groupPhaseEnabled ? PLAYOFF_TEAM_COUNT : configuredSlotCount
   const autoFreilosCount = slotCount > 0 && configuredSlotCount > 0
-    ? Math.max(slotCount - configuredSlotCount, 0)
+    ? Math.max(slotCount - activeBracketSlots, 0)
     : 0
 
   useEffect(() => {
@@ -154,7 +166,9 @@ export default function AdminBracketPage() {
           persistedSettings = {
             mode: settingsPayload.settings.mode === 'single' ? 'single' : 'double',
             teamSlots: clampTeamSlots(settingsPayload.settings.teamSlots),
-            tournamentStarted: Boolean(settingsPayload.settings.tournamentStarted)
+            tournamentStarted: Boolean(settingsPayload.settings.tournamentStarted),
+            groupPhaseEnabled: Boolean(settingsPayload.settings.groupPhaseEnabled),
+            groupCount: clampGroupCount(settingsPayload.settings.groupCount, clampTeamSlots(settingsPayload.settings.teamSlots))
           }
         }
       }
@@ -167,9 +181,17 @@ export default function AdminBracketPage() {
       setBracketSettings(persistedSettings)
       setSettingsDraft(persistedSettings)
 
-      const bracketResult = buildBracketMatches(limitedTeams, stateMap, {
+      const nextGroupPhase = persistedSettings.groupPhaseEnabled
+        ? buildGroupPhase(limitedTeams, persistedSettings.groupCount, PLAYOFF_TEAM_COUNT, persistedSettings.teamSlots)
+        : null
+      const bracketTeams = nextGroupPhase?.advancingTeams || limitedTeams
+      const bracketSlotCount = persistedSettings.groupPhaseEnabled ? PLAYOFF_TEAM_COUNT : persistedSettings.teamSlots
+
+      setGroupPhase(nextGroupPhase)
+
+      const bracketResult = buildBracketMatches(bracketTeams, stateMap, {
         mode: persistedSettings.mode,
-        slotCount: persistedSettings.teamSlots,
+        slotCount: bracketSlotCount,
         autoAdvanceByes: persistedSettings.tournamentStarted
       })
       setBracket(bracketResult.matches)
@@ -208,7 +230,28 @@ export default function AdminBracketPage() {
   }
 
   const handleSlotValueChange = (value: number) => {
-    setSettingsDraft((prev) => ({ ...prev, teamSlots: clampTeamSlots(value) }))
+    setSettingsDraft((prev) => {
+      const teamSlots = clampTeamSlots(value)
+      return {
+        ...prev,
+        teamSlots,
+        groupCount: clampGroupCount(prev.groupCount, teamSlots)
+      }
+    })
+    setSettingsAlert(null)
+  }
+
+  const handleGroupPhaseToggle = () => {
+    setSettingsDraft((prev) => ({
+      ...prev,
+      groupPhaseEnabled: !prev.groupPhaseEnabled,
+      groupCount: clampGroupCount(prev.groupCount, prev.teamSlots)
+    }))
+    setSettingsAlert(null)
+  }
+
+  const handleGroupCountChange = (value: number) => {
+    setSettingsDraft((prev) => ({ ...prev, groupCount: clampGroupCount(value, prev.teamSlots) }))
     setSettingsAlert(null)
   }
 
@@ -236,7 +279,9 @@ export default function AdminBracketPage() {
       const updatedSettings: BracketSettingsState = {
         mode: payload?.settings?.mode === 'single' ? 'single' : 'double',
         teamSlots: clampTeamSlots(payload?.settings?.teamSlots ?? settingsDraft.teamSlots),
-        tournamentStarted: Boolean(payload?.settings?.tournamentStarted)
+        tournamentStarted: Boolean(payload?.settings?.tournamentStarted),
+        groupPhaseEnabled: Boolean(payload?.settings?.groupPhaseEnabled),
+        groupCount: clampGroupCount(payload?.settings?.groupCount ?? settingsDraft.groupCount, clampTeamSlots(payload?.settings?.teamSlots ?? settingsDraft.teamSlots))
       }
 
       setBracketSettings(updatedSettings)
@@ -284,7 +329,9 @@ export default function AdminBracketPage() {
       const updatedSettings: BracketSettingsState = {
         mode: payload?.settings?.mode === 'single' ? 'single' : 'double',
         teamSlots: clampTeamSlots(payload?.settings?.teamSlots ?? bracketSettings.teamSlots),
-        tournamentStarted: Boolean(payload?.settings?.tournamentStarted)
+        tournamentStarted: Boolean(payload?.settings?.tournamentStarted),
+        groupPhaseEnabled: Boolean(payload?.settings?.groupPhaseEnabled),
+        groupCount: clampGroupCount(payload?.settings?.groupCount ?? bracketSettings.groupCount, clampTeamSlots(payload?.settings?.teamSlots ?? bracketSettings.teamSlots))
       }
 
       setBracketSettings(updatedSettings)
@@ -577,7 +624,7 @@ export default function AdminBracketPage() {
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <div className="text-gray-300 text-sm">
-                {teams.length} Teams aktiv · Konfiguriert: {configuredSlotCount} Slots · Bracket Seeds: {slotCount > 0 ? slotCount : '...'} · {MODE_LABELS[bracketSettings.mode]}
+                {teams.length} Teams aktiv · {bracketSettings.groupPhaseEnabled ? `${bracketSettings.groupCount} Gruppen · Top ${PLAYOFF_TEAM_COUNT} Bracket` : `${configuredSlotCount} Slots`} · Bracket Seeds: {slotCount > 0 ? slotCount : '...'} · {MODE_LABELS[bracketSettings.mode]}
               </div>
               <button
                 onClick={startTournament}
@@ -619,14 +666,14 @@ export default function AdminBracketPage() {
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-2xl font-bold text-white">Bracket Einstellungen</h2>
-              <p className="text-purple-200 text-sm">Wähle Eliminierungsmodus und Teamslots, bevor Matches generiert werden.</p>
+              <p className="text-purple-200 text-sm">Wähle Gruppenphase, Teamslots und Eliminierungsmodus, bevor Matches generiert werden.</p>
             </div>
             <div className="text-sm text-white/70">
-              Aktiv: {MODE_LABELS[bracketSettings.mode]} • {configuredSlotCount} Slots (Seeds: {slotCount || '...'})
+              Aktiv: {MODE_LABELS[bracketSettings.mode]} • {bracketSettings.groupPhaseEnabled ? `${bracketSettings.groupCount} Gruppen, Top ${PLAYOFF_TEAM_COUNT}` : `${configuredSlotCount} Slots`} (Seeds: {slotCount || '...'})
             </div>
           </div>
 
-          <div className="mt-6 grid gap-6 lg:grid-cols-3">
+          <div className="mt-6 grid gap-6 xl:grid-cols-4">
             <div className="space-y-3">
               <p className="text-white/80 text-sm font-semibold">Turniermodus</p>
               <div className="flex flex-wrap gap-3">
@@ -644,6 +691,20 @@ export default function AdminBracketPage() {
                   )
                 })}
               </div>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-white/80 text-sm font-semibold">Gruppenphase</p>
+              <button
+                type="button"
+                onClick={handleGroupPhaseToggle}
+                className={`w-full rounded-lg border px-4 py-3 text-left text-sm font-semibold transition-colors ${settingsDraft.groupPhaseEnabled ? 'border-cyan-300 bg-cyan-500/20 text-cyan-100' : 'border-white/15 bg-black/40 text-white/70 hover:border-cyan-300/70'}`}
+              >
+                {settingsDraft.groupPhaseEnabled ? 'Aktiv: Gruppenphase vor K.o.-Baum' : 'Inaktiv: Direkt K.o.-Baum'}
+              </button>
+              <p className="text-xs text-white/50">
+                Bei aktiver Gruppenphase werden bis zu {MAX_TEAM_SLOTS} Teams verteilt. Top {PLAYOFF_TEAM_COUNT} gehen in den vorhandenen Baum.
+              </p>
             </div>
 
             <div className="space-y-3">
@@ -675,6 +736,36 @@ export default function AdminBracketPage() {
                     ? `${autoFreilosCount} Freilos-Slots werden automatisch vergeben, damit das ${slotCount}-Slot Bracket funktioniert.`
                     : 'Keine Freilos-Slots nötig. Bracket läuft ohne automatische Byes.'
                   : 'Slots werden automatisch auf gültige Werte begrenzt.'}
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-white/80 text-sm font-semibold">Gruppen</p>
+              <div className={`space-y-4 ${settingsDraft.groupPhaseEnabled ? '' : 'opacity-45'}`}>
+                <input
+                  type="range"
+                  min={1}
+                  max={clampGroupCount(MAX_GROUP_COUNT, settingsDraft.teamSlots)}
+                  value={settingsDraft.groupCount}
+                  onChange={(event) => handleGroupCountChange(Number(event.target.value))}
+                  disabled={!settingsDraft.groupPhaseEnabled}
+                  className="w-full accent-emerald-400 disabled:cursor-not-allowed"
+                />
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    min={1}
+                    max={clampGroupCount(MAX_GROUP_COUNT, settingsDraft.teamSlots)}
+                    value={settingsDraft.groupCount}
+                    onChange={(event) => handleGroupCountChange(Number(event.target.value))}
+                    disabled={!settingsDraft.groupPhaseEnabled}
+                    className="w-24 rounded bg-black/40 border border-white/15 px-3 py-2 text-white focus:outline-none focus:border-emerald-400 disabled:cursor-not-allowed"
+                  />
+                  <span className="text-white/70 text-sm">Gruppen</span>
+                </div>
+              </div>
+              <p className="text-xs text-white/50">
+                Teams werden im Snake-Verfahren verteilt, damit die Gruppen möglichst gleich groß bleiben.
               </p>
             </div>
 
@@ -710,6 +801,50 @@ export default function AdminBracketPage() {
             </div>
           </div>
         </section>
+
+        {groupPhase && (
+          <section className="bg-black/25 backdrop-blur-sm rounded-xl p-5 border border-cyan-500/45">
+            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-white">Gruppenphase</h2>
+                <p className="text-cyan-100 text-sm">
+                  {teams.length} Teams auf {groupPhase.groups.length} Gruppen verteilt. Markierte Teams gehen aktuell als Top {PLAYOFF_TEAM_COUNT} in den K.o.-Baum.
+                </p>
+              </div>
+              <div className="rounded-md border border-cyan-300/30 bg-cyan-500/10 px-3 py-2 text-sm font-semibold text-cyan-100">
+                Playoff Seeds: {groupPhase.advancingTeams.length}/{PLAYOFF_TEAM_COUNT}
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {groupPhase.groups.map((group) => (
+                <article key={group.name} className="rounded-lg border border-white/15 bg-gray-950/60 p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h3 className="text-lg font-bold text-white">{group.name}</h3>
+                    <span className="text-xs text-white/50">{group.teams.length} Teams</span>
+                  </div>
+                  <div className="space-y-2">
+                    {group.teams.map((team) => (
+                      <div
+                        key={team.id}
+                        className={`flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm ${team.playoffSeed ? 'border-emerald-300/40 bg-emerald-500/15 text-emerald-50' : 'border-white/10 bg-black/25 text-white/75'}`}
+                      >
+                        <span className="min-w-0 truncate font-semibold">{team.groupSeed}. {team.name}</span>
+                        {team.playoffSeed ? (
+                          <span className="shrink-0 rounded bg-emerald-400/20 px-2 py-1 text-xs font-bold text-emerald-100">
+                            Seed {team.playoffSeed}
+                          </span>
+                        ) : (
+                          <span className="shrink-0 text-xs text-white/40">Gruppe</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="bg-black/20 backdrop-blur-sm rounded-xl p-5 border border-purple-500/50">
           <div className="mb-6" />
