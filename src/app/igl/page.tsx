@@ -262,7 +262,7 @@ export default function IglPage() {
     }
   }
 
-  const MatchBox = ({ match }: { match?: IglMatch }) => {
+  const renderMatchBox = (match?: IglMatch) => {
     if (!match) {
       return (
         <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-white/15 bg-gray-950/70 p-3 text-sm text-gray-500">
@@ -312,7 +312,7 @@ export default function IglPage() {
     )
   }
 
-  const MatchControl = ({ match }: { match: IglMatch }) => {
+  const renderMatchControl = (match: IglMatch) => {
     const draft = scoreDrafts[match.id] || {
       team1: String(match.report?.team1Score ?? match.team1Score ?? 0),
       team2: String(match.report?.team2Score ?? match.team2Score ?? 0),
@@ -327,7 +327,7 @@ export default function IglPage() {
       match.report.reporterTeamId === payload.user.teamId
 
     return (
-      <div className="rounded-lg border border-gray-700 bg-gray-900/85 p-4">
+      <div key={match.id} className="rounded-lg border border-gray-700 bg-gray-900/85 p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="text-xs font-semibold uppercase tracking-wide text-blue-300">
@@ -535,9 +535,7 @@ export default function IglPage() {
             </div>
           ) : (
             <div className="grid gap-4 xl:grid-cols-2">
-              {actionableMatches.map((match) => (
-                <MatchControl key={match.id} match={match} />
-              ))}
+              {actionableMatches.map((match) => renderMatchControl(match))}
             </div>
           )}
         </section>
@@ -630,7 +628,7 @@ export default function IglPage() {
                     <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
                       {round.matches.map((groupMatch) => (
                         <div key={groupMatch.id} className="min-h-20">
-                          <MatchBox match={groupMatchesById.get(groupMatch.id)} />
+                          {renderMatchBox(groupMatchesById.get(groupMatch.id))}
                         </div>
                       ))}
                     </div>
@@ -660,7 +658,7 @@ export default function IglPage() {
                 matches={payload.matches}
                 layout={payload.layout}
                 connections={payload.connections}
-                renderMatch={(match) => <MatchBox match={match as IglMatch | undefined} />}
+                renderMatch={(match) => renderMatchBox(match as IglMatch | undefined)}
                 className="mx-auto"
               />
             ) : (
