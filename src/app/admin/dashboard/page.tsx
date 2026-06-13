@@ -102,6 +102,12 @@ type ValorantDetailsState = {
   data?: ValorantDetails
 }
 
+type UserProfileForm = {
+  discordName: string
+  instagramName: string
+  tiktokName: string
+}
+
 type ValorantBulkSyncState = {
   isRunning: boolean
   isCancelling: boolean
@@ -161,6 +167,14 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('users')
   const [deletingUser, setDeletingUser] = useState<string | null>(null)
+  const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [userProfileForm, setUserProfileForm] = useState<UserProfileForm>({
+    discordName: '',
+    instagramName: '',
+    tiktokName: '',
+  })
+  const [savingUserProfile, setSavingUserProfile] = useState(false)
+  const [userProfileError, setUserProfileError] = useState<string | null>(null)
   const [resettingTeams, setResettingTeams] = useState(false)
   const [valorantDetailsByUser, setValorantDetailsByUser] = useState<Record<string, ValorantDetailsState>>({})
   const [valorantBulkSync, setValorantBulkSync] = useState<ValorantBulkSyncState>({
@@ -206,6 +220,27 @@ export default function AdminDashboard() {
 
     return () => window.clearInterval(intervalId)
   }, [valorantBulkSync.isRunning])
+
+  useEffect(() => {
+    if (!editingUser) {
+      return
+    }
+
+    const previousOverflow = document.body.style.overflow
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !savingUserProfile) {
+        setEditingUser(null)
+      }
+    }
+
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', closeOnEscape)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [editingUser, savingUserProfile])
 
   const fetchData = async () => {
     try {
@@ -399,6 +434,54 @@ export default function AdminDashboard() {
       }
     } catch (error) {
       alert('Ein Fehler ist aufgetreten')
+    }
+  }
+
+  const openUserProfileEditor = (user: User) => {
+    setEditingUser(user)
+    setUserProfileForm({
+      discordName: user.discordName || '',
+      instagramName: user.instagramName || '',
+      tiktokName: user.tiktokName || '',
+    })
+    setUserProfileError(null)
+  }
+
+  const closeUserProfileEditor = () => {
+    if (!savingUserProfile) {
+      setEditingUser(null)
+      setUserProfileError(null)
+    }
+  }
+
+  const saveUserProfile = async () => {
+    if (!editingUser || savingUserProfile) {
+      return
+    }
+
+    setSavingUserProfile(true)
+    setUserProfileError(null)
+
+    try {
+      const response = await fetch(`/api/admin/users/${editingUser.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userProfileForm),
+      })
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Profildaten konnten nicht gespeichert werden.')
+      }
+
+      setUsers((prev) => prev.map((user) => (user.id === editingUser.id ? data.user : user)))
+      setEditingUser(null)
+    } catch (error) {
+      setUserProfileError(
+        error instanceof Error ? error.message : 'Profildaten konnten nicht gespeichert werden.'
+      )
+    } finally {
+      setSavingUserProfile(false)
     }
   }
 
@@ -1033,13 +1116,24 @@ export default function AdminDashboard() {
                           </div>
                         </div>
 
-                        <button
-                          onClick={() => deleteUser(user.id, displayName)}
-                          disabled={deletingUser === user.id}
-                          className="md:self-start rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-gray-600"
-                        >
-                          {deletingUser === user.id ? 'Lösche...' : 'Löschen'}
-                        </button>
+                        <div className="flex items-center gap-2 md:self-start">
+                          <button
+                            type="button"
+                            onClick={() => openUserProfileEditor(user)}
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-gray-600 bg-gray-700 text-xl text-white transition-colors hover:border-sky-400 hover:bg-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+                            title="Profildaten bearbeiten"
+                            aria-label={`${displayName} bearbeiten`}
+                          >
+                            ⚙
+                          </button>
+                          <button
+                            onClick={() => deleteUser(user.id, displayName)}
+                            disabled={deletingUser === user.id}
+                            className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-gray-600"
+                          >
+                            {deletingUser === user.id ? 'Lösche...' : 'Löschen'}
+                          </button>
+                        </div>
                       </div>
 
                       <div className="mt-5 flex flex-wrap gap-2">
@@ -1335,6 +1429,119 @@ export default function AdminDashboard() {
                 })}
               </div>
             )}
+          </div>
+        )}
+
+        {editingUser && (
+          <div
+            className="fixed inset-0 z-[120] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-user-title"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) {
+                closeUserProfileEditor()
+              }
+            }}
+          >
+            <div className="w-full max-w-lg overflow-hidden rounded-lg border border-gray-600 bg-gray-900 shadow-2xl">
+              <div className="flex items-center justify-between gap-4 border-b border-gray-700 px-5 py-4">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-sky-300">User Management</p>
+                  <h2 id="edit-user-title" className="truncate text-2xl font-bold text-white">
+                    {getUserDisplayName(editingUser)} bearbeiten
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeUserProfileEditor}
+                  disabled={savingUserProfile}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-gray-600 bg-gray-800 text-xl text-gray-200 transition-colors hover:bg-gray-700 hover:text-white disabled:opacity-50"
+                  aria-label="Fenster schließen"
+                  title="Schließen"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="space-y-4 p-5">
+                <div>
+                  <label htmlFor="edit-discord-name" className="mb-1.5 block text-sm font-semibold text-gray-200">
+                    Discord-Name
+                  </label>
+                  <input
+                    id="edit-discord-name"
+                    type="text"
+                    maxLength={100}
+                    value={userProfileForm.discordName}
+                    onChange={(event) =>
+                      setUserProfileForm((prev) => ({ ...prev, discordName: event.target.value }))
+                    }
+                    className="w-full rounded-md border border-gray-700 bg-gray-950 px-3 py-2.5 text-white outline-none transition-colors focus:border-sky-400"
+                    placeholder="Discord-Name"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="edit-instagram-name" className="mb-1.5 block text-sm font-semibold text-gray-200">
+                    Instagram-Name
+                  </label>
+                  <input
+                    id="edit-instagram-name"
+                    type="text"
+                    maxLength={100}
+                    value={userProfileForm.instagramName}
+                    onChange={(event) =>
+                      setUserProfileForm((prev) => ({ ...prev, instagramName: event.target.value }))
+                    }
+                    className="w-full rounded-md border border-gray-700 bg-gray-950 px-3 py-2.5 text-white outline-none transition-colors focus:border-sky-400"
+                    placeholder="Instagram-Name"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="edit-tiktok-name" className="mb-1.5 block text-sm font-semibold text-gray-200">
+                    TikTok-Name
+                  </label>
+                  <input
+                    id="edit-tiktok-name"
+                    type="text"
+                    maxLength={100}
+                    value={userProfileForm.tiktokName}
+                    onChange={(event) =>
+                      setUserProfileForm((prev) => ({ ...prev, tiktokName: event.target.value }))
+                    }
+                    className="w-full rounded-md border border-gray-700 bg-gray-950 px-3 py-2.5 text-white outline-none transition-colors focus:border-sky-400"
+                    placeholder="TikTok-Name"
+                  />
+                </div>
+
+                {userProfileError && (
+                  <div className="rounded-md border border-red-500/50 bg-red-500/15 px-3 py-2 text-sm text-red-100">
+                    {userProfileError}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col-reverse gap-2 border-t border-gray-700 bg-gray-950/60 px-5 py-4 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={closeUserProfileEditor}
+                  disabled={savingUserProfile}
+                  className="rounded-md border border-gray-600 px-4 py-2 text-sm font-semibold text-gray-200 transition-colors hover:bg-gray-800 disabled:opacity-50"
+                >
+                  Abbrechen
+                </button>
+                <button
+                  type="button"
+                  onClick={saveUserProfile}
+                  disabled={savingUserProfile}
+                  className="rounded-md bg-sky-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-sky-500 disabled:cursor-wait disabled:bg-gray-700"
+                >
+                  {savingUserProfile ? 'Speichert...' : 'Speichern'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

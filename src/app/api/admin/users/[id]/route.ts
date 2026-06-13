@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
+import type { Prisma } from '@prisma/client'
 
 // Helper function to verify admin
 async function verifyAdmin(request: NextRequest) {
@@ -137,19 +138,70 @@ export async function PATCH(
 
     console.log('✅ Admin verified for user update')
 
-    const { id } = params
-    const userId = id
-    const { isVerified } = await request.json()
-
-    // Update user verification status
-    const updatedUser = await prisma.user.update({
+    const userId = params.id
+    const body = await request.json()
+    const currentUser = await prisma.user.findUnique({
       where: { id: userId },
-      data: { isVerified }
+      select: {
+        discordName: true,
+        instagramName: true,
+        tiktokName: true,
+      },
     })
 
-    return NextResponse.json({ 
+    if (!currentUser) {
+      return NextResponse.json({ error: 'User nicht gefunden' }, { status: 404 })
+    }
+
+    const updateData: Prisma.UserUpdateInput = {}
+
+    if (typeof body.isVerified === 'boolean') {
+      updateData.isVerified = body.isVerified
+    }
+
+    const editableSocialFields = ['discordName', 'instagramName', 'tiktokName'] as const
+    for (const field of editableSocialFields) {
+      if (!(field in body)) {
+        continue
+      }
+
+      if (body[field] !== null && typeof body[field] !== 'string') {
+        return NextResponse.json({ error: 'Ungültige Profildaten' }, { status: 400 })
+      }
+
+      const value = typeof body[field] === 'string' ? body[field].trim() : ''
+      if (value.length > 100) {
+        return NextResponse.json({ error: 'Social-Media-Namen dürfen maximal 100 Zeichen lang sein.' }, { status: 400 })
+      }
+
+      const nextValue = value || null
+      updateData[field] = nextValue
+
+      if (currentUser[field] !== nextValue) {
+        const verificationField = `${field.replace('Name', '')}Verified` as
+          | 'discordVerified'
+          | 'instagramVerified'
+          | 'tiktokVerified'
+        updateData[verificationField] = false
+        updateData.isVerified = false
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: 'Keine Änderungen übermittelt' }, { status: 400 })
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      include: { team: true },
+    })
+
+    const { password: _password, ...safeUser } = updatedUser
+
+    return NextResponse.json({
       success: true, 
-      user: updatedUser 
+      user: safeUser
     })
 
   } catch (error) {
