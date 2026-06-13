@@ -69,10 +69,15 @@ export async function GET(
     const updateData: {
       inGameRank?: string
       valorantCurrentRank?: string | null
-    } = {}
+      inGameNameVerified: boolean
+      inGameRankVerified?: boolean
+    } = {
+      inGameNameVerified: true,
+    }
 
     if (rank.rank) {
       updateData.inGameRank = rank.rank
+      updateData.inGameRankVerified = true
     }
 
     if (rank.currentRank) {

@@ -188,6 +188,8 @@ export async function POST(request: NextRequest) {
         discordVerified: true,
         instagramVerified: false,
         tiktokVerified: false,
+        inGameNameVerified: true,
+        inGameRankVerified: Boolean(valorantLookup.rank),
         rulesAccepted: true,
       },
     })

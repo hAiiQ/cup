@@ -50,6 +50,23 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('✅ Admin verified, fetching users...')
+
+    await Promise.all([
+      prisma.user.updateMany({
+        where: {
+          inGameName: { not: null },
+          inGameNameVerified: false,
+        },
+        data: { inGameNameVerified: true },
+      }),
+      prisma.user.updateMany({
+        where: {
+          inGameRank: { not: null },
+          inGameRankVerified: false,
+        },
+        data: { inGameRankVerified: true },
+      }),
+    ])
     
     // First try to get users without relations to see if the basic query works
     try {
