@@ -81,15 +81,16 @@ export default function Navigation() {
   }
 
   return (
-    <header className="relative bg-white/10 backdrop-blur-sm border-b border-white/20">
+    <header className="relative bg-white/10 border-b border-white/20">
+      <div className="pointer-events-none absolute inset-0 backdrop-blur-sm" aria-hidden="true" />
       <div className="container relative mx-auto px-4 py-4">
         {isLoggedIn && participationOpen && !isParticipating && (
-          <div className="pointer-events-none fixed inset-0 z-[100] flex items-center justify-center px-5">
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
             <button
               type="button"
               onClick={confirmParticipation}
               disabled={participationLoading}
-              className="participation-attention pointer-events-auto relative min-h-24 w-full max-w-md overflow-hidden rounded-lg border-2 border-yellow-100/80 bg-gradient-to-r from-yellow-400 via-orange-500 to-pink-500 px-8 py-6 text-3xl font-black text-white shadow-2xl transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/80 disabled:cursor-wait disabled:opacity-80 sm:text-4xl"
+              className="participation-attention relative min-h-24 w-full max-w-md overflow-hidden rounded-lg border-2 border-yellow-100/80 bg-gradient-to-r from-yellow-400 via-orange-500 to-pink-500 px-8 py-6 text-3xl font-black text-white shadow-2xl transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/80 disabled:cursor-wait disabled:opacity-80 sm:text-4xl"
             >
               <span className="no-text-shadow absolute inset-x-8 top-0 h-px bg-white/80" aria-hidden="true" />
               {participationLoading
