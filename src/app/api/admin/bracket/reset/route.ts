@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
         resetTeams: teams.length
       }
     })
-    await updateBracketSettings({ tournamentStarted: false })
+    await updateBracketSettings({ tournamentStarted: false, activeGroupRound: 0 })
     clearMatchStates()
     
     console.log(`Tournament reset: ${resetResult.deletedMatches} matches deleted, ${resetResult.deletedReports} IGL reports deleted, ${resetResult.resetTeams} teams reset`)

@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       await tx.match.deleteMany({})
       return resetTeamsToDefaultNames(tx)
     })
-    await updateBracketSettings({ tournamentStarted: false })
+    await updateBracketSettings({ tournamentStarted: false, activeGroupRound: 0 })
     clearMatchStates()
 
     return NextResponse.json({ teams: createdTeams })

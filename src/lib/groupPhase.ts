@@ -1,4 +1,5 @@
-import type { BracketTeam } from '@/lib/bracketStructure'
+import type { BracketMatch, BracketTeam } from '@/lib/bracketStructure'
+import type { MatchState } from '@/lib/matchState'
 import { MAX_TEAMS, normalizeTeamName } from '@/lib/teamDefaults'
 
 export const PLAYOFF_TEAM_COUNT = 8
@@ -12,16 +13,49 @@ export interface GroupPhaseTeam extends BracketTeam {
   playoffSeed?: number
 }
 
+export interface GroupStanding {
+  team: GroupPhaseTeam
+  rank: number
+  played: number
+  wins: number
+  losses: number
+  scoreFor: number
+  scoreAgainst: number
+  scoreDiff: number
+  qualified: boolean
+  playoffSeed?: number
+}
+
 export interface GroupPhaseGroup {
   index: number
   name: string
   teams: GroupPhaseTeam[]
+  standings: GroupStanding[]
+}
+
+export interface GroupStageMatch extends BracketMatch {
+  bracket: 'group'
+  groupName: string
+  groupIndex: number
+  groupRound: number
+}
+
+export interface GroupStageRound {
+  round: number
+  label: string
+  matches: GroupStageMatch[]
+  isActive: boolean
+  isComplete: boolean
 }
 
 export interface GroupPhaseResult {
   groups: GroupPhaseGroup[]
+  rounds: GroupStageRound[]
   advancingTeams: GroupPhaseTeam[]
   playoffTeamCount: number
+  activeRound: number
+  totalRounds: number
+  isComplete: boolean
 }
 
 const GROUP_LABELS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
@@ -53,24 +87,18 @@ export const normalizeGroupPhaseTeams = (teams: BracketTeam[], limit: number = M
     .sort((a, b) => a.position - b.position)
 }
 
-export const buildGroupPhase = (
-  inputTeams: BracketTeam[] = [],
-  groupCount: number = 4,
-  playoffTeamCount: number = PLAYOFF_TEAM_COUNT,
-  teamLimit: number = MAX_TEAMS
-): GroupPhaseResult => {
-  const teams = normalizeGroupPhaseTeams(inputTeams, teamLimit)
-  const safeGroupCount = clampGroupCount(groupCount, Math.max(teams.length, 1))
-  const groups: GroupPhaseGroup[] = Array.from({ length: safeGroupCount }, (_, index) => ({
+const distributeTeams = (teams: BracketTeam[], groupCount: number): GroupPhaseGroup[] => {
+  const groups: GroupPhaseGroup[] = Array.from({ length: groupCount }, (_, index) => ({
     index,
     name: groupNameForIndex(index),
     teams: [],
+    standings: [],
   }))
 
   teams.forEach((team, index) => {
-    const block = Math.floor(index / safeGroupCount)
-    const indexInBlock = index % safeGroupCount
-    const groupIndex = block % 2 === 0 ? indexInBlock : safeGroupCount - 1 - indexInBlock
+    const block = Math.floor(index / groupCount)
+    const indexInBlock = index % groupCount
+    const groupIndex = block % 2 === 0 ? indexInBlock : groupCount - 1 - indexInBlock
     const group = groups[groupIndex]
 
     group.teams.push({
@@ -81,48 +109,231 @@ export const buildGroupPhase = (
     })
   })
 
-  const safePlayoffCount = Math.min(Math.max(Math.floor(playoffTeamCount), 2), PLAYOFF_TEAM_COUNT, teams.length || PLAYOFF_TEAM_COUNT)
-  const advancingTeams: GroupPhaseTeam[] = []
-  let depth = 0
+  return groups
+}
 
-  while (advancingTeams.length < safePlayoffCount) {
-    let addedInDepth = false
+const createGroupMatches = (
+  group: GroupPhaseGroup,
+  stateMap: Map<string, MatchState>
+): GroupStageMatch[][] => {
+  if (group.teams.length < 2) {
+    return []
+  }
 
-    for (const group of groups) {
-      const team = group.teams[depth]
-      if (team) {
-        advancingTeams.push({
-          ...team,
-          playoffSeed: advancingTeams.length + 1,
-          position: advancingTeams.length + 1,
-        })
-        addedInDepth = true
+  const rotation: Array<GroupPhaseTeam | null> = [...group.teams]
+  if (rotation.length % 2 !== 0) {
+    rotation.push(null)
+  }
+
+  const roundCount = rotation.length - 1
+  const matchesPerRound = rotation.length / 2
+  const rounds: GroupStageMatch[][] = []
+
+  for (let roundIndex = 0; roundIndex < roundCount; roundIndex++) {
+    const matches: GroupStageMatch[] = []
+
+    for (let pairIndex = 0; pairIndex < matchesPerRound; pairIndex++) {
+      const left = rotation[pairIndex]
+      const right = rotation[rotation.length - 1 - pairIndex]
+
+      if (!left || !right) {
+        continue
       }
 
-      if (advancingTeams.length >= safePlayoffCount) {
+      const swapSides = (roundIndex + pairIndex) % 2 === 1
+      const team1 = swapSides ? right : left
+      const team2 = swapSides ? left : right
+      const matchNumber = matches.length + 1
+      const matchId = `GP-G${group.index + 1}-R${roundIndex + 1}-M${matchNumber}`
+      const state = stateMap.get(matchId)
+
+      matches.push({
+        id: matchId,
+        label: `${group.name} · Runde ${roundIndex + 1} · Match ${matchNumber}`,
+        bracket: 'group',
+        roundLabel: `${group.name} · Runde ${roundIndex + 1}`,
+        roundOrder: roundIndex + 1,
+        groupName: group.name,
+        groupIndex: group.index,
+        groupRound: roundIndex + 1,
+        team1,
+        team2,
+        team1Score: state?.team1Score ?? 0,
+        team2Score: state?.team2Score ?? 0,
+        isLive: state?.isLive ?? false,
+        isFinished: state?.isFinished ?? false,
+        winnerId: state?.winnerId,
+      })
+    }
+
+    rounds.push(matches)
+    const fixedTeam = rotation[0]
+    const movingTeams = rotation.slice(1)
+    movingTeams.unshift(movingTeams.pop() || null)
+    rotation.splice(0, rotation.length, fixedTeam, ...movingTeams)
+  }
+
+  return rounds
+}
+
+const buildStandings = (group: GroupPhaseGroup, matches: GroupStageMatch[]): GroupStanding[] => {
+  const stats = new Map<string, Omit<GroupStanding, 'rank' | 'qualified' | 'playoffSeed'>>()
+
+  group.teams.forEach((team) => {
+    stats.set(team.id, {
+      team,
+      played: 0,
+      wins: 0,
+      losses: 0,
+      scoreFor: 0,
+      scoreAgainst: 0,
+      scoreDiff: 0,
+    })
+  })
+
+  matches.forEach((match) => {
+    if (!match.isFinished || !match.winnerId || !match.team1 || !match.team2) {
+      return
+    }
+
+    const team1Stats = stats.get(match.team1.id)
+    const team2Stats = stats.get(match.team2.id)
+    if (!team1Stats || !team2Stats) {
+      return
+    }
+
+    team1Stats.played += 1
+    team2Stats.played += 1
+    team1Stats.scoreFor += match.team1Score
+    team1Stats.scoreAgainst += match.team2Score
+    team2Stats.scoreFor += match.team2Score
+    team2Stats.scoreAgainst += match.team1Score
+    team1Stats.scoreDiff = team1Stats.scoreFor - team1Stats.scoreAgainst
+    team2Stats.scoreDiff = team2Stats.scoreFor - team2Stats.scoreAgainst
+
+    if (match.winnerId === 'team1') {
+      team1Stats.wins += 1
+      team2Stats.losses += 1
+    } else {
+      team2Stats.wins += 1
+      team1Stats.losses += 1
+    }
+  })
+
+  return Array.from(stats.values())
+    .sort((a, b) =>
+      b.wins - a.wins ||
+      b.scoreDiff - a.scoreDiff ||
+      b.scoreFor - a.scoreFor ||
+      a.team.position - b.team.position
+    )
+    .map((standing, index) => ({
+      ...standing,
+      rank: index + 1,
+      qualified: false,
+    }))
+}
+
+const compareCrossGroupStanding = (a: GroupStanding, b: GroupStanding) => {
+  const aRate = a.played > 0 ? a.wins / a.played : 0
+  const bRate = b.played > 0 ? b.wins / b.played : 0
+
+  return (
+    bRate - aRate ||
+    b.wins - a.wins ||
+    b.scoreDiff - a.scoreDiff ||
+    b.scoreFor - a.scoreFor ||
+    a.team.position - b.team.position
+  )
+}
+
+export const buildGroupPhase = (
+  inputTeams: BracketTeam[] = [],
+  groupCount: number = 4,
+  playoffTeamCount: number = PLAYOFF_TEAM_COUNT,
+  teamLimit: number = MAX_TEAMS,
+  stateMap: Map<string, MatchState> = new Map(),
+  activeRound: number = 0
+): GroupPhaseResult => {
+  const teams = normalizeGroupPhaseTeams(inputTeams, teamLimit)
+  const safeGroupCount = clampGroupCount(groupCount, Math.max(teams.length, 1))
+  const groups = distributeTeams(teams, safeGroupCount)
+  const groupRounds = groups.map((group) => createGroupMatches(group, stateMap))
+  const totalRounds = Math.max(0, ...groupRounds.map((rounds) => rounds.length))
+  const rounds: GroupStageRound[] = Array.from({ length: totalRounds }, (_, roundIndex) => {
+    const matches = groupRounds.flatMap((groupRound) => groupRound[roundIndex] || [])
+
+    return {
+      round: roundIndex + 1,
+      label: `Gruppenrunde ${roundIndex + 1}`,
+      matches,
+      isActive: activeRound === roundIndex + 1 && matches.some((match) => match.isLive),
+      isComplete: matches.length > 0 && matches.every((match) => match.isFinished),
+    }
+  })
+
+  groups.forEach((group, groupIndex) => {
+    group.standings = buildStandings(group, groupRounds[groupIndex].flat())
+  })
+
+  const safePlayoffCount = Math.min(
+    Math.max(Math.floor(playoffTeamCount), 2),
+    PLAYOFF_TEAM_COUNT,
+    teams.length || PLAYOFF_TEAM_COUNT
+  )
+  const selectedStandings: GroupStanding[] = []
+  const maxGroupDepth = Math.max(0, ...groups.map((group) => group.standings.length))
+
+  for (let depth = 0; depth < maxGroupDepth && selectedStandings.length < safePlayoffCount; depth++) {
+    const candidates = groups
+      .map((group) => group.standings[depth])
+      .filter((standing): standing is GroupStanding => Boolean(standing))
+      .sort(compareCrossGroupStanding)
+
+    for (const standing of candidates) {
+      selectedStandings.push(standing)
+      if (selectedStandings.length >= safePlayoffCount) {
         break
       }
     }
-
-    if (!addedInDepth) {
-      break
-    }
-
-    depth += 1
   }
 
-  const playoffSeedByTeamId = new Map(advancingTeams.map((team) => [team.id, team.playoffSeed]))
-  const groupsWithPlayoffSeeds = groups.map((group) => ({
-    ...group,
-    teams: group.teams.map((team) => ({
+  const playoffSeedByTeamId = new Map<string, number>()
+  selectedStandings.forEach((standing, index) => playoffSeedByTeamId.set(standing.team.id, index + 1))
+
+  groups.forEach((group) => {
+    group.teams = group.teams.map((team) => ({
       ...team,
       playoffSeed: playoffSeedByTeamId.get(team.id),
-    })),
+    }))
+    group.standings = group.standings.map((standing) => {
+      const playoffSeed = playoffSeedByTeamId.get(standing.team.id)
+      return {
+        ...standing,
+        team: {
+          ...standing.team,
+          playoffSeed,
+        },
+        qualified: Boolean(playoffSeed),
+        playoffSeed,
+      }
+    })
+  })
+
+  const advancingTeams = selectedStandings.map((standing, index) => ({
+    ...standing.team,
+    playoffSeed: index + 1,
+    position: index + 1,
   }))
+  const allMatches = rounds.flatMap((round) => round.matches)
 
   return {
-    groups: groupsWithPlayoffSeeds,
+    groups,
+    rounds,
     advancingTeams,
     playoffTeamCount: PLAYOFF_TEAM_COUNT,
+    activeRound,
+    totalRounds,
+    isComplete: allMatches.length > 0 && allMatches.every((match) => match.isFinished),
   }
 }

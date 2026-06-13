@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const data = await loadIglBracketData()
     const reportsByMatch = new Map(data.reports.map((report) => [report.matchId, report]))
 
-    const matches = data.matches.map((match) => {
+    const enrichMatch = (match: (typeof data.matches)[number] | (typeof data.groupMatches)[number]) => {
       const ownMatch = user.teamId ? findMatchForTeam([match], match.id, user.teamId) : null
       const report = reportsByMatch.get(match.id) || null
       const canManage =
@@ -48,7 +48,9 @@ export async function GET(request: NextRequest) {
         canSubmitResult,
         canConfirmResult,
       }
-    })
+    }
+    const matches = data.matches.map(enrichMatch)
+    const groupMatches = data.groupMatches.map(enrichMatch)
 
     return NextResponse.json({
       success: true,
@@ -61,6 +63,8 @@ export async function GET(request: NextRequest) {
         isIGL: user.isIGL,
       },
       matches,
+      groupMatches,
+      groupPhase: data.groupPhase,
       teams: data.teams,
       reports: data.reports,
       layout: data.layout,

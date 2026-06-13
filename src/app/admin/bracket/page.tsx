@@ -40,6 +40,7 @@ type BracketSettingsState = {
   tournamentStarted: boolean
   groupPhaseEnabled: boolean
   groupCount: number
+  activeGroupRound: number
 }
 
 const MIN_TEAM_SLOTS = 2
@@ -56,7 +57,8 @@ const DEFAULT_BRACKET_SETTINGS: BracketSettingsState = {
   teamSlots: 16,
   tournamentStarted: false,
   groupPhaseEnabled: false,
-  groupCount: 4
+  groupCount: 4,
+  activeGroupRound: 0
 }
 
 const MODE_LABELS: Record<BracketMode, string> = {
@@ -88,6 +90,7 @@ export default function AdminBracketPage() {
   const [settingsDraft, setSettingsDraft] = useState<BracketSettingsState>(() => ({ ...DEFAULT_BRACKET_SETTINGS }))
   const [settingsSaving, setSettingsSaving] = useState(false)
   const [tournamentStartLoading, setTournamentStartLoading] = useState(false)
+  const [groupRoundLoading, setGroupRoundLoading] = useState(false)
   const [settingsAlert, setSettingsAlert] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const settingsChanged =
     settingsDraft.mode !== bracketSettings.mode ||
@@ -100,6 +103,16 @@ export default function AdminBracketPage() {
   const autoFreilosCount = slotCount > 0 && configuredSlotCount > 0
     ? Math.max(slotCount - activeBracketSlots, 0)
     : 0
+  const currentGroupRound = groupPhase?.rounds.find(
+    (round) => round.round === bracketSettings.activeGroupRound
+  )
+  const canActivateNextGroupRound = Boolean(
+    bracketSettings.groupPhaseEnabled &&
+    bracketSettings.tournamentStarted &&
+    groupPhase &&
+    bracketSettings.activeGroupRound < groupPhase.totalRounds &&
+    (bracketSettings.activeGroupRound === 0 || currentGroupRound?.isComplete)
+  )
 
   useEffect(() => {
     checkAdminAuth()
@@ -168,7 +181,8 @@ export default function AdminBracketPage() {
             teamSlots: clampTeamSlots(settingsPayload.settings.teamSlots),
             tournamentStarted: Boolean(settingsPayload.settings.tournamentStarted),
             groupPhaseEnabled: Boolean(settingsPayload.settings.groupPhaseEnabled),
-            groupCount: clampGroupCount(settingsPayload.settings.groupCount, clampTeamSlots(settingsPayload.settings.teamSlots))
+            groupCount: clampGroupCount(settingsPayload.settings.groupCount, clampTeamSlots(settingsPayload.settings.teamSlots)),
+            activeGroupRound: Math.max(0, Math.floor(Number(settingsPayload.settings.activeGroupRound) || 0))
           }
         }
       }
@@ -182,7 +196,14 @@ export default function AdminBracketPage() {
       setSettingsDraft(persistedSettings)
 
       const nextGroupPhase = persistedSettings.groupPhaseEnabled
-        ? buildGroupPhase(limitedTeams, persistedSettings.groupCount, PLAYOFF_TEAM_COUNT, persistedSettings.teamSlots)
+        ? buildGroupPhase(
+            limitedTeams,
+            persistedSettings.groupCount,
+            PLAYOFF_TEAM_COUNT,
+            persistedSettings.teamSlots,
+            stateMap,
+            persistedSettings.activeGroupRound
+          )
         : null
       const bracketTeams = nextGroupPhase?.advancingTeams || limitedTeams
       const bracketSlotCount = persistedSettings.groupPhaseEnabled ? PLAYOFF_TEAM_COUNT : persistedSettings.teamSlots
@@ -200,7 +221,10 @@ export default function AdminBracketPage() {
       setSlotCount(bracketResult.slotCount)
 
       if (selectedMatchIdRef.current) {
-        const refreshed = bracketResult.matches.find(match => match.id === selectedMatchIdRef.current)
+        const refreshed = [
+          ...(nextGroupPhase?.rounds.flatMap((round) => round.matches) || []),
+          ...bracketResult.matches
+        ].find(match => match.id === selectedMatchIdRef.current)
         if (refreshed) {
           setSelectedMatch(refreshed)
           setScoreInputs({
@@ -281,7 +305,8 @@ export default function AdminBracketPage() {
         teamSlots: clampTeamSlots(payload?.settings?.teamSlots ?? settingsDraft.teamSlots),
         tournamentStarted: Boolean(payload?.settings?.tournamentStarted),
         groupPhaseEnabled: Boolean(payload?.settings?.groupPhaseEnabled),
-        groupCount: clampGroupCount(payload?.settings?.groupCount ?? settingsDraft.groupCount, clampTeamSlots(payload?.settings?.teamSlots ?? settingsDraft.teamSlots))
+        groupCount: clampGroupCount(payload?.settings?.groupCount ?? settingsDraft.groupCount, clampTeamSlots(payload?.settings?.teamSlots ?? settingsDraft.teamSlots)),
+        activeGroupRound: Math.max(0, Math.floor(Number(payload?.settings?.activeGroupRound) || 0))
       }
 
       setBracketSettings(updatedSettings)
@@ -306,7 +331,11 @@ export default function AdminBracketPage() {
       return
     }
 
-    if (!confirm('Turnier jetzt starten? Ab dann werden Freilose automatisch im Bracket weitergerechnet.')) {
+    const confirmationText = bracketSettings.groupPhaseEnabled
+      ? 'Turnier jetzt starten? Danach kannst du die erste Gruppenrunde aktivieren und live stellen.'
+      : 'Turnier jetzt starten? Ab dann werden Freilose automatisch im Bracket weitergerechnet.'
+
+    if (!confirm(confirmationText)) {
       return
     }
 
@@ -331,18 +360,58 @@ export default function AdminBracketPage() {
         teamSlots: clampTeamSlots(payload?.settings?.teamSlots ?? bracketSettings.teamSlots),
         tournamentStarted: Boolean(payload?.settings?.tournamentStarted),
         groupPhaseEnabled: Boolean(payload?.settings?.groupPhaseEnabled),
-        groupCount: clampGroupCount(payload?.settings?.groupCount ?? bracketSettings.groupCount, clampTeamSlots(payload?.settings?.teamSlots ?? bracketSettings.teamSlots))
+        groupCount: clampGroupCount(payload?.settings?.groupCount ?? bracketSettings.groupCount, clampTeamSlots(payload?.settings?.teamSlots ?? bracketSettings.teamSlots)),
+        activeGroupRound: Math.max(0, Math.floor(Number(payload?.settings?.activeGroupRound) || 0))
       }
 
       setBracketSettings(updatedSettings)
       setSettingsDraft(updatedSettings)
-      setSettingsAlert({ type: 'success', text: 'Turnier gestartet. Freilose werden jetzt angewendet.' })
+      setSettingsAlert({
+        type: 'success',
+        text: updatedSettings.groupPhaseEnabled
+          ? 'Turnier gestartet. Du kannst jetzt die erste Gruppenrunde live stellen.'
+          : 'Turnier gestartet. Freilose werden jetzt angewendet.'
+      })
       await fetchData(false)
     } catch (error) {
       console.error('Error starting tournament:', error)
       setSettingsAlert({ type: 'error', text: 'Turnier konnte nicht gestartet werden.' })
     } finally {
       setTournamentStartLoading(false)
+    }
+  }
+
+  const activateNextGroupRound = async () => {
+    if (!groupPhase || groupRoundLoading) {
+      return
+    }
+
+    setGroupRoundLoading(true)
+    setSettingsAlert(null)
+
+    try {
+      const response = await fetch('/api/admin/bracket/group-round', {
+        method: 'POST',
+        credentials: 'include'
+      })
+      const payload = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Die nächste Gruppenrunde konnte nicht aktiviert werden.')
+      }
+
+      setSettingsAlert({
+        type: 'success',
+        text: payload.message || 'Die nächste Gruppenrunde ist jetzt live.'
+      })
+      await fetchData(false)
+    } catch (error) {
+      setSettingsAlert({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Die nächste Gruppenrunde konnte nicht aktiviert werden.'
+      })
+    } finally {
+      setGroupRoundLoading(false)
     }
   }
 
@@ -637,6 +706,19 @@ export default function AdminBracketPage() {
                     ? 'Turnier gestartet'
                     : 'Turnier starten'}
               </button>
+              {bracketSettings.groupPhaseEnabled && (
+                <button
+                  onClick={activateNextGroupRound}
+                  disabled={!canActivateNextGroupRound || groupRoundLoading}
+                  className="rounded bg-cyan-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed disabled:bg-gray-600"
+                >
+                  {groupRoundLoading
+                    ? 'Aktiviere...'
+                    : bracketSettings.activeGroupRound >= (groupPhase?.totalRounds || 0)
+                      ? 'Gruppenphase abgeschlossen'
+                      : `Runde ${bracketSettings.activeGroupRound + 1} live stellen`}
+                </button>
+              )}
               <button
                 onClick={() => fetchData(false)}
                 className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors flex items-center gap-2"
@@ -798,6 +880,24 @@ export default function AdminBracketPage() {
                     ? 'Turnier ist gestartet'
                     : 'Turnier jetzt starten'}
               </button>
+              {bracketSettings.groupPhaseEnabled && (
+                <button
+                  type="button"
+                  onClick={activateNextGroupRound}
+                  disabled={!canActivateNextGroupRound || groupRoundLoading}
+                  className="w-full rounded bg-cyan-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed disabled:bg-gray-700"
+                >
+                  {groupRoundLoading
+                    ? 'Aktiviere Gruppenrunde...'
+                    : bracketSettings.activeGroupRound >= (groupPhase?.totalRounds || 0)
+                      ? 'Alle Gruppenrunden gespielt'
+                      : bracketSettings.activeGroupRound === 0
+                        ? 'Gruppenrunde 1 aktivieren & live'
+                        : currentGroupRound?.isComplete
+                          ? `Gruppenrunde ${bracketSettings.activeGroupRound + 1} aktivieren & live`
+                          : `Gruppenrunde ${bracketSettings.activeGroupRound} zuerst abschließen`}
+                </button>
+              )}
             </div>
           </div>
         </section>
@@ -808,11 +908,11 @@ export default function AdminBracketPage() {
               <div>
                 <h2 className="text-2xl font-bold text-white">Gruppenphase</h2>
                 <p className="text-cyan-100 text-sm">
-                  {teams.length} Teams auf {groupPhase.groups.length} Gruppen verteilt. Markierte Teams gehen aktuell als Top {PLAYOFF_TEAM_COUNT} in den K.o.-Baum.
+                  Jeder spielt einmal gegen jedes andere Team der Gruppe. Grün markiert ist die aktuelle Top-{PLAYOFF_TEAM_COUNT}-Prognose.
                 </p>
               </div>
               <div className="rounded-md border border-cyan-300/30 bg-cyan-500/10 px-3 py-2 text-sm font-semibold text-cyan-100">
-                Playoff Seeds: {groupPhase.advancingTeams.length}/{PLAYOFF_TEAM_COUNT}
+                Runde {bracketSettings.activeGroupRound}/{groupPhase.totalRounds}
               </div>
             </div>
 
@@ -824,24 +924,69 @@ export default function AdminBracketPage() {
                     <span className="text-xs text-white/50">{group.teams.length} Teams</span>
                   </div>
                   <div className="space-y-2">
-                    {group.teams.map((team) => (
+                    {group.standings.map((standing) => (
                       <div
-                        key={team.id}
-                        className={`flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm ${team.playoffSeed ? 'border-emerald-300/40 bg-emerald-500/15 text-emerald-50' : 'border-white/10 bg-black/25 text-white/75'}`}
+                        key={standing.team.id}
+                        className={`grid grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-md border px-3 py-2 text-sm ${standing.qualified ? 'border-emerald-300/40 bg-emerald-500/15 text-emerald-50' : 'border-white/10 bg-black/25 text-white/75'}`}
                       >
-                        <span className="min-w-0 truncate font-semibold">{team.groupSeed}. {team.name}</span>
-                        {team.playoffSeed ? (
-                          <span className="shrink-0 rounded bg-emerald-400/20 px-2 py-1 text-xs font-bold text-emerald-100">
-                            Seed {team.playoffSeed}
-                          </span>
-                        ) : (
-                          <span className="shrink-0 text-xs text-white/40">Gruppe</span>
-                        )}
+                        <span className="min-w-0 truncate font-semibold">{standing.rank}. {standing.team.name}</span>
+                        <span className="shrink-0 text-xs text-white/70">
+                          {standing.wins}S · {standing.losses}N · {standing.scoreDiff > 0 ? '+' : ''}{standing.scoreDiff}
+                        </span>
                       </div>
                     ))}
                   </div>
                 </article>
               ))}
+            </div>
+          </section>
+        )}
+
+        {groupPhase && (
+          <section className="bg-black/25 backdrop-blur-sm rounded-xl p-5 border border-blue-500/40">
+            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-white">Gruppenrunden</h2>
+                <p className="text-blue-100 text-sm">
+                  Eine neue Runde kann aktiviert werden, sobald alle Ergebnisse der aktuellen Runde bestätigt oder vom Admin eingetragen wurden.
+                </p>
+              </div>
+              <div className="text-sm text-white/60">
+                {groupPhase.rounds.filter((round) => round.isComplete).length}/{groupPhase.totalRounds} Runden abgeschlossen
+              </div>
+            </div>
+
+            <div className="mt-5 space-y-5">
+              {groupPhase.rounds.map((round) => {
+                const isCurrent = round.round === bracketSettings.activeGroupRound
+                const isNext = round.round === bracketSettings.activeGroupRound + 1
+                const isReady = isNext && canActivateNextGroupRound
+                const isLocked = round.round > bracketSettings.activeGroupRound && !isReady
+
+                return (
+                  <article
+                    key={round.round}
+                    className={`rounded-lg border p-4 ${isCurrent ? 'border-cyan-300/60 bg-cyan-500/10' : round.isComplete ? 'border-green-400/30 bg-green-500/5' : 'border-white/10 bg-gray-950/50'} ${isLocked ? 'opacity-60' : ''}`}
+                  >
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                      <h3 className="text-lg font-bold text-white">{round.label}</h3>
+                      <span className={`rounded px-2 py-1 text-xs font-bold ${round.isComplete ? 'bg-green-500/20 text-green-100' : isCurrent ? 'bg-cyan-500/20 text-cyan-100' : 'bg-white/10 text-white/60'}`}>
+                        {round.isComplete ? 'Abgeschlossen' : isCurrent ? 'Aktiv' : isReady ? 'Bereit' : isLocked ? 'Gesperrt' : 'Geplant'}
+                      </span>
+                    </div>
+                    <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+                      {round.matches.map((match) => (
+                        <MatchBox
+                          key={match.id}
+                          match={match}
+                          onSelect={handleMatchSelect}
+                          isSelected={selectedMatch?.id === match.id}
+                        />
+                      ))}
+                    </div>
+                  </article>
+                )
+              })}
             </div>
           </section>
         )}

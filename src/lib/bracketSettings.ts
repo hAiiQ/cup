@@ -10,6 +10,7 @@ export interface BracketSettings {
   tournamentStarted: boolean
   groupPhaseEnabled: boolean
   groupCount: number
+  activeGroupRound: number
 }
 
 const DEFAULT_SETTINGS: BracketSettings = {
@@ -17,7 +18,8 @@ const DEFAULT_SETTINGS: BracketSettings = {
   teamSlots: 16,
   tournamentStarted: false,
   groupPhaseEnabled: false,
-  groupCount: 4
+  groupCount: 4,
+  activeGroupRound: 0
 }
 
 const MIN_TEAM_SLOTS = 2
@@ -79,6 +81,7 @@ const ensureBracketSettingsTable = async () => {
             "tournamentStarted" BOOLEAN NOT NULL DEFAULT FALSE,
             "groupPhaseEnabled" BOOLEAN NOT NULL DEFAULT FALSE,
             "groupCount" INTEGER NOT NULL DEFAULT 4,
+            "activeGroupRound" INTEGER NOT NULL DEFAULT 0,
             "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
           );
@@ -96,6 +99,10 @@ const ensureBracketSettingsTable = async () => {
           ALTER TABLE "BracketSetting"
           ADD COLUMN IF NOT EXISTS "groupCount" INTEGER NOT NULL DEFAULT 4;
         `)
+        await prisma.$executeRawUnsafe(`
+          ALTER TABLE "BracketSetting"
+          ADD COLUMN IF NOT EXISTS "activeGroupRound" INTEGER NOT NULL DEFAULT 0;
+        `)
       }
 
       if (!exists) {
@@ -107,7 +114,8 @@ const ensureBracketSettingsTable = async () => {
             teamSlots: DEFAULT_SETTINGS.teamSlots,
             tournamentStarted: DEFAULT_SETTINGS.tournamentStarted,
             groupPhaseEnabled: DEFAULT_SETTINGS.groupPhaseEnabled,
-            groupCount: DEFAULT_SETTINGS.groupCount
+            groupCount: DEFAULT_SETTINGS.groupCount,
+            activeGroupRound: DEFAULT_SETTINGS.activeGroupRound
           },
           update: {}
         })
@@ -139,7 +147,8 @@ export async function getBracketSettings(): Promise<BracketSettings> {
       teamSlots: clampTeamSlots(record.teamSlots),
       tournamentStarted: Boolean(record.tournamentStarted),
       groupPhaseEnabled: Boolean(record.groupPhaseEnabled),
-      groupCount: clampGroupCount(record.groupCount, clampTeamSlots(record.teamSlots))
+      groupCount: clampGroupCount(record.groupCount, clampTeamSlots(record.teamSlots)),
+      activeGroupRound: Math.max(0, Math.floor(record.activeGroupRound || 0))
     }
   } catch (error) {
     console.warn('Failed to load bracket settings, falling back to defaults:', error)
@@ -164,6 +173,9 @@ export async function updateBracketSettings(
   const groupCount = update.groupCount === undefined
     ? clampGroupCount(current.groupCount, teamSlots)
     : clampGroupCount(update.groupCount, teamSlots)
+  const activeGroupRound = update.activeGroupRound === undefined
+    ? current.activeGroupRound
+    : Math.max(0, Math.floor(Number(update.activeGroupRound) || 0))
 
   const saved = await prisma.bracketSetting.upsert({
     where: { id: SETTINGS_ID },
@@ -173,14 +185,16 @@ export async function updateBracketSettings(
       teamSlots,
       tournamentStarted,
       groupPhaseEnabled,
-      groupCount
+      groupCount,
+      activeGroupRound
     },
     update: {
       mode,
       teamSlots,
       tournamentStarted,
       groupPhaseEnabled,
-      groupCount
+      groupCount,
+      activeGroupRound
     }
   })
 
@@ -189,6 +203,7 @@ export async function updateBracketSettings(
     teamSlots: clampTeamSlots(saved.teamSlots),
     tournamentStarted: Boolean(saved.tournamentStarted),
     groupPhaseEnabled: Boolean(saved.groupPhaseEnabled),
-    groupCount: clampGroupCount(saved.groupCount, clampTeamSlots(saved.teamSlots))
+    groupCount: clampGroupCount(saved.groupCount, clampTeamSlots(saved.teamSlots)),
+    activeGroupRound: Math.max(0, Math.floor(saved.activeGroupRound || 0))
   }
 }

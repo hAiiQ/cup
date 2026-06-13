@@ -47,9 +47,32 @@ export async function POST(request: NextRequest) {
     }
 
     const payload = await request.json().catch(() => ({}))
-    const { mode, teamSlots, tournamentStarted, groupPhaseEnabled, groupCount } = payload || {}
+    const { mode, teamSlots, tournamentStarted, groupPhaseEnabled, groupCount, activeGroupRound } = payload || {}
+    const current = await getBracketSettings()
+    const structureChanged =
+      (teamSlots !== undefined && Number(teamSlots) !== current.teamSlots) ||
+      (groupPhaseEnabled !== undefined && Boolean(groupPhaseEnabled) !== current.groupPhaseEnabled) ||
+      (groupCount !== undefined && Number(groupCount) !== current.groupCount)
 
-    const updated = await updateBracketSettings({ mode, teamSlots, tournamentStarted, groupPhaseEnabled, groupCount })
+    if (structureChanged) {
+      await prisma.$transaction([
+        prisma.matchResultReport.deleteMany({
+          where: { matchId: { startsWith: 'GP-' } }
+        }),
+        prisma.match.deleteMany({
+          where: { bracket: 'group' }
+        })
+      ])
+    }
+
+    const updated = await updateBracketSettings({
+      mode,
+      teamSlots,
+      tournamentStarted,
+      groupPhaseEnabled,
+      groupCount,
+      activeGroupRound: structureChanged ? 0 : activeGroupRound,
+    })
     console.log(`${SETTINGS_ENDPOINT_LOG} Updated settings`, updated)
 
     return NextResponse.json({ settings: updated })

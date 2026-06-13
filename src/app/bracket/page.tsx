@@ -165,7 +165,7 @@ export default function BracketPage() {
             <p className="text-purple-200 mb-2">
               {teams.length > 0
                 ? groupPhase
-                  ? `${teams.length} Teams • ${groupPhase.groups.length} Gruppen • Top ${PLAYOFF_TEAM_COUNT} ${bracketMode === 'single' ? 'Single' : 'Double'} Elimination`
+                  ? `${groupPhase.groups.flatMap((group) => group.teams).length} Teams • ${groupPhase.groups.length} Gruppen • Top ${PLAYOFF_TEAM_COUNT} ${bracketMode === 'single' ? 'Single' : 'Double'} Elimination`
                   : `${teams.length} Teams • ${bracketMode === 'single' ? 'Single' : 'Double'} Elimination (Konfiguriert: ${requestedSlotCount || '...'} Slots · Seeds: ${slotCount || '...'})`
                 : 'Teams werden geladen...'}
             </p>
@@ -187,11 +187,11 @@ export default function BracketPage() {
               <div>
                 <h2 className="text-2xl font-bold text-white">GRUPPENPHASE</h2>
                 <p className="text-cyan-100 text-sm">
-                  Die markierten Teams ziehen aktuell als Top {PLAYOFF_TEAM_COUNT} in den Turnierbaum ein.
+                  Jeder spielt einmal gegen jedes andere Team der Gruppe. Grün markiert ist die aktuelle Top-{PLAYOFF_TEAM_COUNT}-Prognose.
                 </p>
               </div>
               <div className="rounded-md border border-cyan-300/30 bg-cyan-500/10 px-3 py-2 text-sm font-semibold text-cyan-100">
-                {groupPhase.groups.length} Gruppen
+                Runde {groupPhase.activeRound}/{groupPhase.totalRounds}
               </div>
             </div>
 
@@ -203,19 +203,68 @@ export default function BracketPage() {
                     <span className="text-xs text-white/50">{group.teams.length} Teams</span>
                   </div>
                   <div className="space-y-2">
-                    {group.teams.map((team) => (
+                    {group.standings.map((standing) => (
                       <div
-                        key={team.id}
-                        className={`flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm ${team.playoffSeed ? 'border-emerald-300/40 bg-emerald-500/15 text-emerald-50' : 'border-white/10 bg-black/25 text-white/75'}`}
+                        key={standing.team.id}
+                        className={`grid grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-md border px-3 py-2 text-sm ${standing.qualified ? 'border-emerald-300/40 bg-emerald-500/15 text-emerald-50' : 'border-white/10 bg-black/25 text-white/75'}`}
                       >
-                        <span className="min-w-0 truncate font-semibold">{team.groupSeed}. {team.name}</span>
-                        {team.playoffSeed ? (
-                          <span className="shrink-0 rounded bg-emerald-400/20 px-2 py-1 text-xs font-bold text-emerald-100">
-                            Seed {team.playoffSeed}
-                          </span>
-                        ) : (
-                          <span className="shrink-0 text-xs text-white/40">Gruppe</span>
-                        )}
+                        <span className="min-w-0 truncate font-semibold">
+                          {standing.rank}. {standing.team.name}
+                        </span>
+                        <span className="shrink-0 text-xs text-white/70">
+                          {standing.wins}S · {standing.losses}N · {standing.scoreDiff > 0 ? '+' : ''}{standing.scoreDiff}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {groupPhase && (
+          <section className="bg-black/20 backdrop-blur-sm rounded-xl p-5 border border-blue-500/45 mb-5">
+            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-white">GRUPPENRUNDEN</h2>
+                <p className="text-blue-100 text-sm">
+                  Paarungen und Ergebnisse aller Gruppen werden rundenweise angezeigt.
+                </p>
+              </div>
+              <div className="text-sm text-white/60">
+                {groupPhase.rounds.filter((round) => round.isComplete).length}/{groupPhase.totalRounds} abgeschlossen
+              </div>
+            </div>
+
+            <div className="mt-5 space-y-5">
+              {groupPhase.rounds.map((round) => (
+                <article
+                  key={round.round}
+                  className={`rounded-lg border p-4 ${
+                    round.isActive
+                      ? 'border-cyan-300/60 bg-cyan-500/10'
+                      : round.isComplete
+                        ? 'border-green-400/30 bg-green-500/5'
+                        : 'border-white/10 bg-gray-950/50'
+                  }`}
+                >
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <h3 className="text-lg font-bold text-white">{round.label}</h3>
+                    <span className={`rounded px-2 py-1 text-xs font-bold ${
+                      round.isComplete
+                        ? 'bg-green-500/20 text-green-100'
+                        : round.isActive
+                          ? 'bg-cyan-500/20 text-cyan-100'
+                          : 'bg-white/10 text-white/60'
+                    }`}>
+                      {round.isComplete ? 'Abgeschlossen' : round.isActive ? 'Live' : 'Geplant'}
+                    </span>
+                  </div>
+                  <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+                    {round.matches.map((match) => (
+                      <div key={match.id} className="min-h-20">
+                        <MatchBox match={match} />
                       </div>
                     ))}
                   </div>

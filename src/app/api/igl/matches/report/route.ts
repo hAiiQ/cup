@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await loadIglBracketData()
-    const ownMatch = findMatchForTeam(data.matches, matchId, user.teamId)
+    const ownMatch = findMatchForTeam([...data.groupMatches, ...data.matches], matchId, user.teamId)
 
     if (!ownMatch) {
       return NextResponse.json(

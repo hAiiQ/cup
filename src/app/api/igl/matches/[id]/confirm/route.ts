@@ -37,7 +37,7 @@ export async function POST(
     const matchId = params.id
 
     const data = await loadIglBracketData()
-    const ownMatch = findMatchForTeam(data.matches, matchId, user.teamId)
+    const ownMatch = findMatchForTeam([...data.groupMatches, ...data.matches], matchId, user.teamId)
     const report = data.reports.find((item) => item.matchId === matchId && item.status === 'pending')
 
     if (!ownMatch) {

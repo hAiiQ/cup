@@ -4,7 +4,12 @@ import { verifyToken } from '@/lib/auth'
 import { buildBracketMatches, type BracketMatch, type BracketTeam } from '@/lib/bracketStructure'
 import { getBracketSettings } from '@/lib/bracketSettings'
 import { MAX_TEAMS } from '@/lib/teamDefaults'
-import { PLAYOFF_TEAM_COUNT, buildGroupPhase, type GroupPhaseResult } from '@/lib/groupPhase'
+import {
+  PLAYOFF_TEAM_COUNT,
+  buildGroupPhase,
+  type GroupPhaseResult,
+  type GroupStageMatch,
+} from '@/lib/groupPhase'
 import { determineWinnerSlot, getAllMatchStates, type MatchState } from '@/lib/matchState'
 
 export type IglUser = {
@@ -50,6 +55,7 @@ export type IglBracketData = {
   mode: ReturnType<typeof buildBracketMatches>['mode']
   settings: Awaited<ReturnType<typeof getBracketSettings>>
   groupPhase: GroupPhaseResult | null
+  groupMatches: GroupStageMatch[]
 }
 
 export function getBearerOrCookieToken(request: NextRequest): string | undefined {
@@ -101,6 +107,10 @@ export function getBracketMeta(matchId: string) {
 
   const roundRegex = matchId.match(/R(\d+)/)
   const round = roundRegex ? parseInt(roundRegex[1], 10) : 1
+
+  if (matchId.startsWith('GP-')) {
+    return { bracket: 'group', round }
+  }
 
   if (matchId.startsWith('LB')) {
     return { bracket: 'loser', round }
@@ -216,7 +226,14 @@ export async function loadIglBracketData(): Promise<IglBracketData> {
   })
 
   const groupPhase = settings.groupPhaseEnabled
-    ? buildGroupPhase(teams, settings.groupCount, PLAYOFF_TEAM_COUNT, requestedSlots)
+    ? buildGroupPhase(
+        teams,
+        settings.groupCount,
+        PLAYOFF_TEAM_COUNT,
+        requestedSlots,
+        stateMap,
+        settings.activeGroupRound
+      )
     : null
   const bracketTeams = groupPhase?.advancingTeams || teams
   const bracketSlotCount = settings.groupPhaseEnabled ? PLAYOFF_TEAM_COUNT : requestedSlots
@@ -248,5 +265,6 @@ export async function loadIglBracketData(): Promise<IglBracketData> {
     })),
     settings,
     groupPhase,
+    groupMatches: groupPhase?.rounds.flatMap((round) => round.matches) || [],
   }
 }

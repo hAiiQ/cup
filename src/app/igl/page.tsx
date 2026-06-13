@@ -11,6 +11,7 @@ import type {
   BracketNodeLayout,
   BracketTeam,
 } from '@/lib/bracketStructure'
+import type { GroupPhaseResult } from '@/lib/groupPhase'
 
 type IglReport = {
   id: string
@@ -48,6 +49,8 @@ type IglUser = {
 type IglPayload = {
   user: IglUser
   matches: IglMatch[]
+  groupMatches: IglMatch[]
+  groupPhase: GroupPhaseResult | null
   teams: BracketTeam[]
   layout: BracketNodeLayout[]
   connections: BracketConnection[]
@@ -121,7 +124,7 @@ export default function IglPage() {
       setError('')
       setScoreDrafts((prev) => {
         const next = { ...prev }
-        ;(data.matches || []).forEach((match: IglMatch) => {
+        ;[...(data.groupMatches || []), ...(data.matches || [])].forEach((match: IglMatch) => {
           if (!next[match.id]) {
             next[match.id] = {
               team1: String(match.report?.team1Score ?? match.team1Score ?? 0),
@@ -147,12 +150,24 @@ export default function IglPage() {
   }, [])
 
   const ownMatches = useMemo(() => {
-    return (payload?.matches || []).filter((match) => match.ownSlot)
-  }, [payload?.matches])
+    return [...(payload?.groupMatches || []), ...(payload?.matches || [])].filter((match) => match.ownSlot)
+  }, [payload?.groupMatches, payload?.matches])
 
   const actionableMatches = useMemo(() => {
     return ownMatches.filter((match) => match.canSubmitResult || match.canConfirmResult)
   }, [ownMatches])
+
+  const groupMatchesById = useMemo(() => {
+    return new Map((payload?.groupMatches || []).map((match) => [match.id, match]))
+  }, [payload?.groupMatches])
+
+  const visibleTeams = useMemo(() => {
+    if (payload?.groupPhase) {
+      return payload.groupPhase.groups.flatMap((group) => group.teams)
+    }
+
+    return payload?.teams || []
+  }, [payload?.groupPhase, payload?.teams])
 
   const updateDraft = (matchId: string, key: keyof ScoreDraft, value: string) => {
     const sanitized = value.replace(/[^0-9]/g, '')
@@ -521,6 +536,105 @@ export default function IglPage() {
           )}
         </section>
 
+        {payload?.groupPhase && (
+          <>
+            <section className="rounded-lg border border-cyan-500/35 bg-gray-900/80 p-5">
+              <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold">Gruppenphase</h2>
+                  <p className="mt-1 text-sm text-cyan-100/75">
+                    Jeder spielt einmal gegen jedes andere Team der Gruppe.
+                  </p>
+                </div>
+                <div className="rounded-md border border-cyan-400/30 bg-cyan-500/10 px-3 py-2 text-sm font-semibold text-cyan-100">
+                  Runde {payload.groupPhase.activeRound}/{payload.groupPhase.totalRounds}
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                {payload.groupPhase.groups.map((group) => (
+                  <article key={group.name} className="rounded-lg border border-white/10 bg-gray-950/65 p-4">
+                    <div className="mb-3 flex items-center justify-between">
+                      <h3 className="text-lg font-bold text-white">{group.name}</h3>
+                      <span className="text-xs text-gray-500">{group.teams.length} Teams</span>
+                    </div>
+                    <div className="space-y-2">
+                      {group.standings.map((standing) => (
+                        <div
+                          key={standing.team.id}
+                          className={`grid grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-md border px-3 py-2 text-sm ${
+                            standing.team.id === payload.user.teamId
+                              ? 'border-blue-400/70 bg-blue-600/20 text-blue-50'
+                              : standing.qualified
+                                ? 'border-emerald-400/35 bg-emerald-500/10 text-emerald-50'
+                                : 'border-white/10 bg-black/25 text-gray-200'
+                          }`}
+                        >
+                          <span className="min-w-0 truncate font-semibold">
+                            {standing.rank}. {standing.team.name}
+                          </span>
+                          <span className="shrink-0 text-xs text-white/65">
+                            {standing.wins}S · {standing.losses}N · {standing.scoreDiff > 0 ? '+' : ''}{standing.scoreDiff}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <section className="rounded-lg border border-blue-500/30 bg-gray-900/80 p-5">
+              <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold">Gruppenrunden</h2>
+                  <p className="mt-1 text-sm text-gray-400">
+                    Aktive Spiele deines Teams erscheinen zusätzlich oben zur Ergebnismeldung.
+                  </p>
+                </div>
+                <div className="text-sm text-gray-500">
+                  {payload.groupPhase.rounds.filter((round) => round.isComplete).length}/{payload.groupPhase.totalRounds} abgeschlossen
+                </div>
+              </div>
+
+              <div className="space-y-5">
+                {payload.groupPhase.rounds.map((round) => (
+                  <article
+                    key={round.round}
+                    className={`rounded-lg border p-4 ${
+                      round.isActive
+                        ? 'border-cyan-400/55 bg-cyan-500/10'
+                        : round.isComplete
+                          ? 'border-green-500/25 bg-green-500/5'
+                          : 'border-white/10 bg-gray-950/45'
+                    }`}
+                  >
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <h3 className="text-lg font-bold">{round.label}</h3>
+                      <span className={`rounded px-2 py-1 text-xs font-bold ${
+                        round.isComplete
+                          ? 'bg-green-500/20 text-green-100'
+                          : round.isActive
+                            ? 'bg-cyan-500/20 text-cyan-100'
+                            : 'bg-white/10 text-gray-400'
+                      }`}>
+                        {round.isComplete ? 'Abgeschlossen' : round.isActive ? 'Live' : 'Geplant'}
+                      </span>
+                    </div>
+                    <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+                      {round.matches.map((groupMatch) => (
+                        <div key={groupMatch.id} className="min-h-20">
+                          <MatchBox match={groupMatchesById.get(groupMatch.id)} />
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+          </>
+        )}
+
         <section className="rounded-lg border border-purple-500/40 bg-black/25 p-5">
           <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
@@ -552,7 +666,7 @@ export default function IglPage() {
         <section className="rounded-lg border border-gray-800 bg-gray-900/75 p-5">
           <h2 className="text-xl font-bold">Teams</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-6">
-            {(payload?.teams || []).filter((item) => isRealTeam(item)).map((item) => (
+            {visibleTeams.filter((item) => isRealTeam(item)).map((item) => (
               <div
                 key={item.id}
                 className={`rounded-md border p-3 ${

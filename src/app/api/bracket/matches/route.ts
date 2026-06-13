@@ -117,7 +117,14 @@ export async function GET() {
     }
 
     const groupPhase = settings.groupPhaseEnabled
-      ? buildGroupPhase(dbTeams, settings.groupCount, PLAYOFF_TEAM_COUNT, requestedSlots)
+      ? buildGroupPhase(
+          dbTeams,
+          settings.groupCount,
+          PLAYOFF_TEAM_COUNT,
+          requestedSlots,
+          combinedStates,
+          settings.activeGroupRound
+        )
       : null
     const bracketTeams = groupPhase?.advancingTeams || dbTeams
     const bracketSlotCount = settings.groupPhaseEnabled ? PLAYOFF_TEAM_COUNT : requestedSlots

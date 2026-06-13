@@ -32,6 +32,10 @@ const getBracketMeta = (matchId: string) => {
   const roundRegex = matchId.match(/R(\d+)/)
   const round = roundRegex ? parseInt(roundRegex[1], 10) : 1
 
+  if (matchId.startsWith('GP-')) {
+    return { bracket: 'group', round }
+  }
+
   if (matchId.startsWith('LB')) {
     return { bracket: 'loser', round }
   }

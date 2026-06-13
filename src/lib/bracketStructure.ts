@@ -24,7 +24,7 @@ export interface ParticipantSourceBye {
 
 export type ParticipantSource = ParticipantSourceSeed | ParticipantSourceMatch | ParticipantSourceBye
 
-export type BracketType = 'winner' | 'loser' | 'grand'
+export type BracketType = 'group' | 'winner' | 'loser' | 'grand'
 
 export interface MatchBlueprint {
   id: string
