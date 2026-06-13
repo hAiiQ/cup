@@ -411,6 +411,12 @@ export default function IglPage() {
           </div>
         )}
 
+        {!pendingFromOpponent && (
+          <p className="mt-3 text-xs text-gray-500">
+            Finalen Rundenscore eintragen, zum Beispiel 13:10. Unentschieden sind nicht möglich.
+          </p>
+        )}
+
         {pendingFromOwnTeam && (
           <p className="mt-3 rounded-md border border-blue-500/30 bg-blue-600/10 px-3 py-2 text-sm text-blue-100">
             Dein Team hat ein Ergebnis gemeldet. Warte auf die Bestätigung des Gegnerteams.

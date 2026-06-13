@@ -277,7 +277,7 @@ export default function BracketPage() {
         {/* Combined Tournament Bracket */}
         <section className="bg-black/20 backdrop-blur-sm rounded-xl p-5 border border-purple-500/50">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end mb-6">
-            <span className="text-sm text-purple-200">Alle Matches Best-of-3 • Grand Final Best-of-5</span>
+            <span className="text-sm text-purple-200">Angezeigt werden die gewonnenen Runden pro Team</span>
           </div>
           <div className="overflow-auto pb-2">
             {layout.length > 0 ? (

@@ -585,15 +585,20 @@ export default function AdminBracketPage() {
         })
       })
 
+      const payload = await response.json().catch(() => ({}))
+
       if (!response.ok) {
-        throw new Error('Match-Ergebnis konnte nicht gespeichert werden')
+        throw new Error(payload.error || 'Match-Ergebnis konnte nicht gespeichert werden')
       }
 
-      setPanelMessage({ type: 'success', text: 'Match-Ergebnis gespeichert.' })
+      setPanelMessage({ type: 'success', text: payload.message || 'Match-Ergebnis gespeichert.' })
       await fetchData(false)
     } catch (error) {
       console.error('Error saving match score:', error)
-      setPanelMessage({ type: 'error', text: 'Match-Ergebnis konnte nicht gespeichert werden.' })
+      setPanelMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Match-Ergebnis konnte nicht gespeichert werden.'
+      })
     } finally {
       setScoreMutationLoading(false)
     }
@@ -1037,11 +1042,12 @@ export default function AdminBracketPage() {
             <div className="mt-6 grid gap-6 lg:grid-cols-2">
               <div className="space-y-4">
                 <div className="bg-gray-900/60 border border-white/10 rounded-lg p-4">
-                  <p className="text-xs uppercase text-white/50 mb-1">Team 1</p>
+                  <p className="text-xs uppercase text-white/50 mb-1">Runden Team 1</p>
                   <p className="text-lg font-semibold text-white mb-3">{selectedMatch.team1?.name || 'TBD'}</p>
                   <input
                     type="number"
                     min="0"
+                    max="99"
                     value={scoreInputs.team1}
                     onChange={(event) => handleScoreInputChange('team1', event)}
                     className="w-full rounded bg-black/40 border border-white/10 px-3 py-2 text-white focus:outline-none focus:border-purple-400"
@@ -1049,11 +1055,12 @@ export default function AdminBracketPage() {
                 </div>
 
                 <div className="bg-gray-900/60 border border-white/10 rounded-lg p-4">
-                  <p className="text-xs uppercase text-white/50 mb-1">Team 2</p>
+                  <p className="text-xs uppercase text-white/50 mb-1">Runden Team 2</p>
                   <p className="text-lg font-semibold text-white mb-3">{selectedMatch.team2?.name || 'TBD'}</p>
                   <input
                     type="number"
                     min="0"
+                    max="99"
                     value={scoreInputs.team2}
                     onChange={(event) => handleScoreInputChange('team2', event)}
                     className="w-full rounded bg-black/40 border border-white/10 px-3 py-2 text-white focus:outline-none focus:border-purple-400"
@@ -1105,7 +1112,7 @@ export default function AdminBracketPage() {
                   </div>
 
                   <p className="text-xs text-white/60">
-                    Hinweis: Matches enden automatisch, sobald ein Team das benötigte Punktelimit erreicht (Best-of-3, Grand Final Best-of-5). Gewinner werden automatisch im Bracket weitergetragen.
+                    Trage den finalen Rundenscore ein, zum Beispiel 13:10. Das Team mit mehr gewonnenen Runden wird automatisch weitergetragen.
                   </p>
                 </div>
 

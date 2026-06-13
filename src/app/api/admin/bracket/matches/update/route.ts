@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
-import { setMatchScore } from '@/lib/matchState'
+import { determineWinnerSlot, setMatchScore } from '@/lib/matchState'
 
 const getBracketMeta = (matchId: string) => {
   if (matchId === 'GF') {
@@ -72,10 +72,34 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log(`🏆 Updating match ${matchId}: ${team1Score} - ${team2Score}`)
+    const parsedTeam1Score = Number(team1Score)
+    const parsedTeam2Score = Number(team2Score)
+    const scoresAreValid =
+      Number.isInteger(parsedTeam1Score) &&
+      Number.isInteger(parsedTeam2Score) &&
+      parsedTeam1Score >= 0 &&
+      parsedTeam2Score >= 0 &&
+      parsedTeam1Score <= 99 &&
+      parsedTeam2Score <= 99
+
+    if (!scoresAreValid) {
+      return NextResponse.json(
+        { error: 'Die Rundenscores müssen zwischen 0 und 99 liegen.' },
+        { status: 400 }
+      )
+    }
+
+    if (!determineWinnerSlot(matchId, parsedTeam1Score, parsedTeam2Score)) {
+      return NextResponse.json(
+        { error: 'Das Ergebnis darf nicht unentschieden sein.' },
+        { status: 400 }
+      )
+    }
+
+    console.log(`🏆 Updating match ${matchId}: ${parsedTeam1Score} - ${parsedTeam2Score}`)
 
     // Update in-memory state for immediate response
-    const updatedState = setMatchScore(matchId, parseInt(team1Score), parseInt(team2Score))
+    const updatedState = setMatchScore(matchId, parsedTeam1Score, parsedTeam2Score)
     console.log('📝 Updated match state:', updatedState)
 
     // Persist scores and status
@@ -110,7 +134,7 @@ export async function POST(request: NextRequest) {
     // Determine winner
     return NextResponse.json({ 
       success: true, 
-      message: `Match-Ergebnis gespeichert: ${team1Score} - ${team2Score}`,
+      message: `Match-Ergebnis gespeichert: ${parsedTeam1Score} - ${parsedTeam2Score}`,
       matchId: matchId,
       state: updatedState
     })

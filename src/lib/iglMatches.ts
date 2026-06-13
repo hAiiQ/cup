@@ -151,11 +151,7 @@ export function findMatchForTeam(matches: BracketMatch[], matchId: string, teamI
 }
 
 export function getWinnerSlot(team1Score: number, team2Score: number): 'team1' | 'team2' | null {
-  if (team1Score === team2Score) {
-    return null
-  }
-
-  return team1Score > team2Score ? 'team1' : 'team2'
+  return determineWinnerSlot('round-score', team1Score, team2Score) || null
 }
 
 export async function loadIglBracketData(): Promise<IglBracketData> {
