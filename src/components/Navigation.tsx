@@ -83,23 +83,18 @@ export default function Navigation() {
   return (
     <header className="relative bg-white/10 backdrop-blur-sm border-b border-white/20">
       <div className="container relative mx-auto px-4 py-4">
-        {isLoggedIn && participationOpen && (
-          <div className="mb-3 flex justify-center xl:absolute xl:left-1/2 xl:top-1/2 xl:z-20 xl:mb-0 xl:-translate-x-1/2 xl:-translate-y-1/2">
+        {isLoggedIn && participationOpen && !isParticipating && (
+          <div className="pointer-events-none fixed inset-0 z-[100] flex items-center justify-center px-5">
             <button
               type="button"
               onClick={confirmParticipation}
-              disabled={participationLoading || isParticipating}
-              className={`rounded-md border px-5 py-2 text-sm font-bold shadow-lg transition-colors ${
-                isParticipating
-                  ? 'cursor-default border-green-300/60 bg-green-600 text-white'
-                  : 'border-yellow-200/70 bg-yellow-500 text-gray-950 hover:bg-yellow-400'
-              } disabled:opacity-80`}
+              disabled={participationLoading}
+              className="participation-attention pointer-events-auto relative min-h-24 w-full max-w-md overflow-hidden rounded-lg border-2 border-yellow-100/80 bg-gradient-to-r from-yellow-400 via-orange-500 to-pink-500 px-8 py-6 text-3xl font-black text-white shadow-2xl transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/80 disabled:cursor-wait disabled:opacity-80 sm:text-4xl"
             >
+              <span className="no-text-shadow absolute inset-x-8 top-0 h-px bg-white/80" aria-hidden="true" />
               {participationLoading
                 ? 'Wird bestätigt...'
-                : isParticipating
-                  ? 'Teilnahme bestätigt'
-                  : 'Teilnehmen'}
+                : 'Teilnehmen'}
             </button>
           </div>
         )}
