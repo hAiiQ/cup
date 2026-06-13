@@ -118,6 +118,27 @@ export default function AdminBracketPage() {
     checkAdminAuth()
   }, [])
 
+  useEffect(() => {
+    if (!selectedMatch) {
+      return
+    }
+
+    const previousOverflow = document.body.style.overflow
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        clearMatchSelection()
+      }
+    }
+
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [selectedMatch])
+
   const checkAdminAuth = async () => {
     try {
       const response = await fetch('/api/admin/auth/check', {
@@ -1016,150 +1037,162 @@ export default function AdminBracketPage() {
           </div>
         </section>
 
-        <section className="bg-black/25 backdrop-blur-sm rounded-xl p-5 border border-purple-500/40">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-white">Match-Control Panel</h2>
-              <p className="text-purple-200 text-sm">Klicke ein Match im Bracket an, um Live-Status und Score zu steuern.</p>
-            </div>
-            {selectedMatch && (
-              <button
-                onClick={clearMatchSelection}
-                className="self-start md:self-auto px-4 py-2 rounded bg-gray-700 text-white text-sm hover:bg-gray-600 transition-colors"
-              >
-                Auswahl zurücksetzen
-              </button>
-            )}
-          </div>
-
-          {!selectedMatch && (
-            <div className="mt-6 text-center text-purple-200 text-sm">
-              Kein Match ausgewählt. Bitte wähle eine Begegnung im Bracket aus, um sie zu steuern.
-            </div>
-          )}
-
-          {selectedMatch && (
-            <div className="mt-6 grid gap-6 lg:grid-cols-2">
-              <div className="space-y-4">
-                <div className="bg-gray-900/60 border border-white/10 rounded-lg p-4">
-                  <p className="text-xs uppercase text-white/50 mb-1">Runden Team 1</p>
-                  <p className="text-lg font-semibold text-white mb-3">{selectedMatch.team1?.name || 'TBD'}</p>
-                  <input
-                    type="number"
-                    min="0"
-                    max="99"
-                    value={scoreInputs.team1}
-                    onChange={(event) => handleScoreInputChange('team1', event)}
-                    className="w-full rounded bg-black/40 border border-white/10 px-3 py-2 text-white focus:outline-none focus:border-purple-400"
-                  />
-                </div>
-
-                <div className="bg-gray-900/60 border border-white/10 rounded-lg p-4">
-                  <p className="text-xs uppercase text-white/50 mb-1">Runden Team 2</p>
-                  <p className="text-lg font-semibold text-white mb-3">{selectedMatch.team2?.name || 'TBD'}</p>
-                  <input
-                    type="number"
-                    min="0"
-                    max="99"
-                    value={scoreInputs.team2}
-                    onChange={(event) => handleScoreInputChange('team2', event)}
-                    className="w-full rounded bg-black/40 border border-white/10 px-3 py-2 text-white focus:outline-none focus:border-purple-400"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                {panelMessage && (
-                  <div
-                    className={`rounded-lg px-4 py-3 text-sm ${panelMessage.type === 'success' ? 'bg-green-600/20 text-green-200 border border-green-500/40' : 'bg-red-600/20 text-red-200 border border-red-500/40'}`}
-                  >
-                    {panelMessage.text}
-                  </div>
-                )}
-
-                <div className="bg-gray-900/60 border border-white/10 rounded-lg p-4 space-y-3">
-                  <div className="flex flex-wrap items-center gap-2 text-sm">
-                    <span className="px-2 py-1 rounded bg-black/40 text-white/70 uppercase tracking-wide text-xs">
-                      {selectedMatch.isLive ? 'Live' : selectedMatch.isFinished ? 'Beendet' : 'Bereit'}
-                    </span>
-                    {selectedMatch.winnerId && (
-                      <span className="px-2 py-1 rounded bg-green-500/20 text-green-200 text-xs font-semibold">
-                        Gewinner: {selectedMatch.winnerId === 'team1' ? (selectedMatch.team1?.name || 'Team 1') : (selectedMatch.team2?.name || 'Team 2')}
-                      </span>
-                    )}
-                    {selectedMatch.autoAdvance && (
-                      <span className="px-2 py-1 rounded bg-cyan-500/20 text-cyan-200 text-xs font-semibold">
-                        Freilos
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="grid gap-2">
-                    <button
-                      onClick={toggleMatchLive}
-                      disabled={liveMutationLoading}
-                      className={`w-full px-4 py-2 rounded text-white font-semibold transition-colors ${selectedMatch.isLive ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} ${liveMutationLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
-                    >
-                      {liveMutationLoading ? 'Speichere...' : selectedMatch.isLive ? 'Match stoppen' : 'Match starten'}
-                    </button>
-                    <button
-                      onClick={saveMatchScore}
-                      disabled={scoreMutationLoading}
-                      className={`w-full px-4 py-2 rounded bg-purple-600 text-white font-semibold hover:bg-purple-700 transition-colors ${scoreMutationLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
-                    >
-                      {scoreMutationLoading ? 'Speichere...' : 'Ergebnis speichern'}
-                    </button>
-                  </div>
-
-                  <p className="text-xs text-white/60">
-                    Trage den finalen Rundenscore ein, zum Beispiel 13:10. Das Team mit mehr gewonnenen Runden wird automatisch weitergetragen.
+        {selectedMatch && (
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) {
+                clearMatchSelection()
+              }
+            }}
+          >
+            <section
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="match-control-title"
+              className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-lg border border-purple-400/60 bg-gray-950 shadow-2xl"
+            >
+              <header className="flex items-start justify-between gap-4 border-b border-white/10 bg-gray-900 px-5 py-4">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase text-purple-300">{selectedMatch.roundLabel}</p>
+                  <h2 id="match-control-title" className="mt-1 truncate text-2xl font-bold text-white">
+                    Match bearbeiten
+                  </h2>
+                  <p className="mt-1 truncate text-sm text-gray-400">
+                    {selectedMatch.team1?.name || 'TBD'} gegen {selectedMatch.team2?.name || 'TBD'}
                   </p>
                 </div>
+                <button
+                  type="button"
+                  onClick={clearMatchSelection}
+                  aria-label="Fenster schließen"
+                  title="Schließen"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded border border-white/15 bg-black/30 text-xl font-bold text-white transition-colors hover:border-purple-300 hover:bg-purple-500/20"
+                >
+                  X
+                </button>
+              </header>
 
-                <div className="bg-gray-900/60 border border-white/10 rounded-lg p-4 space-y-4">
-                  <h3 className="text-white font-semibold text-lg">Teamnamen bearbeiten</h3>
-                  {[{ key: 'team1' as const, label: 'Team 1', team: selectedMatch.team1 }, { key: 'team2' as const, label: 'Team 2', team: selectedMatch.team2 }].map(({ key, label, team }) => {
-                    const isLoading = teamRenameLoading === key
-                    const teamId = team?.id || ''
-                    const disabled = !teamId || teamId.startsWith('placeholder') || teamId.startsWith('virtual-')
+              <div className="overflow-y-auto p-5">
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <div className="space-y-4">
+                    <div className="rounded-lg border border-white/10 bg-gray-900/60 p-4">
+                      <p className="mb-1 text-xs uppercase text-white/50">Runden Team 1</p>
+                      <p className="mb-3 text-lg font-semibold text-white">{selectedMatch.team1?.name || 'TBD'}</p>
+                      <input
+                        type="number"
+                        min="0"
+                        max="99"
+                        value={scoreInputs.team1}
+                        onChange={(event) => handleScoreInputChange('team1', event)}
+                        className="w-full rounded border border-white/10 bg-black/40 px-3 py-2 text-white focus:border-purple-400 focus:outline-none"
+                      />
+                    </div>
 
-                    return (
-                      <div key={key} className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <p className="text-white/80">{label}</p>
-                          {team?.name && (
-                            <span className="text-xs text-white/50">Aktuell: {team.name}</span>
-                          )}
-                        </div>
-                        <div className="flex flex-col gap-2 sm:flex-row">
-                          <input
-                            type="text"
-                            value={renameInputs[key]}
-                            onChange={(event) => handleRenameInputChange(key, event)}
-                            maxLength={40}
-                            disabled={disabled}
-                            placeholder={team?.name || 'Noch kein Team'}
-                            className="flex-1 rounded bg-black/40 border border-white/10 px-3 py-2 text-white focus:outline-none focus:border-purple-400 disabled:opacity-40"
-                          />
-                          <button
-                            onClick={() => saveTeamRename(key)}
-                            disabled={disabled || isLoading || !(renameInputs[key] || '').trim()}
-                            className={`px-4 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${isLoading ? 'opacity-60' : ''}`}
-                          >
-                            {isLoading ? 'Speichere...' : 'Speichern'}
-                          </button>
-                        </div>
-                        {disabled && (
-                          <p className="text-xs text-white/40">Dieser Slot ist noch nicht mit einem Team belegt.</p>
+                    <div className="rounded-lg border border-white/10 bg-gray-900/60 p-4">
+                      <p className="mb-1 text-xs uppercase text-white/50">Runden Team 2</p>
+                      <p className="mb-3 text-lg font-semibold text-white">{selectedMatch.team2?.name || 'TBD'}</p>
+                      <input
+                        type="number"
+                        min="0"
+                        max="99"
+                        value={scoreInputs.team2}
+                        onChange={(event) => handleScoreInputChange('team2', event)}
+                        className="w-full rounded border border-white/10 bg-black/40 px-3 py-2 text-white focus:border-purple-400 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {panelMessage && (
+                      <div
+                        className={`rounded-lg border px-4 py-3 text-sm ${panelMessage.type === 'success' ? 'border-green-500/40 bg-green-600/20 text-green-200' : 'border-red-500/40 bg-red-600/20 text-red-200'}`}
+                      >
+                        {panelMessage.text}
+                      </div>
+                    )}
+
+                    <div className="space-y-3 rounded-lg border border-white/10 bg-gray-900/60 p-4">
+                      <div className="flex flex-wrap items-center gap-2 text-sm">
+                        <span className="rounded bg-black/40 px-2 py-1 text-xs uppercase text-white/70">
+                          {selectedMatch.isLive ? 'Live' : selectedMatch.isFinished ? 'Beendet' : 'Bereit'}
+                        </span>
+                        {selectedMatch.winnerId && (
+                          <span className="rounded bg-green-500/20 px-2 py-1 text-xs font-semibold text-green-200">
+                            Gewinner: {selectedMatch.winnerId === 'team1' ? (selectedMatch.team1?.name || 'Team 1') : (selectedMatch.team2?.name || 'Team 2')}
+                          </span>
+                        )}
+                        {selectedMatch.autoAdvance && (
+                          <span className="rounded bg-cyan-500/20 px-2 py-1 text-xs font-semibold text-cyan-200">
+                            Freilos
+                          </span>
                         )}
                       </div>
-                    )
-                  })}
+
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <button
+                          onClick={toggleMatchLive}
+                          disabled={liveMutationLoading}
+                          className={`rounded px-4 py-2 font-semibold text-white transition-colors ${selectedMatch.isLive ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} ${liveMutationLoading ? 'cursor-not-allowed opacity-60' : ''}`}
+                        >
+                          {liveMutationLoading ? 'Speichere...' : selectedMatch.isLive ? 'Match stoppen' : 'Match starten'}
+                        </button>
+                        <button
+                          onClick={saveMatchScore}
+                          disabled={scoreMutationLoading}
+                          className={`rounded bg-purple-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-purple-700 ${scoreMutationLoading ? 'cursor-not-allowed opacity-60' : ''}`}
+                        >
+                          {scoreMutationLoading ? 'Speichere...' : 'Ergebnis speichern'}
+                        </button>
+                      </div>
+
+                      <p className="text-xs text-white/60">
+                        Trage den finalen Rundenscore ein, zum Beispiel 13:10. Das Team mit mehr gewonnenen Runden wird automatisch weitergetragen.
+                      </p>
+                    </div>
+
+                    <div className="space-y-4 rounded-lg border border-white/10 bg-gray-900/60 p-4">
+                      <h3 className="text-lg font-semibold text-white">Teamnamen bearbeiten</h3>
+                      {[{ key: 'team1' as const, label: 'Team 1', team: selectedMatch.team1 }, { key: 'team2' as const, label: 'Team 2', team: selectedMatch.team2 }].map(({ key, label, team }) => {
+                        const isLoading = teamRenameLoading === key
+                        const teamId = team?.id || ''
+                        const disabled = !teamId || teamId.startsWith('placeholder') || teamId.startsWith('virtual-')
+
+                        return (
+                          <div key={key} className="space-y-2">
+                            <div className="flex items-center justify-between text-sm">
+                              <p className="text-white/80">{label}</p>
+                              {team?.name && <span className="text-xs text-white/50">Aktuell: {team.name}</span>}
+                            </div>
+                            <div className="flex flex-col gap-2 sm:flex-row">
+                              <input
+                                type="text"
+                                value={renameInputs[key]}
+                                onChange={(event) => handleRenameInputChange(key, event)}
+                                maxLength={40}
+                                disabled={disabled}
+                                placeholder={team?.name || 'Noch kein Team'}
+                                className="flex-1 rounded border border-white/10 bg-black/40 px-3 py-2 text-white focus:border-purple-400 focus:outline-none disabled:opacity-40"
+                              />
+                              <button
+                                onClick={() => saveTeamRename(key)}
+                                disabled={disabled || isLoading || !(renameInputs[key] || '').trim()}
+                                className={`rounded bg-blue-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40 ${isLoading ? 'opacity-60' : ''}`}
+                              >
+                                {isLoading ? 'Speichere...' : 'Speichern'}
+                              </button>
+                            </div>
+                            {disabled && <p className="text-xs text-white/40">Dieser Slot ist noch nicht mit einem Team belegt.</p>}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </section>
+            </section>
+          </div>
+        )}
 
         <section>
           <h2 className="text-2xl font-bold text-white text-center mb-4">TEILNEHMENDE TEAMS</h2>
