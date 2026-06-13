@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
+import { ensureParticipationSchema } from '@/lib/participation'
 
 // Helper function to verify admin
 async function verifyAdmin(request: NextRequest) {
@@ -38,13 +39,15 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    console.log('🎯 Fetching verified users for wheel assignment')
+    console.log('🎯 Fetching confirmed participants for wheel assignment')
 
-    // RENDER FIX: Get all verified users without team relation filtering
-    // TODO: Re-enable team filtering when TeamMember table is available
+    await ensureParticipationSchema()
+
+    // Keep assigned players out of subsequent wheel spins.
     const users = await prisma.user.findMany({
       where: {
-        isVerified: true
+        isParticipating: true,
+        teamId: null
         // teamMemberships: { none: {} } // Disabled due to Render deployment
       },
       select: {

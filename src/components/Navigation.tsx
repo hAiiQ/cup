@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
@@ -7,7 +8,69 @@ import Image from 'next/image'
 
 export default function Navigation() {
   const router = useRouter()
-  const { isLoggedIn, user, logout } = useAuth()
+  const { isLoggedIn, user, token, logout } = useAuth()
+  const [participationOpen, setParticipationOpen] = useState(false)
+  const [isParticipating, setIsParticipating] = useState(false)
+  const [participationLoading, setParticipationLoading] = useState(false)
+
+  useEffect(() => {
+    if (!isLoggedIn || !token) {
+      setParticipationOpen(false)
+      setIsParticipating(false)
+      return
+    }
+
+    let active = true
+    const fetchParticipation = async () => {
+      try {
+        const response = await fetch('/api/participation', {
+          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
+          cache: 'no-store',
+        })
+        const data = await response.json().catch(() => ({}))
+
+        if (active && response.ok) {
+          setParticipationOpen(Boolean(data.open))
+          setIsParticipating(Boolean(data.participating))
+        }
+      } catch {
+        // Keep the navigation usable if the status request temporarily fails.
+      }
+    }
+
+    void fetchParticipation()
+    const interval = window.setInterval(fetchParticipation, 4000)
+
+    return () => {
+      active = false
+      window.clearInterval(interval)
+    }
+  }, [isLoggedIn, token])
+
+  const confirmParticipation = async () => {
+    if (!token || participationLoading || isParticipating) {
+      return
+    }
+
+    setParticipationLoading(true)
+    try {
+      const response = await fetch('/api/participation', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
+      })
+      const data = await response.json().catch(() => ({}))
+
+      if (response.ok) {
+        setIsParticipating(Boolean(data.participating))
+      } else if (response.status === 409) {
+        setParticipationOpen(false)
+      }
+    } finally {
+      setParticipationLoading(false)
+    }
+  }
 
   const handleLogout = async () => {
     // Use the logout function from AuthContext which handles everything
@@ -18,8 +81,28 @@ export default function Navigation() {
   }
 
   return (
-    <header className="bg-white/10 backdrop-blur-sm border-b border-white/20">
-      <div className="container mx-auto px-4 py-4">
+    <header className="relative bg-white/10 backdrop-blur-sm border-b border-white/20">
+      <div className="container relative mx-auto px-4 py-4">
+        {isLoggedIn && participationOpen && (
+          <div className="mb-3 flex justify-center xl:absolute xl:left-1/2 xl:top-1/2 xl:z-20 xl:mb-0 xl:-translate-x-1/2 xl:-translate-y-1/2">
+            <button
+              type="button"
+              onClick={confirmParticipation}
+              disabled={participationLoading || isParticipating}
+              className={`rounded-md border px-5 py-2 text-sm font-bold shadow-lg transition-colors ${
+                isParticipating
+                  ? 'cursor-default border-green-300/60 bg-green-600 text-white'
+                  : 'border-yellow-200/70 bg-yellow-500 text-gray-950 hover:bg-yellow-400'
+              } disabled:opacity-80`}
+            >
+              {participationLoading
+                ? 'Wird bestätigt...'
+                : isParticipating
+                  ? 'Teilnahme bestätigt'
+                  : 'Teilnehmen'}
+            </button>
+          </div>
+        )}
         <nav className="flex justify-between items-center">
           <div className="flex items-center space-x-3">
             <Link href="/" className="group flex items-center space-x-3 hover:scale-105 transition-all duration-300">

@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { ensureParticipationSchema } from '@/lib/participation'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
+    await ensureParticipationSchema()
     console.log('🎯 Fetching users for wheel (public test)')
 
-    // Get all verified users who don't have a team
+    // Get confirmed participants who don't have a team.
     const users = await prisma.user.findMany({
       where: {
-        isVerified: true,
+        isParticipating: true,
         teamId: null
       },
       select: {

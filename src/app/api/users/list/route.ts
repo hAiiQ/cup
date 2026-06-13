@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
+import { ensureParticipationSchema } from '@/lib/participation'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
     const { prisma } = await import('@/lib/prisma')
+    await ensureParticipationSchema()
     const users = await prisma.user.findMany({
       select: {
         id: true,
@@ -14,6 +16,7 @@ export async function GET() {
         valorantCurrentRank: true,
         valorantLevel: true,
         tier: true,
+        isParticipating: true,
         createdAt: true,
         team: {
           select: {

@@ -121,6 +121,15 @@ export default function WheelPage() {
   }, [isAuthenticated, filteredUsers, currentAngle])
 
   useEffect(() => {
+    if (!isAuthenticated || isSpinning) {
+      return
+    }
+
+    const interval = window.setInterval(fetchData, 5000)
+    return () => window.clearInterval(interval)
+  }, [isAuthenticated, isSpinning])
+
+  useEffect(() => {
     applyFilters()
   }, [users, verificationFilter, streamerFilter, tierFilter])
 
@@ -658,7 +667,7 @@ export default function WheelPage() {
               </div>
               
               <div className="mt-4 rounded-md border border-gray-800 bg-gray-950 px-3 py-2 text-xs text-gray-400">
-                Nur Spieler ohne Team werden angezeigt.
+                Nur bestätigte Teilnehmer ohne Team werden angezeigt.
               </div>
             </div>
 
@@ -756,7 +765,7 @@ export default function WheelPage() {
               {filteredUsers.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-gray-700 bg-gray-950/60 py-16 text-center text-gray-400">
                   <p className="text-lg font-semibold text-gray-200">Keine verfügbaren Spieler</p>
-                  <p className="mt-1 text-sm text-gray-500">Passe die Filter an oder prüfe, ob noch Spieler ohne Team offen sind.</p>
+                  <p className="mt-1 text-sm text-gray-500">Öffne die Teilnahme oder prüfe, ob bestätigte Spieler ohne Team vorhanden sind.</p>
                 </div>
               ) : (
                 <div className="flex flex-1 items-center justify-center">

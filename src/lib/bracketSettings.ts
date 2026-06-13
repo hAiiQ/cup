@@ -11,6 +11,7 @@ export interface BracketSettings {
   groupPhaseEnabled: boolean
   groupCount: number
   activeGroupRound: number
+  participationOpen: boolean
 }
 
 const DEFAULT_SETTINGS: BracketSettings = {
@@ -19,7 +20,8 @@ const DEFAULT_SETTINGS: BracketSettings = {
   tournamentStarted: false,
   groupPhaseEnabled: false,
   groupCount: 4,
-  activeGroupRound: 0
+  activeGroupRound: 0,
+  participationOpen: false
 }
 
 const MIN_TEAM_SLOTS = 2
@@ -82,6 +84,7 @@ const ensureBracketSettingsTable = async () => {
             "groupPhaseEnabled" BOOLEAN NOT NULL DEFAULT FALSE,
             "groupCount" INTEGER NOT NULL DEFAULT 4,
             "activeGroupRound" INTEGER NOT NULL DEFAULT 0,
+            "participationOpen" BOOLEAN NOT NULL DEFAULT FALSE,
             "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
           );
@@ -103,6 +106,10 @@ const ensureBracketSettingsTable = async () => {
           ALTER TABLE "BracketSetting"
           ADD COLUMN IF NOT EXISTS "activeGroupRound" INTEGER NOT NULL DEFAULT 0;
         `)
+        await prisma.$executeRawUnsafe(`
+          ALTER TABLE "BracketSetting"
+          ADD COLUMN IF NOT EXISTS "participationOpen" BOOLEAN NOT NULL DEFAULT FALSE;
+        `)
       }
 
       if (!exists) {
@@ -115,7 +122,8 @@ const ensureBracketSettingsTable = async () => {
             tournamentStarted: DEFAULT_SETTINGS.tournamentStarted,
             groupPhaseEnabled: DEFAULT_SETTINGS.groupPhaseEnabled,
             groupCount: DEFAULT_SETTINGS.groupCount,
-            activeGroupRound: DEFAULT_SETTINGS.activeGroupRound
+            activeGroupRound: DEFAULT_SETTINGS.activeGroupRound,
+            participationOpen: DEFAULT_SETTINGS.participationOpen
           },
           update: {}
         })
@@ -148,7 +156,8 @@ export async function getBracketSettings(): Promise<BracketSettings> {
       tournamentStarted: Boolean(record.tournamentStarted),
       groupPhaseEnabled: Boolean(record.groupPhaseEnabled),
       groupCount: clampGroupCount(record.groupCount, clampTeamSlots(record.teamSlots)),
-      activeGroupRound: Math.max(0, Math.floor(record.activeGroupRound || 0))
+      activeGroupRound: Math.max(0, Math.floor(record.activeGroupRound || 0)),
+      participationOpen: Boolean(record.participationOpen)
     }
   } catch (error) {
     console.warn('Failed to load bracket settings, falling back to defaults:', error)
@@ -176,6 +185,9 @@ export async function updateBracketSettings(
   const activeGroupRound = update.activeGroupRound === undefined
     ? current.activeGroupRound
     : Math.max(0, Math.floor(Number(update.activeGroupRound) || 0))
+  const participationOpen = update.participationOpen === undefined
+    ? current.participationOpen
+    : Boolean(update.participationOpen)
 
   const saved = await prisma.bracketSetting.upsert({
     where: { id: SETTINGS_ID },
@@ -186,7 +198,8 @@ export async function updateBracketSettings(
       tournamentStarted,
       groupPhaseEnabled,
       groupCount,
-      activeGroupRound
+      activeGroupRound,
+      participationOpen
     },
     update: {
       mode,
@@ -194,7 +207,8 @@ export async function updateBracketSettings(
       tournamentStarted,
       groupPhaseEnabled,
       groupCount,
-      activeGroupRound
+      activeGroupRound,
+      participationOpen
     }
   })
 
@@ -204,6 +218,7 @@ export async function updateBracketSettings(
     tournamentStarted: Boolean(saved.tournamentStarted),
     groupPhaseEnabled: Boolean(saved.groupPhaseEnabled),
     groupCount: clampGroupCount(saved.groupCount, clampTeamSlots(saved.teamSlots)),
-    activeGroupRound: Math.max(0, Math.floor(saved.activeGroupRound || 0))
+    activeGroupRound: Math.max(0, Math.floor(saved.activeGroupRound || 0)),
+    participationOpen: Boolean(saved.participationOpen)
   }
 }

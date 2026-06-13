@@ -26,6 +26,7 @@ model User {
   isIGL               Boolean @default(false)
   isVerified          Boolean @default(false)
   rulesAccepted       Boolean @default(false)
+  isParticipating     Boolean @default(false)
 
   teamId String?
 
@@ -128,6 +129,7 @@ model BracketSetting {
   groupPhaseEnabled Boolean  @default(false)
   groupCount        Int      @default(4)
   activeGroupRound  Int      @default(0)
+  participationOpen Boolean  @default(false)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }

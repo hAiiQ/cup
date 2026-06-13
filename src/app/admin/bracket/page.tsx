@@ -91,6 +91,9 @@ export default function AdminBracketPage() {
   const [settingsSaving, setSettingsSaving] = useState(false)
   const [tournamentStartLoading, setTournamentStartLoading] = useState(false)
   const [groupRoundLoading, setGroupRoundLoading] = useState(false)
+  const [participationOpen, setParticipationOpen] = useState(false)
+  const [participatingCount, setParticipatingCount] = useState(0)
+  const [participationLoading, setParticipationLoading] = useState(false)
   const [settingsAlert, setSettingsAlert] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const settingsChanged =
     settingsDraft.mode !== bracketSettings.mode ||
@@ -117,6 +120,15 @@ export default function AdminBracketPage() {
   useEffect(() => {
     checkAdminAuth()
   }, [])
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return
+    }
+
+    const interval = window.setInterval(fetchParticipationStatus, 4000)
+    return () => window.clearInterval(interval)
+  }, [isAuthenticated])
 
   useEffect(() => {
     if (!selectedMatch) {
@@ -147,7 +159,7 @@ export default function AdminBracketPage() {
 
       if (response.ok) {
         setIsAuthenticated(true)
-        await fetchData()
+        await Promise.all([fetchData(), fetchParticipationStatus()])
       } else {
         setIsAuthenticated(false)
         window.location.href = '/admin?redirect=' + encodeURIComponent('/admin/bracket')
@@ -284,6 +296,57 @@ export default function AdminBracketPage() {
       }
     })
     setSettingsAlert(null)
+  }
+
+  const fetchParticipationStatus = async () => {
+    try {
+      const response = await fetch('/api/admin/participation', {
+        credentials: 'include',
+        cache: 'no-store',
+      })
+      const data = await response.json().catch(() => ({}))
+
+      if (response.ok) {
+        setParticipationOpen(Boolean(data.open))
+        setParticipatingCount(Number(data.participatingCount) || 0)
+      }
+    } catch (error) {
+      console.error('Participation status error:', error)
+    }
+  }
+
+  const toggleParticipation = async () => {
+    if (participationLoading) {
+      return
+    }
+
+    setParticipationLoading(true)
+    setSettingsAlert(null)
+
+    try {
+      const response = await fetch('/api/admin/participation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: participationOpen ? 'close' : 'open' }),
+      })
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Teilnahme konnte nicht aktualisiert werden.')
+      }
+
+      setParticipationOpen(Boolean(data.open))
+      setParticipatingCount(Number(data.participatingCount) || 0)
+      setSettingsAlert({ type: 'success', text: data.message })
+    } catch (error) {
+      setSettingsAlert({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Teilnahme konnte nicht aktualisiert werden.',
+      })
+    } finally {
+      setParticipationLoading(false)
+    }
   }
 
   const handleGroupPhaseToggle = () => {
@@ -731,6 +794,22 @@ export default function AdminBracketPage() {
                   : bracketSettings.tournamentStarted
                     ? 'Turnier gestartet'
                     : 'Turnier starten'}
+              </button>
+              <button
+                type="button"
+                onClick={toggleParticipation}
+                disabled={participationLoading}
+                className={`rounded px-4 py-2 font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:bg-gray-600 ${
+                  participationOpen
+                    ? 'bg-green-600 hover:bg-green-500'
+                    : 'bg-yellow-600 hover:bg-yellow-500'
+                }`}
+              >
+                {participationLoading
+                  ? 'Speichere...'
+                  : participationOpen
+                    ? `Teilnahme offen (${participatingCount})`
+                    : `Teilnahme öffnen (${participatingCount})`}
               </button>
               {bracketSettings.groupPhaseEnabled && (
                 <button

@@ -11,6 +11,7 @@ interface ListedUser {
   valorantCurrentRank?: string | null
   valorantLevel?: number | null
   tier?: string | null
+  isParticipating: boolean
   createdAt: string
   team?: {
     id: string
@@ -25,10 +26,26 @@ export default function UserListPage() {
   const [users, setUsers] = useState<ListedUser[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [resettingParticipation, setResettingParticipation] = useState(false)
+  const [participationMessage, setParticipationMessage] = useState<string | null>(null)
 
   useEffect(() => {
     fetchUsers()
+    checkAdminAuth()
   }, [])
+
+  const checkAdminAuth = async () => {
+    try {
+      const response = await fetch('/api/admin/auth/check', {
+        credentials: 'include',
+        cache: 'no-store',
+      })
+      setIsAdmin(response.ok)
+    } catch {
+      setIsAdmin(false)
+    }
+  }
 
   const fetchUsers = async () => {
     try {
@@ -51,6 +68,41 @@ export default function UserListPage() {
     }
   }
 
+  const resetParticipation = async () => {
+    if (
+      resettingParticipation ||
+      !window.confirm('Möchtest du wirklich alle Teilnahme-Bestätigungen zurücksetzen?')
+    ) {
+      return
+    }
+
+    setResettingParticipation(true)
+    setParticipationMessage(null)
+
+    try {
+      const response = await fetch('/api/admin/participation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'reset' }),
+      })
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Teilnahmen konnten nicht zurückgesetzt werden.')
+      }
+
+      setParticipationMessage(data.message || 'Teilnahmen wurden zurückgesetzt.')
+      await fetchUsers()
+    } catch (error) {
+      setParticipationMessage(
+        error instanceof Error ? error.message : 'Teilnahmen konnten nicht zurückgesetzt werden.'
+      )
+    } finally {
+      setResettingParticipation(false)
+    }
+  }
+
   const sortedUsers = useMemo(
     () =>
       [...users].sort((a, b) => {
@@ -68,6 +120,7 @@ export default function UserListPage() {
 
   const teamCount = new Set(users.filter((user) => user.team).map((user) => user.team?.id)).size
   const rankedCount = users.filter((user) => user.valorantCurrentRank || user.inGameRank).length
+  const participatingCount = users.filter((user) => user.isParticipating).length
 
   if (loading) {
     return (
@@ -106,12 +159,25 @@ export default function UserListPage() {
             <div>
               <p className="text-sm font-semibold uppercase text-purple-200">Summer Cup</p>
               <h1 className="mt-1 text-4xl font-bold text-white">Userliste</h1>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={resetParticipation}
+                  disabled={resettingParticipation || participatingCount === 0}
+                  className="mt-4 rounded-md border border-red-400/50 bg-red-500/15 px-4 py-2 text-sm font-semibold text-red-100 transition-colors hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {resettingParticipation ? 'Setze zurück...' : 'Teilnahmen zurücksetzen'}
+                </button>
+              )}
+              {participationMessage && (
+                <p className="mt-3 text-sm font-semibold text-white/80">{participationMessage}</p>
+              )}
               <p className="mt-2 text-white/70">
                 Übersicht aller registrierten Spieler mit Rank-, Tier- und Team-Zuordnung.
               </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="grid grid-cols-2 gap-3 text-center sm:grid-cols-4">
               <div className="rounded-md border border-white/15 bg-white/10 px-4 py-3">
                 <div className="text-2xl font-bold text-white">{users.length}</div>
                 <div className="text-xs uppercase text-white/60">User</div>
@@ -123,6 +189,10 @@ export default function UserListPage() {
               <div className="rounded-md border border-white/15 bg-white/10 px-4 py-3">
                 <div className="text-2xl font-bold text-emerald-200">{teamCount}</div>
                 <div className="text-xs uppercase text-white/60">Teams</div>
+              </div>
+              <div className="rounded-md border border-white/15 bg-white/10 px-4 py-3">
+                <div className="text-2xl font-bold text-yellow-200">{participatingCount}</div>
+                <div className="text-xs uppercase text-white/60">Dabei</div>
               </div>
             </div>
           </div>
@@ -139,13 +209,14 @@ export default function UserListPage() {
               <table className="w-full table-fixed text-left">
                 <thead className="border-b border-white/15 bg-white/10 text-xs uppercase text-white/60">
                   <tr>
-                    <th className="w-[17%] px-4 py-3">Username</th>
-                    <th className="w-[20%] px-4 py-3">Ingame Name</th>
-                    <th className="w-[15%] px-4 py-3">Ingame Rank</th>
-                    <th className="w-[15%] px-4 py-3">Peak Rank</th>
-                    <th className="w-[8%] px-4 py-3">Lvl</th>
-                    <th className="w-[10%] px-4 py-3">Tier</th>
-                    <th className="w-[15%] px-4 py-3">Team</th>
+                    <th className="w-[15%] px-4 py-3">Username</th>
+                    <th className="w-[17%] px-4 py-3">Ingame Name</th>
+                    <th className="w-[13%] px-4 py-3">Ingame Rank</th>
+                    <th className="w-[13%] px-4 py-3">Peak Rank</th>
+                    <th className="w-[7%] px-4 py-3">Lvl</th>
+                    <th className="w-[9%] px-4 py-3">Tier</th>
+                    <th className="w-[13%] px-4 py-3">Team</th>
+                    <th className="w-[13%] px-4 py-3">Teilnahme</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -170,6 +241,17 @@ export default function UserListPage() {
                         {formatTierShortLabel(user.tier, emptyValue)}
                       </td>
                       <td className="px-4 py-4 text-white/80">{user.team?.name || emptyValue}</td>
+                      <td className="px-4 py-4">
+                        <span
+                          className={`rounded-full border px-3 py-1 text-xs font-bold ${
+                            user.isParticipating
+                              ? 'border-green-400/40 bg-green-500/15 text-green-100'
+                              : 'border-white/15 bg-white/5 text-white/50'
+                          }`}
+                        >
+                          {user.isParticipating ? 'Dabei' : 'Nicht dabei'}
+                        </span>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -184,9 +266,20 @@ export default function UserListPage() {
                       <h2 className="truncate text-xl font-bold text-white">{user.username || emptyValue}</h2>
                       <p className="mt-1 truncate text-sm text-white/60">{user.inGameName || emptyValue}</p>
                     </div>
-                    <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white/80">
-                      {user.team?.name || emptyValue}
-                    </span>
+                    <div className="flex flex-col items-end gap-2">
+                      <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white/80">
+                        {user.team?.name || emptyValue}
+                      </span>
+                      <span
+                        className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                          user.isParticipating
+                            ? 'border-green-400/40 bg-green-500/15 text-green-100'
+                            : 'border-white/15 bg-white/5 text-white/50'
+                        }`}
+                      >
+                        {user.isParticipating ? 'Dabei' : 'Nicht dabei'}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
