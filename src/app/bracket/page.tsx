@@ -13,6 +13,48 @@ import BracketDiagram from '@/components/bracket/BracketDiagram'
 import { DEFAULT_TEAM_NAMES } from '@/lib/teamDefaults'
 import { PLAYOFF_TEAM_COUNT, type GroupPhaseResult } from '@/lib/groupPhase'
 
+const getTeamName = (team?: BracketTeam, fallback: string = 'TBD') => {
+  return team?.name || fallback
+}
+
+const BracketMatchBox = ({
+  match,
+  className = ''
+}: {
+  match?: BracketMatch
+  className?: string
+}) => {
+  if (!match) {
+    return (
+      <div className={`bg-gray-800/80 border border-white/10 rounded-lg p-3 w-full h-full flex items-center justify-center text-gray-400 text-sm ${className}`}>
+        Match folgt
+      </div>
+    )
+  }
+
+  const team1Name = getTeamName(match.team1, 'TBD')
+  const team2Name = getTeamName(match.team2, 'TBD')
+  const team1Score = match.team1Score ?? 0
+  const team2Score = match.team2Score ?? 0
+  const team1Wins = match.isFinished && match.winnerId === 'team1'
+  const team2Wins = match.isFinished && match.winnerId === 'team2'
+
+  return (
+    <div className={`bg-gray-900/70 border border-white/10 rounded-lg px-2 py-2 w-full h-full flex flex-col justify-center ${className}`}>
+      {match.isLive && (
+        <div className="live-match-pulse mb-1 text-center text-[10px] font-bold uppercase text-red-300">
+          Live Match
+        </div>
+      )}
+      <div className="flex items-center gap-1 text-white text-[13px] font-semibold w-full justify-center">
+        <span className={`flex-1 min-w-0 truncate text-right ${team1Wins ? 'text-green-400' : ''}`}>{team1Name}</span>
+        <span className={`flex-none w-14 text-center whitespace-nowrap ${match.isLive ? 'text-yellow-300' : 'text-purple-200'}`}>{team1Score} - {team2Score}</span>
+        <span className={`flex-1 min-w-0 truncate text-left ${team2Wins ? 'text-green-400' : ''}`}>{team2Name}</span>
+      </div>
+    </div>
+  )
+}
+
 export default function BracketPage() {
   const [bracket, setBracket] = useState<BracketMatch[]>([])
   const [teams, setTeams] = useState<BracketTeam[]>([])
@@ -99,50 +141,6 @@ export default function BracketPage() {
     } finally {
       setLoading(false)
     }
-  }
-
-  // Helper function to get team name or fallback
-  const getTeamName = (team?: BracketTeam, fallback: string = 'TBD') => {
-    return team?.name || fallback
-  }
-
-  // Read-only MatchBox component (simplified display)
-  const MatchBox = ({ 
-    match, 
-    className = ""
-  }: {
-    match?: BracketMatch
-    className?: string
-  }) => {
-    if (!match) {
-      return (
-        <div className={`bg-gray-800/80 border border-white/10 rounded-lg p-3 w-full h-full flex items-center justify-center text-gray-400 text-sm ${className}`}>
-          Match folgt
-        </div>
-      )
-    }
-
-    const team1Name = getTeamName(match.team1, 'TBD')
-    const team2Name = getTeamName(match.team2, 'TBD')
-    const team1Score = match.team1Score ?? 0
-    const team2Score = match.team2Score ?? 0
-    const team1Wins = match.isFinished && match.winnerId === 'team1'
-    const team2Wins = match.isFinished && match.winnerId === 'team2'
-
-    return (
-      <div className={`bg-gray-900/70 border border-white/10 rounded-lg px-2 py-2 w-full h-full flex flex-col justify-center ${className}`}>
-        {match.isLive && (
-          <div className="text-[10px] uppercase text-center text-red-300 font-bold mb-1 animate-pulse">
-            Live Match
-          </div>
-        )}
-        <div className="flex items-center gap-1 text-white text-[13px] font-semibold w-full justify-center">
-          <span className={`flex-1 min-w-0 truncate text-right ${team1Wins ? 'text-green-400' : ''}`}>{team1Name}</span>
-          <span className={`flex-none w-14 text-center whitespace-nowrap ${match.isLive ? 'text-yellow-300' : 'text-purple-200'}`}>{team1Score} - {team2Score}</span>
-          <span className={`flex-1 min-w-0 truncate text-left ${team2Wins ? 'text-green-400' : ''}`}>{team2Name}</span>
-        </div>
-      </div>
-    )
   }
 
   if (loading) {
@@ -264,7 +262,7 @@ export default function BracketPage() {
                   <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
                     {round.matches.map((match) => (
                       <div key={match.id} className="min-h-20">
-                        <MatchBox match={match} />
+                        <BracketMatchBox match={match} />
                       </div>
                     ))}
                   </div>
@@ -285,7 +283,7 @@ export default function BracketPage() {
                 matches={bracket}
                 layout={layout}
                 connections={connections}
-                renderMatch={(match) => <MatchBox match={match} className="h-full" />}
+                renderMatch={(match) => <BracketMatchBox match={match} className="h-full" />}
                 className="mx-auto"
               />
             ) : (
