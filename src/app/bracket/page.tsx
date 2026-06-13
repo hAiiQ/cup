@@ -209,8 +209,8 @@ export default function BracketPage() {
                         <span className="min-w-0 truncate font-semibold">
                           {standing.rank}. {standing.team.name}
                         </span>
-                        <span className="shrink-0 text-xs text-white/70">
-                          {standing.wins}S · {standing.losses}N · {standing.scoreDiff > 0 ? '+' : ''}{standing.scoreDiff}
+                        <span className="shrink-0 text-xs text-white/70" title="RA = abgegebene Runden">
+                          {standing.wins}S · {standing.losses}N · RA {standing.scoreAgainst}
                         </span>
                       </div>
                     ))}

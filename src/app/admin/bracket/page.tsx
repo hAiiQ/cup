@@ -956,8 +956,8 @@ export default function AdminBracketPage() {
                         className={`grid grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-md border px-3 py-2 text-sm ${standing.qualified ? 'border-emerald-300/40 bg-emerald-500/15 text-emerald-50' : 'border-white/10 bg-black/25 text-white/75'}`}
                       >
                         <span className="min-w-0 truncate font-semibold">{standing.rank}. {standing.team.name}</span>
-                        <span className="shrink-0 text-xs text-white/70">
-                          {standing.wins}S · {standing.losses}N · {standing.scoreDiff > 0 ? '+' : ''}{standing.scoreDiff}
+                        <span className="shrink-0 text-xs text-white/70" title="RA = abgegebene Runden">
+                          {standing.wins}S · {standing.losses}N · RA {standing.scoreAgainst}
                         </span>
                       </div>
                     ))}

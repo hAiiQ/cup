@@ -223,6 +223,8 @@ const buildStandings = (group: GroupPhaseGroup, matches: GroupStageMatch[]): Gro
   return Array.from(stats.values())
     .sort((a, b) =>
       b.wins - a.wins ||
+      a.losses - b.losses ||
+      a.scoreAgainst - b.scoreAgainst ||
       b.scoreDiff - a.scoreDiff ||
       b.scoreFor - a.scoreFor ||
       a.team.position - b.team.position
@@ -241,6 +243,8 @@ const compareCrossGroupStanding = (a: GroupStanding, b: GroupStanding) => {
   return (
     bRate - aRate ||
     b.wins - a.wins ||
+    a.losses - b.losses ||
+    a.scoreAgainst - b.scoreAgainst ||
     b.scoreDiff - a.scoreDiff ||
     b.scoreFor - a.scoreFor ||
     a.team.position - b.team.position
