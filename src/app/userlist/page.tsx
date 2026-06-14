@@ -41,7 +41,8 @@ export default function UserListPage() {
         credentials: 'include',
         cache: 'no-store',
       })
-      setIsAdmin(response.ok)
+      const data = await response.json().catch(() => ({}))
+      setIsAdmin(response.ok && data.authenticated === true)
     } catch {
       setIsAdmin(false)
     }

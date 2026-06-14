@@ -13,8 +13,13 @@ const verifyAdmin = async (request: NextRequest) => {
     return null
   }
 
+  const adminId = decoded.userId.replace('admin_', '')
+  if (adminId === 'env_admin') {
+    return { id: adminId }
+  }
+
   return prisma.admin.findUnique({
-    where: { id: decoded.userId.replace('admin_', '') },
+    where: { id: adminId },
     select: { id: true },
   })
 }
