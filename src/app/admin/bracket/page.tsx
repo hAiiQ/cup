@@ -94,6 +94,7 @@ export default function AdminBracketPage() {
   const [participationOpen, setParticipationOpen] = useState(false)
   const [participatingCount, setParticipatingCount] = useState(0)
   const [participationLoading, setParticipationLoading] = useState(false)
+  const [participationResetLoading, setParticipationResetLoading] = useState(false)
   const [settingsAlert, setSettingsAlert] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const settingsChanged =
     settingsDraft.mode !== bracketSettings.mode ||
@@ -346,6 +347,46 @@ export default function AdminBracketPage() {
       })
     } finally {
       setParticipationLoading(false)
+    }
+  }
+
+  const resetParticipation = async () => {
+    if (
+      participationResetLoading ||
+      !window.confirm('Möchtest du wirklich alle Teilnahme-Bestätigungen zurücksetzen?')
+    ) {
+      return
+    }
+
+    setParticipationResetLoading(true)
+    setSettingsAlert(null)
+
+    try {
+      const response = await fetch('/api/admin/participation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'reset' }),
+      })
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Teilnahmen konnten nicht zurückgesetzt werden.')
+      }
+
+      setParticipationOpen(Boolean(data.open))
+      setParticipatingCount(Number(data.participatingCount) || 0)
+      setSettingsAlert({
+        type: 'success',
+        text: data.message || 'Teilnahmen wurden zurückgesetzt.',
+      })
+    } catch (error) {
+      setSettingsAlert({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Teilnahmen konnten nicht zurückgesetzt werden.',
+      })
+    } finally {
+      setParticipationResetLoading(false)
     }
   }
 
@@ -798,7 +839,7 @@ export default function AdminBracketPage() {
               <button
                 type="button"
                 onClick={toggleParticipation}
-                disabled={participationLoading}
+                disabled={participationLoading || participationResetLoading}
                 className={`rounded px-4 py-2 font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:bg-gray-600 ${
                   participationOpen
                     ? 'bg-green-600 hover:bg-green-500'
@@ -810,6 +851,14 @@ export default function AdminBracketPage() {
                   : participationOpen
                     ? `Teilnahme offen (${participatingCount})`
                     : `Teilnahme öffnen (${participatingCount})`}
+              </button>
+              <button
+                type="button"
+                onClick={resetParticipation}
+                disabled={participationResetLoading || participationLoading || participatingCount === 0}
+                className="rounded bg-red-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-red-500 disabled:cursor-not-allowed disabled:bg-gray-600"
+              >
+                {participationResetLoading ? 'Setze zurück...' : 'Teilnahmen zurücksetzen'}
               </button>
               {bracketSettings.groupPhaseEnabled && (
                 <button

@@ -26,27 +26,10 @@ export default function UserListPage() {
   const [users, setUsers] = useState<ListedUser[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [resettingParticipation, setResettingParticipation] = useState(false)
-  const [participationMessage, setParticipationMessage] = useState<string | null>(null)
 
   useEffect(() => {
     fetchUsers()
-    checkAdminAuth()
   }, [])
-
-  const checkAdminAuth = async () => {
-    try {
-      const response = await fetch('/api/admin/auth/check', {
-        credentials: 'include',
-        cache: 'no-store',
-      })
-      const data = await response.json().catch(() => ({}))
-      setIsAdmin(response.ok && data.authenticated === true)
-    } catch {
-      setIsAdmin(false)
-    }
-  }
 
   const fetchUsers = async () => {
     try {
@@ -66,41 +49,6 @@ export default function UserListPage() {
       setUsers([])
     } finally {
       setLoading(false)
-    }
-  }
-
-  const resetParticipation = async () => {
-    if (
-      resettingParticipation ||
-      !window.confirm('Möchtest du wirklich alle Teilnahme-Bestätigungen zurücksetzen?')
-    ) {
-      return
-    }
-
-    setResettingParticipation(true)
-    setParticipationMessage(null)
-
-    try {
-      const response = await fetch('/api/admin/participation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ action: 'reset' }),
-      })
-      const data = await response.json().catch(() => ({}))
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Teilnahmen konnten nicht zurückgesetzt werden.')
-      }
-
-      setParticipationMessage(data.message || 'Teilnahmen wurden zurückgesetzt.')
-      await fetchUsers()
-    } catch (error) {
-      setParticipationMessage(
-        error instanceof Error ? error.message : 'Teilnahmen konnten nicht zurückgesetzt werden.'
-      )
-    } finally {
-      setResettingParticipation(false)
     }
   }
 
@@ -160,19 +108,6 @@ export default function UserListPage() {
             <div>
               <p className="text-sm font-semibold uppercase text-purple-200">Summer Cup</p>
               <h1 className="mt-1 text-4xl font-bold text-white">Userliste</h1>
-              {isAdmin && (
-                <button
-                  type="button"
-                  onClick={resetParticipation}
-                  disabled={resettingParticipation || participatingCount === 0}
-                  className="mt-4 rounded-md border border-red-400/50 bg-red-500/15 px-4 py-2 text-sm font-semibold text-red-100 transition-colors hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {resettingParticipation ? 'Setze zurück...' : 'Teilnahmen zurücksetzen'}
-                </button>
-              )}
-              {participationMessage && (
-                <p className="mt-3 text-sm font-semibold text-white/80">{participationMessage}</p>
-              )}
               <p className="mt-2 text-white/70">
                 Übersicht aller registrierten Spieler mit Rank-, Tier- und Team-Zuordnung.
               </p>
