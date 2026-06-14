@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
     console.log('✅ Added team2Score column to Match');
     
     await prisma.$executeRaw`ALTER TABLE "Match" ADD COLUMN IF NOT EXISTS "isLive" BOOLEAN DEFAULT false`
+    await prisma.$executeRaw`ALTER TABLE "Match" ADD COLUMN IF NOT EXISTS "mapName" TEXT`
     console.log('✅ Added isLive column to Match');
     
     console.log('🎉 Database schema fix completed successfully!');

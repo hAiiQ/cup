@@ -51,6 +51,11 @@ const BracketMatchBox = ({
         <span className={`flex-none w-14 text-center whitespace-nowrap ${match.isLive ? 'text-yellow-300' : 'text-purple-200'}`}>{team1Score} - {team2Score}</span>
         <span className={`flex-1 min-w-0 truncate text-left ${team2Wins ? 'text-green-400' : ''}`}>{team2Name}</span>
       </div>
+      {match.mapName && (
+        <div className="mt-1 text-center text-[11px] font-semibold text-cyan-200">
+          Map: {match.mapName}
+        </div>
+      )}
     </div>
   )
 }

@@ -170,6 +170,7 @@ export async function loadIglBracketData(): Promise<IglBracketData> {
         team1Score: true,
         team2Score: true,
         isFinished: true,
+        mapName: true,
         updatedAt: true,
       },
     }),
@@ -207,6 +208,7 @@ export async function loadIglBracketData(): Promise<IglBracketData> {
       team2Score: dbMatch.team2Score || 0,
       isFinished: Boolean(confirmedReport || dbMatch.isFinished || winnerId),
       winnerId,
+      mapName: dbMatch.mapName || undefined,
       lastUpdated: dbMatch.updatedAt?.getTime() || Date.now(),
       source: 'database',
     })

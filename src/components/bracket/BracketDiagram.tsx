@@ -8,7 +8,7 @@ import type {
 
 // Match sizes and spacing optimized for a larger bracket layout with compact stacking
 const MATCH_WIDTH = 320
-const MATCH_HEIGHT = 74
+const MATCH_HEIGHT = 92
 const COLUMN_GAP = 24
 const ROW_GAP = 0
 const CONNECTOR_COLOR = 'rgba(230,233,255,0.3)'

@@ -5,6 +5,7 @@ import { getBracketSettings, updateBracketSettings } from '@/lib/bracketSettings
 import { buildGroupPhase, PLAYOFF_TEAM_COUNT } from '@/lib/groupPhase'
 import { determineWinnerSlot, setMatchState, type MatchState } from '@/lib/matchState'
 import { MAX_TEAMS } from '@/lib/teamDefaults'
+import { getRandomValorantMap } from '@/lib/valorantMaps'
 
 async function verifyAdmin(request: NextRequest) {
   const token = request.cookies.get('admin_token')?.value
@@ -54,6 +55,7 @@ export async function POST(request: NextRequest) {
           team1Score: true,
           team2Score: true,
           isFinished: true,
+          mapName: true,
           updatedAt: true,
         },
       }),
@@ -67,6 +69,7 @@ export async function POST(request: NextRequest) {
         team2Score: match.team2Score,
         isFinished: match.isFinished,
         winnerId: determineWinnerSlot(match.id, match.team1Score, match.team2Score),
+        mapName: match.mapName || undefined,
         lastUpdated: match.updatedAt.getTime(),
         source: 'database',
       })
@@ -104,6 +107,13 @@ export async function POST(request: NextRequest) {
     }
 
     const now = new Date()
+    const existingMaps = new Map(groupMatches.map((match) => [match.id, match.mapName]))
+    const mapsByMatch = new Map(
+      nextRound.matches.map((match) => [
+        match.id,
+        existingMaps.get(match.id) || getRandomValorantMap(),
+      ])
+    )
     await prisma.$transaction([
       prisma.match.updateMany({
         where: { bracket: 'group', isLive: true },
@@ -117,6 +127,7 @@ export async function POST(request: NextRequest) {
             team2Id: match.team2?.id,
             isLive: true,
             isFinished: false,
+            mapName: mapsByMatch.get(match.id),
             updatedAt: now,
           },
           create: {
@@ -130,6 +141,7 @@ export async function POST(request: NextRequest) {
             team2Score: 0,
             isLive: true,
             isFinished: false,
+            mapName: mapsByMatch.get(match.id),
           },
         })
       ),
@@ -142,6 +154,7 @@ export async function POST(request: NextRequest) {
         isLive: true,
         isFinished: false,
         winnerId: undefined,
+        mapName: mapsByMatch.get(match.id),
       })
     })
 

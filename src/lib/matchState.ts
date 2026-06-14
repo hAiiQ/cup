@@ -7,6 +7,7 @@ export interface MatchState {
   team2Score: number
   isFinished: boolean
   winnerId?: string
+  mapName?: string
   lastUpdated: number
   source?: 'database' | 'memory'
 }
@@ -52,8 +53,12 @@ export function getAllMatchStates(): Map<string, MatchState> {
   return matchStates
 }
 
-export function setMatchLive(matchId: string, isLive: boolean) {
-  return setMatchState(matchId, { isLive, ...(isLive ? { isFinished: false } : {}) })
+export function setMatchLive(matchId: string, isLive: boolean, mapName?: string) {
+  return setMatchState(matchId, {
+    isLive,
+    ...(isLive ? { isFinished: false } : {}),
+    ...(mapName ? { mapName } : {}),
+  })
 }
 
 export function setMatchScore(matchId: string, team1Score: number, team2Score: number) {

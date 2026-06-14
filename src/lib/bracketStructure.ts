@@ -48,6 +48,7 @@ export interface BracketMatch {
   isLive: boolean
   isFinished: boolean
   winnerId?: string
+  mapName?: string
   autoAdvance?: boolean
 }
 
@@ -544,7 +545,8 @@ const buildMatchesFromBlueprints = (
       team2Score: state?.team2Score ?? 0,
       isLive: state?.isLive ?? false,
       isFinished: state?.isFinished ?? false,
-      winnerId: state?.winnerId
+      winnerId: state?.winnerId,
+      mapName: state?.mapName,
     }
 
     let autoAdvanceWinner: 'team1' | 'team2' | undefined

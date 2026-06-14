@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
-import { setMatchLive } from '@/lib/matchState'
+import { getMatchState, setMatchLive } from '@/lib/matchState'
+import { getRandomValorantMap } from '@/lib/valorantMaps'
 
 // Helper function to verify admin
 async function verifyAdmin(request: NextRequest) {
@@ -76,6 +77,7 @@ export async function POST(request: NextRequest) {
 
     // PERSISTENT DATABASE UPDATE with fallback
     let dbSuccess = false
+    let mapName: string | undefined
     try {
       // First try to update existing match
       let match = await prisma.match.findUnique({
@@ -83,6 +85,7 @@ export async function POST(request: NextRequest) {
       })
 
       const { bracket, round } = getBracketMeta(matchId)
+      mapName = match?.mapName || getMatchState(matchId).mapName || (isLive ? getRandomValorantMap() : undefined)
 
       if (match) {
         // Update existing match in database
@@ -91,6 +94,7 @@ export async function POST(request: NextRequest) {
           data: { 
             isLive,
             ...(isLive ? { isFinished: false } : {}),
+            ...(mapName ? { mapName } : {}),
             updatedAt: new Date()
           }
         })
@@ -105,6 +109,7 @@ export async function POST(request: NextRequest) {
             matchNumber: 1,
             isLive,
             isFinished: false,
+            mapName,
             team1Score: 0,
             team2Score: 0,
             createdAt: new Date(),
@@ -119,7 +124,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Also update in-memory state for immediate response
-    const updatedState = setMatchLive(matchId, isLive)
+    if (isLive && !mapName) {
+      mapName = getRandomValorantMap()
+    }
+    const updatedState = setMatchLive(matchId, isLive, mapName)
     console.log('📝 Updated in-memory state:', updatedState)
     
     return NextResponse.json({ 
@@ -127,6 +135,7 @@ export async function POST(request: NextRequest) {
       message: `Match ${isLive ? 'gestartet' : 'gestoppt'}`,
       matchId,
       isLive,
+      mapName,
       state: updatedState,
       persistent: dbSuccess,
       dbStatus: dbSuccess ? 'saved' : 'memory-only'

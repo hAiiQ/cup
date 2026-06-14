@@ -17,6 +17,7 @@ export async function GET() {
         team2Score: true,
         isFinished: true,
         winnerId: true,
+        mapName: true,
         updatedAt: true
       }
     })
@@ -55,6 +56,7 @@ export async function GET() {
         team2Score: dbMatch.team2Score,
         isFinished: Boolean(confirmedReport || dbMatch.isFinished),
         winnerId: derivedWinner,
+        mapName: dbMatch.mapName || undefined,
         lastUpdated: dbMatch.updatedAt.getTime(),
         source: 'database'
       })

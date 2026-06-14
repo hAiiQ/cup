@@ -90,6 +90,7 @@ model Match {
   winnerId    String?
   isFinished  Boolean   @default(false)
   isLive      Boolean   @default(false)
+  mapName     String?
   scheduledAt DateTime?
   playedAt    DateTime?
   createdAt   DateTime  @default(now())

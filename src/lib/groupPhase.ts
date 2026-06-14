@@ -163,6 +163,7 @@ const createGroupMatches = (
         isLive: state?.isLive ?? false,
         isFinished: state?.isFinished ?? false,
         winnerId: state?.winnerId,
+        mapName: state?.mapName,
       })
     }
 

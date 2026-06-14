@@ -26,6 +26,7 @@ const createStateMap = (states: any[]): Map<string, MatchState> => {
       team2Score: Number(state.team2Score) || 0,
       isFinished: Boolean(state.isFinished),
       winnerId: state.winnerId || undefined,
+      mapName: state.mapName || undefined,
       lastUpdated: state.lastUpdated || Date.now(),
       source: state.source === 'database' ? 'database' : 'memory'
     })
@@ -778,6 +779,11 @@ export default function AdminBracketPage() {
           </span>
           <span className={`flex-1 min-w-0 truncate text-left ${team2Wins ? 'text-green-400' : ''}`}>{team2Name}</span>
         </div>
+        {match.mapName && (
+          <div className="mt-1 text-center text-[11px] font-semibold text-cyan-200">
+            Map: {match.mapName}
+          </div>
+        )}
 
         {match.autoAdvance && (
           <p className="text-xs text-center text-cyan-200 mt-2">Freilos – Team rückt automatisch weiter</p>
@@ -1253,6 +1259,11 @@ export default function AdminBracketPage() {
                         {selectedMatch.autoAdvance && (
                           <span className="rounded bg-cyan-500/20 px-2 py-1 text-xs font-semibold text-cyan-200">
                             Freilos
+                          </span>
+                        )}
+                        {selectedMatch.mapName && (
+                          <span className="rounded bg-cyan-500/20 px-2 py-1 text-xs font-semibold text-cyan-100">
+                            Map: {selectedMatch.mapName}
                           </span>
                         )}
                       </div>

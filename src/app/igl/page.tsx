@@ -308,6 +308,11 @@ export default function IglPage() {
             {team2Name}
           </span>
         </div>
+        {match.mapName && (
+          <div className="mt-1 text-center text-[11px] font-semibold text-cyan-200">
+            Map: {match.mapName}
+          </div>
+        )}
       </div>
     )
   }
@@ -337,6 +342,9 @@ export default function IglPage() {
             <p className="mt-1 text-sm text-gray-400">
               {match.team1?.name || 'TBD'} gegen {match.team2?.name || 'TBD'}
             </p>
+            {match.mapName && (
+              <p className="mt-1 text-sm font-semibold text-cyan-200">Map: {match.mapName}</p>
+            )}
           </div>
           <div className="flex flex-wrap gap-2 text-xs font-semibold">
             <span className="rounded-full border border-red-500/50 bg-red-600/15 px-3 py-1 text-red-100">

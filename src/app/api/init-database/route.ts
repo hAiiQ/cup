@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
         "awayTeamId" TEXT,
         "winnerId" TEXT,
         "isCompleted" BOOLEAN DEFAULT false,
+        "mapName" TEXT,
         "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(round, "bracketType")
