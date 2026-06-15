@@ -44,6 +44,27 @@ type BracketSettingsState = {
   activeGroupRound: number
 }
 
+type AdminChatMessage = {
+  id: string
+  matchId: string
+  senderUserId: string
+  senderTeamId: string
+  senderName: string
+  senderTeamName: string
+  message: string
+  createdAt: string
+}
+
+type AdminChatThread = {
+  matchId: string
+  isLive: boolean
+  isFinished: boolean
+  mapName: string | null
+  team1Name: string | null
+  team2Name: string | null
+  messages: AdminChatMessage[]
+}
+
 const MIN_TEAM_SLOTS = 2
 const MAX_TEAM_SLOTS = MAX_TEAMS
 
@@ -96,6 +117,11 @@ export default function AdminBracketPage() {
   const [participatingCount, setParticipatingCount] = useState(0)
   const [participationLoading, setParticipationLoading] = useState(false)
   const [participationResetLoading, setParticipationResetLoading] = useState(false)
+  const [chatModalOpen, setChatModalOpen] = useState(false)
+  const [chatThreads, setChatThreads] = useState<AdminChatThread[]>([])
+  const [selectedChatMatchId, setSelectedChatMatchId] = useState<string | null>(null)
+  const [chatLoading, setChatLoading] = useState(false)
+  const [chatError, setChatError] = useState('')
   const [settingsAlert, setSettingsAlert] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const settingsChanged =
     settingsDraft.mode !== bracketSettings.mode ||
@@ -133,14 +159,18 @@ export default function AdminBracketPage() {
   }, [isAuthenticated])
 
   useEffect(() => {
-    if (!selectedMatch) {
+    if (!selectedMatch && !chatModalOpen) {
       return
     }
 
     const previousOverflow = document.body.style.overflow
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        clearMatchSelection()
+        if (selectedMatch) {
+          clearMatchSelection()
+        } else {
+          setChatModalOpen(false)
+        }
       }
     }
 
@@ -151,7 +181,16 @@ export default function AdminBracketPage() {
       document.body.style.overflow = previousOverflow
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [selectedMatch])
+  }, [selectedMatch, chatModalOpen])
+
+  useEffect(() => {
+    if (!chatModalOpen) {
+      return
+    }
+
+    const interval = window.setInterval(() => fetchChatThreads(false), 4000)
+    return () => window.clearInterval(interval)
+  }, [chatModalOpen])
 
   const checkAdminAuth = async () => {
     try {
@@ -590,6 +629,43 @@ export default function AdminBracketPage() {
     setPanelMessage(null)
   }
 
+  const fetchChatThreads = async (showLoading = true) => {
+    if (showLoading) {
+      setChatLoading(true)
+    }
+    setChatError('')
+
+    try {
+      const response = await fetch('/api/admin/match-chats', {
+        credentials: 'include',
+        cache: 'no-store',
+      })
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Match-Chats konnten nicht geladen werden.')
+      }
+
+      const threads = Array.isArray(data.threads) ? data.threads : []
+      setChatThreads(threads)
+      setSelectedChatMatchId((current) => {
+        if (current && threads.some((thread: AdminChatThread) => thread.matchId === current)) {
+          return current
+        }
+        return threads[0]?.matchId || null
+      })
+    } catch (error) {
+      setChatError(error instanceof Error ? error.message : 'Match-Chats konnten nicht geladen werden.')
+    } finally {
+      setChatLoading(false)
+    }
+  }
+
+  const openChatModal = async () => {
+    setChatModalOpen(true)
+    await fetchChatThreads()
+  }
+
   const handleScoreInputChange = (team: 'team1' | 'team2', event: ChangeEvent<HTMLInputElement>) => {
     const sanitized = event.target.value.replace(/[^0-9]/g, '')
     setScoreInputs(prev => ({
@@ -887,6 +963,13 @@ export default function AdminBracketPage() {
                 {refreshing ? 'Aktualisiere...' : 'Manuell aktualisieren'}
               </button>
               <button
+                type="button"
+                onClick={openChatModal}
+                className="rounded bg-indigo-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-indigo-500"
+              >
+                Match-Chats
+              </button>
+              <button
                 onClick={resetTournament}
                 className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
               >
@@ -1170,6 +1253,203 @@ export default function AdminBracketPage() {
             />
           </div>
         </section>
+
+        {chatModalOpen && (
+          <div
+            className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) {
+                setChatModalOpen(false)
+              }
+            }}
+          >
+            <section
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="match-chats-title"
+              className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-lg border border-indigo-400/50 bg-gray-950 shadow-2xl"
+            >
+              <header className="flex items-start justify-between gap-4 border-b border-white/10 bg-gray-900 px-5 py-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase text-indigo-300">IGL Kommunikation</p>
+                  <h2 id="match-chats-title" className="mt-1 text-2xl font-bold text-white">Alle Match-Chats</h2>
+                  <p className="mt-1 text-sm text-gray-400">
+                    {chatThreads.length} Chats · {chatThreads.reduce((total, thread) => total + thread.messages.length, 0)} Nachrichten
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fetchChatThreads()}
+                    disabled={chatLoading}
+                    className="rounded border border-indigo-400/40 bg-indigo-500/15 px-3 py-2 text-sm font-semibold text-indigo-100 transition-colors hover:bg-indigo-500/25 disabled:cursor-wait disabled:opacity-60"
+                  >
+                    {chatLoading ? 'Lade...' : 'Aktualisieren'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setChatModalOpen(false)}
+                    aria-label="Fenster schließen"
+                    title="Schließen"
+                    className="flex h-10 w-10 items-center justify-center rounded border border-white/15 bg-black/30 text-xl font-bold text-white transition-colors hover:border-indigo-300 hover:bg-indigo-500/20"
+                  >
+                    X
+                  </button>
+                </div>
+              </header>
+
+              {chatError ? (
+                <div className="m-5 rounded border border-red-500/40 bg-red-500/15 p-4 text-red-100">
+                  {chatError}
+                </div>
+              ) : chatLoading && chatThreads.length === 0 ? (
+                <div className="flex min-h-80 items-center justify-center text-gray-400">
+                  Match-Chats werden geladen...
+                </div>
+              ) : chatThreads.length === 0 ? (
+                <div className="flex min-h-80 flex-col items-center justify-center px-6 text-center">
+                  <h3 className="text-xl font-bold text-white">Noch keine Match-Chats</h3>
+                  <p className="mt-2 text-sm text-gray-500">
+                    Sobald IGLs in einem Live-Match schreiben, erscheint der Verlauf hier.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid min-h-0 flex-1 md:grid-cols-[320px_minmax(0,1fr)]">
+                  <aside className="max-h-48 min-h-0 overflow-y-auto border-b border-white/10 bg-gray-900/60 p-3 md:max-h-none md:border-b-0 md:border-r">
+                    <div className="space-y-2">
+                      {chatThreads.map((thread) => {
+                        const bracketMatch = [
+                          ...(groupPhase?.rounds.flatMap((round) => round.matches) || []),
+                          ...bracket,
+                        ].find((match) => match.id === thread.matchId)
+                        const team1Name = bracketMatch?.team1?.name || thread.team1Name
+                        const team2Name = bracketMatch?.team2?.name || thread.team2Name
+                        const title = team1Name && team2Name
+                          ? `${team1Name} gegen ${team2Name}`
+                          : thread.matchId
+                        const lastMessage = thread.messages[thread.messages.length - 1]
+
+                        return (
+                          <button
+                            key={thread.matchId}
+                            type="button"
+                            onClick={() => setSelectedChatMatchId(thread.matchId)}
+                            className={`w-full rounded border p-3 text-left transition-colors ${
+                              selectedChatMatchId === thread.matchId
+                                ? 'border-indigo-400 bg-indigo-500/20'
+                                : 'border-white/10 bg-black/25 hover:border-indigo-400/50 hover:bg-white/5'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="truncate text-sm font-bold text-white">{title}</span>
+                              <span className={`shrink-0 rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
+                                thread.isLive
+                                  ? 'bg-red-500/20 text-red-200'
+                                  : thread.isFinished
+                                    ? 'bg-green-500/20 text-green-200'
+                                    : 'bg-white/10 text-gray-400'
+                              }`}>
+                                {thread.isLive ? 'Live' : thread.isFinished ? 'Beendet' : 'Inaktiv'}
+                              </span>
+                            </div>
+                            <div className="mt-2 flex items-center justify-between gap-2 text-xs text-gray-500">
+                              <span>{thread.messages.length} Nachrichten</span>
+                              <span>
+                                {lastMessage
+                                  ? new Date(lastMessage.createdAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+                                  : ''}
+                              </span>
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </aside>
+
+                  <div className="flex min-h-[360px] flex-col md:min-h-0">
+                    {(() => {
+                      const thread = chatThreads.find((item) => item.matchId === selectedChatMatchId)
+                      if (!thread) {
+                        return (
+                          <div className="flex flex-1 items-center justify-center text-gray-500">
+                            Wähle links einen Chat aus.
+                          </div>
+                        )
+                      }
+
+                      const bracketMatch = [
+                        ...(groupPhase?.rounds.flatMap((round) => round.matches) || []),
+                        ...bracket,
+                      ].find((match) => match.id === thread.matchId)
+                      const team1Name = bracketMatch?.team1?.name || thread.team1Name
+                      const team2Name = bracketMatch?.team2?.name || thread.team2Name
+
+                      return (
+                        <>
+                          <div className="border-b border-white/10 bg-gray-900/40 px-5 py-4">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <div>
+                                <h3 className="text-lg font-bold text-white">
+                                  {team1Name && team2Name ? `${team1Name} gegen ${team2Name}` : thread.matchId}
+                                </h3>
+                                <p className="mt-1 text-xs text-gray-500">Match-ID: {thread.matchId}</p>
+                              </div>
+                              <div className="flex flex-wrap gap-2 text-xs font-semibold">
+                                {(bracketMatch?.mapName || thread.mapName) && (
+                                  <span className="rounded bg-cyan-500/15 px-2 py-1 text-cyan-100">
+                                    Map: {bracketMatch?.mapName || thread.mapName}
+                                  </span>
+                                )}
+                                <span className={`rounded px-2 py-1 ${
+                                  thread.isLive
+                                    ? 'bg-red-500/20 text-red-100'
+                                    : thread.isFinished
+                                      ? 'bg-green-500/20 text-green-100'
+                                      : 'bg-white/10 text-gray-300'
+                                }`}>
+                                  {thread.isLive ? 'Live' : thread.isFinished ? 'Beendet' : 'Inaktiv'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-5">
+                            {thread.messages.map((chatMessage) => (
+                              <article
+                                key={chatMessage.id}
+                                className="rounded border border-white/10 bg-gray-900/65 px-4 py-3"
+                              >
+                                <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="font-bold text-indigo-200">{chatMessage.senderName}</span>
+                                    <span className="rounded bg-white/10 px-2 py-0.5 text-gray-300">
+                                      {chatMessage.senderTeamName}
+                                    </span>
+                                  </div>
+                                  <time className="text-gray-500">
+                                    {new Date(chatMessage.createdAt).toLocaleString('de-DE', {
+                                      day: '2-digit',
+                                      month: '2-digit',
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                    })}
+                                  </time>
+                                </div>
+                                <p className="mt-2 whitespace-pre-wrap break-words text-sm text-gray-100">
+                                  {chatMessage.message}
+                                </p>
+                              </article>
+                            ))}
+                          </div>
+                        </>
+                      )
+                    })()}
+                  </div>
+                </div>
+              )}
+            </section>
+          </div>
+        )}
 
         {selectedMatch && (
           <div
