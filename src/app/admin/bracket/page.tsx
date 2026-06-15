@@ -1159,36 +1159,6 @@ export default function AdminBracketPage() {
               >
                 {settingsSaving ? 'Speichere...' : 'Einstellungen speichern & anwenden'}
               </button>
-              <button
-                type="button"
-                onClick={startTournament}
-                disabled={bracketSettings.tournamentStarted || tournamentStartLoading || teams.length < 2}
-                className={`w-full px-4 py-3 rounded font-semibold text-white transition-colors ${bracketSettings.tournamentStarted ? 'bg-green-700 cursor-default' : 'bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed'} ${tournamentStartLoading ? 'opacity-60' : ''}`}
-              >
-                {tournamentStartLoading
-                  ? 'Turnier startet...'
-                  : bracketSettings.tournamentStarted
-                    ? 'Turnier ist gestartet'
-                    : 'Turnier jetzt starten'}
-              </button>
-              {bracketSettings.groupPhaseEnabled && (
-                <button
-                  type="button"
-                  onClick={activateNextGroupRound}
-                  disabled={!canActivateNextGroupRound || groupRoundLoading}
-                  className="w-full rounded bg-cyan-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed disabled:bg-gray-700"
-                >
-                  {groupRoundLoading
-                    ? 'Aktiviere Gruppenrunde...'
-                    : bracketSettings.activeGroupRound >= (groupPhase?.totalRounds || 0)
-                      ? 'Alle Gruppenrunden gespielt'
-                      : bracketSettings.activeGroupRound === 0
-                        ? 'Gruppenrunde 1 aktivieren & live'
-                        : currentGroupRound?.isComplete
-                          ? `Gruppenrunde ${bracketSettings.activeGroupRound + 1} aktivieren & live`
-                          : `Gruppenrunde ${bracketSettings.activeGroupRound} zuerst abschließen`}
-                </button>
-              )}
             </div>
           </div>
         </section>
