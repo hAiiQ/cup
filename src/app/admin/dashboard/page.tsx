@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { formatTierShortLabel, resolveTierKey, TIER_SELECT_OPTIONS, type TierKey } from '@/lib/tierConfig'
 import { DEFAULT_TEAM_NAMES } from '@/lib/teamDefaults'
 import { MIN_VALORANT_LEVEL } from '@/lib/valorantRequirements'
+import AdminTopbar, { type DashboardView } from '@/components/AdminTopbar'
 
 const TIER_BADGE_CLASSES: Record<TierKey, string> = {
   tier1: 'bg-blue-600 text-white',
@@ -203,6 +204,10 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchData()
+    const view = new URLSearchParams(window.location.search).get('view')
+    if (view === 'overview' || view === 'users') {
+      setActiveTab(view)
+    }
   }, [])
 
   useEffect(() => {
@@ -290,9 +295,11 @@ export default function AdminDashboard() {
     }
   }
 
-  const handleLogout = async () => {
-    await fetch('/api/admin/logout', { method: 'POST' })
-    router.push('/admin')
+  const selectDashboardView = (view: DashboardView) => {
+    setActiveTab(view)
+    const url = new URL(window.location.href)
+    url.searchParams.set('view', view)
+    window.history.replaceState(null, '', url)
   }
 
   const deleteUser = async (userId: string, twitchName: string) => {
@@ -837,63 +844,12 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-900">
-      {/* Header */}
-      <header className="bg-gray-800 border-b border-gray-700">
-        <div className="container mx-auto px-4 py-4">
-          <nav className="flex justify-between items-center">
-            <div className="text-2xl font-bold text-red-400">
-              🔒 ADMIN PANEL
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-gray-300">Administrator</span>
-              <button
-                onClick={handleLogout}
-                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
-              >
-                Abmelden
-              </button>
-            </div>
-          </nav>
-        </div>
-      </header>
+      <AdminTopbar
+        active={activeTab === 'overview' ? 'overview' : 'users'}
+        onSelectDashboardView={selectDashboardView}
+      />
 
       <div className="container mx-auto px-4 py-8">
-        {/* Navigation Tabs */}
-        <div className="flex space-x-1 mb-8">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-              activeTab === 'overview'
-                ? 'bg-red-600 text-white'
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-            }`}
-          >
-            Übersicht
-          </button>
-          <button
-            onClick={() => setActiveTab('users')}
-            className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-              activeTab === 'users'
-                ? 'bg-red-600 text-white'
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-            }`}
-          >
-            User Management
-          </button>
-          <Link
-            href="/admin/wheel"
-            className="px-6 py-3 rounded-lg font-semibold bg-purple-600 text-white hover:bg-purple-700 transition-colors"
-          >
-            🎯 Glücksrad
-          </Link>
-          <Link
-            href="/admin/bracket"
-            className="px-6 py-3 rounded-lg font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-          >
-            🏆 Tournament Bracket
-          </Link>
-        </div>
-
         {/* Overview Tab */}
         {activeTab === 'overview' && (
           <div className="space-y-8">

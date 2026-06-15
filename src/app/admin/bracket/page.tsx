@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
-import { useRouter } from 'next/navigation'
 import {
   buildBracketMatches,
   type BracketConnection,
@@ -15,6 +14,7 @@ import type { MatchState } from '@/lib/matchState'
 import BracketDiagram from '@/components/bracket/BracketDiagram'
 import { MAX_TEAMS } from '@/lib/teamDefaults'
 import { MAX_GROUP_COUNT, PLAYOFF_TEAM_COUNT, buildGroupPhase, clampGroupCount, type GroupPhaseResult } from '@/lib/groupPhase'
+import AdminTopbar from '@/components/AdminTopbar'
 
 const createStateMap = (states: any[]): Map<string, MatchState> => {
   const map = new Map<string, MatchState>()
@@ -89,7 +89,6 @@ const MODE_LABELS: Record<BracketMode, string> = {
 }
 
 export default function AdminBracketPage() {
-  const router = useRouter()
   const [teams, setTeams] = useState<BracketTeam[]>([])
   const [bracket, setBracket] = useState<BracketMatch[]>([])
   const [layout, setLayout] = useState<BracketNodeLayout[]>([])
@@ -897,94 +896,143 @@ export default function AdminBracketPage() {
 
   return (
     <div className="min-h-screen bg-image">
-      <header className="bg-gray-800 border-b border-gray-700">
-        <div className="container mx-auto px-4 py-4">
-          <nav className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="text-2xl font-bold text-orange-300">
-              🏆 SUMMER CUP BRACKET (ADMIN)
+      <AdminTopbar active="bracket" />
+
+      <section className="border-b border-white/10 bg-gray-900/95 text-white">
+        <div className="mx-auto max-w-[1800px] px-4 py-5 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase text-orange-300">Tournament Administration</p>
+              <h1 className="mt-1 text-3xl font-bold">Summer Cup Bracket</h1>
+              <p className="mt-1 text-sm text-gray-400">
+                Turnierablauf, Teilnahme und Live-Matches zentral steuern.
+              </p>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="text-gray-300 text-sm">
-                {teams.length} Teams aktiv · {bracketSettings.groupPhaseEnabled ? `${bracketSettings.groupCount} Gruppen · Top ${PLAYOFF_TEAM_COUNT} Bracket` : `${configuredSlotCount} Slots`} · Bracket Seeds: {slotCount > 0 ? slotCount : '...'} · {MODE_LABELS[bracketSettings.mode]}
-              </div>
-              <button
-                onClick={startTournament}
-                className={`px-4 py-2 rounded transition-colors font-semibold ${bracketSettings.tournamentStarted ? 'bg-green-700 text-green-100 cursor-default' : 'bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed'}`}
-                disabled={bracketSettings.tournamentStarted || tournamentStartLoading || teams.length < 2}
-              >
-                {tournamentStartLoading
-                  ? 'Starte...'
-                  : bracketSettings.tournamentStarted
-                    ? 'Turnier gestartet'
-                    : 'Turnier starten'}
-              </button>
-              <button
-                type="button"
-                onClick={toggleParticipation}
-                disabled={participationLoading || participationResetLoading}
-                className={`rounded px-4 py-2 font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:bg-gray-600 ${
-                  participationOpen
-                    ? 'bg-green-600 hover:bg-green-500'
-                    : 'bg-yellow-600 hover:bg-yellow-500'
+
+            <div className="flex flex-wrap gap-2 text-xs font-semibold">
+              <span className="rounded-md border border-white/10 bg-gray-950 px-3 py-2 text-gray-200">
+                {teams.length} Teams
+              </span>
+              <span className="rounded-md border border-white/10 bg-gray-950 px-3 py-2 text-gray-200">
+                {bracketSettings.groupPhaseEnabled
+                  ? `${bracketSettings.groupCount} Gruppen · Top ${PLAYOFF_TEAM_COUNT}`
+                  : `${configuredSlotCount} Slots`}
+              </span>
+              <span className="rounded-md border border-white/10 bg-gray-950 px-3 py-2 text-gray-200">
+                {MODE_LABELS[bracketSettings.mode]}
+              </span>
+              <span className="rounded-md border border-white/10 bg-gray-950 px-3 py-2 text-gray-200">
+                {slotCount > 0 ? `${slotCount} Seeds` : 'Seeds offen'}
+              </span>
+              <span
+                className={`rounded-md border px-3 py-2 ${
+                  bracketSettings.tournamentStarted
+                    ? 'border-green-400/30 bg-green-500/15 text-green-100'
+                    : 'border-orange-400/30 bg-orange-500/15 text-orange-100'
                 }`}
               >
-                {participationLoading
-                  ? 'Speichere...'
-                  : participationOpen
-                    ? `Teilnahme offen (${participatingCount})`
-                    : `Teilnahme öffnen (${participatingCount})`}
-              </button>
-              <button
-                type="button"
-                onClick={resetParticipation}
-                disabled={participationResetLoading || participationLoading || participatingCount === 0}
-                className="rounded bg-red-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-red-500 disabled:cursor-not-allowed disabled:bg-gray-600"
-              >
-                {participationResetLoading ? 'Setze zurück...' : 'Teilnahmen zurücksetzen'}
-              </button>
-              {bracketSettings.groupPhaseEnabled && (
-                <button
-                  onClick={activateNextGroupRound}
-                  disabled={!canActivateNextGroupRound || groupRoundLoading}
-                  className="rounded bg-cyan-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed disabled:bg-gray-600"
-                >
-                  {groupRoundLoading
-                    ? 'Aktiviere...'
-                    : bracketSettings.activeGroupRound >= (groupPhase?.totalRounds || 0)
-                      ? 'Gruppenphase abgeschlossen'
-                      : `Runde ${bracketSettings.activeGroupRound + 1} live stellen`}
-                </button>
-              )}
-              <button
-                onClick={() => fetchData(false)}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors flex items-center gap-2"
-                disabled={refreshing}
-              >
-                {refreshing ? 'Aktualisiere...' : 'Manuell aktualisieren'}
-              </button>
-              <button
-                type="button"
-                onClick={openChatModal}
-                className="rounded bg-indigo-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-indigo-500"
-              >
-                Match-Chats
-              </button>
-              <button
-                onClick={resetTournament}
-                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
-              >
-                🔄 Tournament zurücksetzen
-              </button>
-              <button
-                onClick={() => router.push('/admin/dashboard')}
-                className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors"
-              >
-                Zurück zum Dashboard
-              </button>
+                {bracketSettings.tournamentStarted ? 'Turnier läuft' : 'Noch nicht gestartet'}
+              </span>
             </div>
-          </nav>
+          </div>
+
+          <div className="mt-5 grid gap-4 border-t border-white/10 pt-4 xl:grid-cols-[auto_auto_minmax(0,1fr)]">
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase text-gray-500">Turnier</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={startTournament}
+                  className={`min-h-10 rounded-md px-4 py-2 text-sm font-bold transition-colors ${
+                    bracketSettings.tournamentStarted
+                      ? 'cursor-default bg-green-700 text-green-100'
+                      : 'bg-orange-600 text-white hover:bg-orange-500 disabled:cursor-not-allowed disabled:bg-gray-700'
+                  }`}
+                  disabled={bracketSettings.tournamentStarted || tournamentStartLoading || teams.length < 2}
+                >
+                  {tournamentStartLoading
+                    ? 'Starte...'
+                    : bracketSettings.tournamentStarted
+                      ? 'Turnier gestartet'
+                      : 'Turnier starten'}
+                </button>
+                {bracketSettings.groupPhaseEnabled && (
+                  <button
+                    type="button"
+                    onClick={activateNextGroupRound}
+                    disabled={!canActivateNextGroupRound || groupRoundLoading}
+                    className="min-h-10 rounded-md bg-cyan-700 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-cyan-600 disabled:cursor-not-allowed disabled:bg-gray-700"
+                  >
+                    {groupRoundLoading
+                      ? 'Aktiviere...'
+                      : bracketSettings.activeGroupRound >= (groupPhase?.totalRounds || 0)
+                        ? 'Gruppenphase abgeschlossen'
+                        : `Runde ${bracketSettings.activeGroupRound + 1} live stellen`}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase text-gray-500">Teilnahme</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={toggleParticipation}
+                  disabled={participationLoading || participationResetLoading}
+                  className={`min-h-10 rounded-md px-4 py-2 text-sm font-bold text-white transition-colors disabled:cursor-not-allowed disabled:bg-gray-700 ${
+                    participationOpen
+                      ? 'bg-green-700 hover:bg-green-600'
+                      : 'bg-yellow-600 hover:bg-yellow-500'
+                  }`}
+                >
+                  {participationLoading
+                    ? 'Speichere...'
+                    : participationOpen
+                      ? `Teilnahme offen (${participatingCount})`
+                      : `Teilnahme öffnen (${participatingCount})`}
+                </button>
+                <button
+                  type="button"
+                  onClick={resetParticipation}
+                  disabled={participationResetLoading || participationLoading || participatingCount === 0}
+                  className="min-h-10 rounded-md border border-gray-600 bg-gray-800 px-4 py-2 text-sm font-bold text-gray-100 transition-colors hover:border-gray-400 hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  {participationResetLoading ? 'Setze zurück...' : 'Zurücksetzen'}
+                </button>
+              </div>
+            </div>
+
+            <div className="xl:justify-self-end">
+              <p className="mb-2 text-xs font-semibold uppercase text-gray-500 xl:text-right">Werkzeuge</p>
+              <div className="flex flex-wrap gap-2 xl:justify-end">
+                <button
+                  type="button"
+                  onClick={openChatModal}
+                  className="min-h-10 rounded-md bg-indigo-700 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-indigo-600"
+                >
+                  Match-Chats
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fetchData(false)}
+                  disabled={refreshing}
+                  className="min-h-10 rounded-md bg-blue-700 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-600 disabled:cursor-wait disabled:bg-gray-700"
+                >
+                  {refreshing ? 'Aktualisiere...' : 'Aktualisieren'}
+                </button>
+                <button
+                  type="button"
+                  onClick={resetTournament}
+                  className="min-h-10 rounded-md bg-red-700 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-red-600"
+                >
+                  Turnier zurücksetzen
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      </header>
+      </section>
 
       <div className="w-full px-4 py-6 space-y-8 max-w-[1800px] mx-auto">
         <section className="bg-black/30 backdrop-blur-sm rounded-xl p-5 border border-purple-500/60">

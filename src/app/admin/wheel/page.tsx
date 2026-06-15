@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatTierLabel, TIER_SELECT_OPTIONS } from '@/lib/tierConfig'
 import { TEAM_PLAYER_LIMIT } from '@/lib/teamCapacity'
+import AdminTopbar from '@/components/AdminTopbar'
 
 const WHEEL_TICK_SOUND_SRC = '/wheelspin.mp3'
 const WHEEL_TICK_POOL_SIZE = 10
@@ -558,31 +559,17 @@ export default function WheelPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
-      {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-950/95">
-        <div className="mx-auto max-w-[1800px] px-4 py-5 sm:px-6 lg:px-8">
-          <nav className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-[0.25em] text-purple-300">
-                Admin Tool
-              </div>
-              <h1 className="mt-1 text-3xl font-bold text-white">Glücksrad</h1>
-              <p className="mt-1 text-sm text-gray-400">
-                Freie Spieler filtern, ziehen und direkt einem Team zuweisen.
-              </p>
-            </div>
-            <button
-              onClick={() => router.push('/admin/dashboard')}
-              className="self-start rounded-md border border-gray-700 bg-gray-900 px-4 py-2 text-sm font-semibold text-gray-100 transition-colors hover:border-purple-400 hover:text-purple-100 md:self-auto"
-            >
-              Zurück zum Dashboard
-            </button>
-          </nav>
-        </div>
-      </header>
+      <AdminTopbar active="wheel" />
 
       {/* Main Content - 3 Column Layout */}
       <main className="mx-auto max-w-[1800px] px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mb-6">
+          <p className="text-xs font-semibold uppercase text-fuchsia-300">Admin Tool</p>
+          <h1 className="mt-1 text-3xl font-bold text-white">Glücksrad</h1>
+          <p className="mt-1 text-sm text-gray-400">
+            Freie Spieler filtern, ziehen und direkt einem Team zuweisen.
+          </p>
+        </div>
         <div className="mb-6 grid gap-3 md:grid-cols-4">
           <div className="rounded-lg border border-gray-800 bg-gray-900/80 p-4">
             <div className="text-2xl font-bold text-purple-200">{filteredUsers.length}</div>
