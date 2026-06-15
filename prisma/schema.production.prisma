@@ -115,6 +115,20 @@ model MatchResultReport {
   @@index([status])
 }
 
+model MatchChatMessage {
+  id             String   @id @default(cuid())
+  matchId        String
+  senderUserId   String
+  senderTeamId   String
+  senderName     String
+  senderTeamName String
+  message        String
+  createdAt      DateTime @default(now())
+
+  @@index([matchId, createdAt])
+  @@index([senderUserId, createdAt])
+}
+
 model Admin {
   id       String @id @default(cuid())
   username String @unique

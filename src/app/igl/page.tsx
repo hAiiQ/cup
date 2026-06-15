@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import type { FormEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import BracketDiagram from '@/components/bracket/BracketDiagram'
@@ -30,11 +31,23 @@ type IglReport = {
   updatedAt: string
 }
 
+type IglChatMessage = {
+  id: string
+  matchId: string
+  senderUserId: string
+  senderTeamId: string
+  senderName: string
+  senderTeamName: string
+  message: string
+  createdAt: string
+}
+
 type IglMatch = BracketMatch & {
   ownSlot: 'team1' | 'team2' | null
   report: IglReport | null
   canSubmitResult: boolean
   canConfirmResult: boolean
+  chatMessages: IglChatMessage[]
 }
 
 type IglUser = {
@@ -92,6 +105,8 @@ export default function IglPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [scoreDrafts, setScoreDrafts] = useState<Record<string, ScoreDraft>>({})
   const [busyMatchId, setBusyMatchId] = useState<string | null>(null)
+  const [chatDrafts, setChatDrafts] = useState<Record<string, string>>({})
+  const [busyChatMatchId, setBusyChatMatchId] = useState<string | null>(null)
 
   const fetchData = async (showSpinner = false) => {
     const token = localStorage.getItem('token')
@@ -262,6 +277,51 @@ export default function IglPage() {
     }
   }
 
+  const sendChatMessage = async (event: FormEvent<HTMLFormElement>, match: IglMatch) => {
+    event.preventDefault()
+
+    const token = localStorage.getItem('token')
+    if (!token) {
+      router.push('/login')
+      return
+    }
+
+    const chatMessage = (chatDrafts[match.id] || '').trim()
+    if (!chatMessage || busyChatMatchId === match.id) {
+      return
+    }
+
+    setBusyChatMatchId(match.id)
+    setMessage(null)
+
+    try {
+      const response = await fetch(`/api/igl/matches/${encodeURIComponent(match.id)}/chat`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ message: chatMessage }),
+      })
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Nachricht konnte nicht gesendet werden')
+      }
+
+      setChatDrafts((prev) => ({ ...prev, [match.id]: '' }))
+      await fetchData(false)
+    } catch (chatError) {
+      setMessage({
+        type: 'error',
+        text: chatError instanceof Error ? chatError.message : 'Nachricht konnte nicht gesendet werden',
+      })
+    } finally {
+      setBusyChatMatchId(null)
+    }
+  }
+
   const renderMatchBox = (match?: IglMatch) => {
     if (!match) {
       return (
@@ -330,6 +390,8 @@ export default function IglPage() {
       match.report?.status === 'pending' &&
       payload?.user.teamId &&
       match.report.reporterTeamId === payload.user.teamId
+    const chatDraft = chatDrafts[match.id] || ''
+    const chatMessages = match.chatMessages || []
 
     return (
       <div key={match.id} className="rounded-lg border border-gray-700 bg-gray-900/85 p-4">
@@ -430,6 +492,76 @@ export default function IglPage() {
             Dein Team hat ein Ergebnis gemeldet. Warte auf die Bestätigung des Gegnerteams.
           </p>
         )}
+
+        <div className="mt-5 border-t border-gray-700 pt-4">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="font-bold text-white">Match-Chat</h3>
+            <span className="text-xs text-gray-500">{chatMessages.length} Nachrichten</span>
+          </div>
+
+          <div className="mt-3 flex min-h-32 max-h-64 flex-col-reverse gap-2 overflow-y-auto rounded-md border border-gray-700 bg-gray-950/80 p-3">
+            {chatMessages.length === 0 ? (
+              <div className="my-auto text-center text-sm text-gray-500">Noch keine Nachrichten</div>
+            ) : (
+              [...chatMessages].reverse().map((chatMessage) => {
+                const isOwnMessage = chatMessage.senderUserId === payload?.user.id
+
+                return (
+                  <div
+                    key={chatMessage.id}
+                    className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[85%] rounded-md border px-3 py-2 ${
+                        isOwnMessage
+                          ? 'border-blue-400/40 bg-blue-600/20 text-blue-50'
+                          : 'border-gray-700 bg-gray-900 text-gray-100'
+                      }`}
+                    >
+                      <div className="flex flex-wrap items-center gap-x-2 text-[11px]">
+                        <span className="font-bold">{chatMessage.senderName}</span>
+                        <span className={isOwnMessage ? 'text-blue-200/70' : 'text-gray-500'}>
+                          {chatMessage.senderTeamName}
+                        </span>
+                        <span className={isOwnMessage ? 'text-blue-200/60' : 'text-gray-600'}>
+                          {formatTime(chatMessage.createdAt)}
+                        </span>
+                      </div>
+                      <p className="mt-1 whitespace-pre-wrap break-words text-sm">{chatMessage.message}</p>
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+
+          <form
+            onSubmit={(event) => sendChatMessage(event, match)}
+            className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end"
+          >
+            <label className="min-w-0 flex-1">
+              <span className="sr-only">Nachricht</span>
+              <textarea
+                rows={2}
+                maxLength={500}
+                value={chatDraft}
+                onChange={(event) => {
+                  const value = event.target.value
+                  setChatDrafts((prev) => ({ ...prev, [match.id]: value }))
+                }}
+                placeholder="Nachricht schreiben..."
+                className="block w-full resize-none rounded-md border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:border-blue-400 focus:outline-none"
+              />
+            </label>
+            <button
+              type="submit"
+              disabled={!chatDraft.trim() || busyChatMatchId === match.id}
+              className="h-10 rounded-md bg-blue-600 px-5 text-sm font-bold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-gray-700"
+            >
+              {busyChatMatchId === match.id ? 'Sende...' : 'Senden'}
+            </button>
+          </form>
+        </div>
       </div>
     )
   }

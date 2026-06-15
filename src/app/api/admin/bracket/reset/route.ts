@@ -4,6 +4,7 @@ import { verifyToken } from '@/lib/auth'
 import { clearMatchStates } from '@/lib/matchState'
 import { updateBracketSettings } from '@/lib/bracketSettings'
 import { resetTeamsToDefaultNames } from '@/lib/teamMaintenance'
+import { ensureMatchChatSchema } from '@/lib/matchChat'
 
 // Helper function to verify admin
 async function verifyAdmin(request: NextRequest) {
@@ -42,13 +43,16 @@ export async function POST(request: NextRequest) {
 
     console.log('🔄 Tournament reset requested by admin:', admin.username)
 
+    await ensureMatchChatSchema()
     const resetResult = await prisma.$transaction(async (tx) => {
+      const chatDeleteResult = await tx.matchChatMessage.deleteMany({})
       const deleteResult = await tx.match.deleteMany({})
       const reportDeleteResult = await tx.matchResultReport.deleteMany({})
       const teams = await resetTeamsToDefaultNames(tx)
       return {
         deletedMatches: deleteResult.count,
         deletedReports: reportDeleteResult.count,
+        deletedChatMessages: chatDeleteResult.count,
         resetTeams: teams.length
       }
     })
@@ -62,6 +66,7 @@ export async function POST(request: NextRequest) {
       message: 'Tournament erfolgreich zurückgesetzt',
       deletedMatches: resetResult.deletedMatches,
       deletedReports: resetResult.deletedReports,
+      deletedChatMessages: resetResult.deletedChatMessages,
       resetTeams: resetResult.resetTeams
     })
 

@@ -4,6 +4,8 @@ import {
   getAuthenticatedIglUser,
   loadIglBracketData,
 } from '@/lib/iglMatches'
+import { prisma } from '@/lib/prisma'
+import { ensureMatchChatSchema } from '@/lib/matchChat'
 
 export const dynamic = 'force-dynamic'
 
@@ -51,6 +53,28 @@ export async function GET(request: NextRequest) {
     }
     const matches = data.matches.map(enrichMatch)
     const groupMatches = data.groupMatches.map(enrichMatch)
+    const liveOwnMatchIds = [...groupMatches, ...matches]
+      .filter((match) => match.ownSlot && match.isLive && !match.isFinished && !match.autoAdvance)
+      .map((match) => match.id)
+
+    await ensureMatchChatSchema()
+    const chatMessages = liveOwnMatchIds.length > 0
+      ? await prisma.matchChatMessage.findMany({
+          where: { matchId: { in: liveOwnMatchIds } },
+          orderBy: { createdAt: 'desc' },
+          take: 200,
+        })
+      : []
+    const chatByMatch = new Map<string, typeof chatMessages>()
+    chatMessages.reverse().forEach((chatMessage) => {
+      const messages = chatByMatch.get(chatMessage.matchId) || []
+      messages.push(chatMessage)
+      chatByMatch.set(chatMessage.matchId, messages)
+    })
+    const addChat = <T extends { id: string }>(match: T) => ({
+      ...match,
+      chatMessages: chatByMatch.get(match.id) || [],
+    })
 
     return NextResponse.json({
       success: true,
@@ -62,8 +86,8 @@ export async function GET(request: NextRequest) {
         team: user.team,
         isIGL: user.isIGL,
       },
-      matches,
-      groupMatches,
+      matches: matches.map(addChat),
+      groupMatches: groupMatches.map(addChat),
       groupPhase: data.groupPhase,
       teams: data.teams,
       reports: data.reports,

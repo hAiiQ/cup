@@ -4,6 +4,7 @@ import { verifyToken } from '@/lib/auth'
 import { resetTeamsToDefaultNames } from '@/lib/teamMaintenance'
 import { updateBracketSettings } from '@/lib/bracketSettings'
 import { clearMatchStates } from '@/lib/matchState'
+import { ensureMatchChatSchema } from '@/lib/matchChat'
 
 async function verifyAdmin(request: NextRequest) {
   const token = request.cookies.get('admin_token')?.value
@@ -33,9 +34,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
     }
 
+    await ensureMatchChatSchema()
     const createdTeams = await prisma.$transaction(async (tx) => {
       await tx.user.updateMany({ data: { teamId: null } })
       await tx.teamMember.deleteMany({})
+      await tx.matchChatMessage.deleteMany({})
       await tx.match.deleteMany({})
       return resetTeamsToDefaultNames(tx)
     })
