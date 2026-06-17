@@ -164,6 +164,8 @@ export default function AdminBracketPage() {
   const [chatLoading, setChatLoading] = useState(false)
   const [chatError, setChatError] = useState('')
   const [settingsAlert, setSettingsAlert] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const participationDeadlineEditingRef = useRef(false)
+  const participationDeadlineDirtyRef = useRef(false)
   const settingsChanged =
     settingsDraft.mode !== bracketSettings.mode ||
     settingsDraft.teamSlots !== bracketSettings.teamSlots ||
@@ -392,7 +394,9 @@ export default function AdminBracketPage() {
         setParticipationOpen(Boolean(data.open))
         setParticipatingCount(Number(data.participatingCount) || 0)
         setParticipationEndsAt(data.participationEndsAt || null)
-        setParticipationDeadlineInput(toDatetimeLocalValue(data.participationEndsAt))
+        if (!participationDeadlineEditingRef.current && !participationDeadlineDirtyRef.current) {
+          setParticipationDeadlineInput(toDatetimeLocalValue(data.participationEndsAt))
+        }
       }
     } catch (error) {
       console.error('Participation status error:', error)
@@ -433,6 +437,7 @@ export default function AdminBracketPage() {
       setParticipationOpen(Boolean(data.open))
       setParticipatingCount(Number(data.participatingCount) || 0)
       setParticipationEndsAt(data.participationEndsAt || null)
+      participationDeadlineDirtyRef.current = false
       setParticipationDeadlineInput(toDatetimeLocalValue(data.participationEndsAt))
       setSettingsAlert({ type: 'success', text: data.message })
     } catch (error) {
@@ -472,6 +477,7 @@ export default function AdminBracketPage() {
       setParticipationOpen(Boolean(data.open))
       setParticipatingCount(Number(data.participatingCount) || 0)
       setParticipationEndsAt(data.participationEndsAt || null)
+      participationDeadlineDirtyRef.current = false
       setParticipationDeadlineInput(toDatetimeLocalValue(data.participationEndsAt))
       setSettingsAlert({
         type: 'success',
@@ -520,6 +526,7 @@ export default function AdminBracketPage() {
       setParticipationOpen(Boolean(data.open))
       setParticipatingCount(Number(data.participatingCount) || 0)
       setParticipationEndsAt(data.participationEndsAt || null)
+      participationDeadlineDirtyRef.current = false
       setParticipationDeadlineInput(toDatetimeLocalValue(data.participationEndsAt))
       setSettingsAlert({
         type: 'success',
@@ -1087,7 +1094,16 @@ export default function AdminBracketPage() {
                   <input
                     type="datetime-local"
                     value={participationDeadlineInput}
-                    onChange={(event) => setParticipationDeadlineInput(event.target.value)}
+                    onFocus={() => {
+                      participationDeadlineEditingRef.current = true
+                    }}
+                    onBlur={() => {
+                      participationDeadlineEditingRef.current = false
+                    }}
+                    onChange={(event) => {
+                      participationDeadlineDirtyRef.current = true
+                      setParticipationDeadlineInput(event.target.value)
+                    }}
                     className="min-h-10 w-full rounded-md border border-gray-600 bg-gray-950 px-3 py-2 text-sm font-semibold text-white outline-none transition-colors focus:border-yellow-400"
                   />
                 </label>
