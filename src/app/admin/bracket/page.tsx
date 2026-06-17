@@ -88,6 +88,45 @@ const MODE_LABELS: Record<BracketMode, string> = {
   double: 'Double Elimination'
 }
 
+const toDatetimeLocalValue = (isoValue?: string | null) => {
+  if (!isoValue) {
+    return ''
+  }
+
+  const date = new Date(isoValue)
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+  return localDate.toISOString().slice(0, 16)
+}
+
+const datetimeLocalToIso = (value: string) => {
+  const trimmedValue = value.trim()
+  if (!trimmedValue) {
+    return null
+  }
+
+  const date = new Date(trimmedValue)
+  if (Number.isNaN(date.getTime())) {
+    return undefined
+  }
+
+  return date.toISOString()
+}
+
+const formatParticipationDeadline = (isoValue?: string | null) => {
+  if (!isoValue) {
+    return 'Keine Endzeit gesetzt'
+  }
+
+  return new Intl.DateTimeFormat('de-DE', {
+    dateStyle: 'short',
+    timeStyle: 'short'
+  }).format(new Date(isoValue))
+}
+
 export default function AdminBracketPage() {
   const [teams, setTeams] = useState<BracketTeam[]>([])
   const [bracket, setBracket] = useState<BracketMatch[]>([])
@@ -114,8 +153,11 @@ export default function AdminBracketPage() {
   const [groupRoundLoading, setGroupRoundLoading] = useState(false)
   const [participationOpen, setParticipationOpen] = useState(false)
   const [participatingCount, setParticipatingCount] = useState(0)
+  const [participationEndsAt, setParticipationEndsAt] = useState<string | null>(null)
+  const [participationDeadlineInput, setParticipationDeadlineInput] = useState('')
   const [participationLoading, setParticipationLoading] = useState(false)
   const [participationResetLoading, setParticipationResetLoading] = useState(false)
+  const [participationDeadlineSaving, setParticipationDeadlineSaving] = useState(false)
   const [chatModalOpen, setChatModalOpen] = useState(false)
   const [chatThreads, setChatThreads] = useState<AdminChatThread[]>([])
   const [selectedChatMatchId, setSelectedChatMatchId] = useState<string | null>(null)
@@ -349,6 +391,8 @@ export default function AdminBracketPage() {
       if (response.ok) {
         setParticipationOpen(Boolean(data.open))
         setParticipatingCount(Number(data.participatingCount) || 0)
+        setParticipationEndsAt(data.participationEndsAt || null)
+        setParticipationDeadlineInput(toDatetimeLocalValue(data.participationEndsAt))
       }
     } catch (error) {
       console.error('Participation status error:', error)
@@ -360,6 +404,13 @@ export default function AdminBracketPage() {
       return
     }
 
+    const nextAction = participationOpen ? 'close' : 'open'
+    const deadlineIso = datetimeLocalToIso(participationDeadlineInput)
+    if (nextAction === 'open' && deadlineIso === undefined) {
+      setSettingsAlert({ type: 'error', text: 'Bitte gib eine gültige Teilnahme-Endzeit ein.' })
+      return
+    }
+
     setParticipationLoading(true)
     setSettingsAlert(null)
 
@@ -368,7 +419,10 @@ export default function AdminBracketPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ action: participationOpen ? 'close' : 'open' }),
+        body: JSON.stringify({
+          action: nextAction,
+          ...(nextAction === 'open' ? { participationEndsAt: deadlineIso } : {}),
+        }),
       })
       const data = await response.json().catch(() => ({}))
 
@@ -378,6 +432,8 @@ export default function AdminBracketPage() {
 
       setParticipationOpen(Boolean(data.open))
       setParticipatingCount(Number(data.participatingCount) || 0)
+      setParticipationEndsAt(data.participationEndsAt || null)
+      setParticipationDeadlineInput(toDatetimeLocalValue(data.participationEndsAt))
       setSettingsAlert({ type: 'success', text: data.message })
     } catch (error) {
       setSettingsAlert({
@@ -415,6 +471,8 @@ export default function AdminBracketPage() {
 
       setParticipationOpen(Boolean(data.open))
       setParticipatingCount(Number(data.participatingCount) || 0)
+      setParticipationEndsAt(data.participationEndsAt || null)
+      setParticipationDeadlineInput(toDatetimeLocalValue(data.participationEndsAt))
       setSettingsAlert({
         type: 'success',
         text: data.message || 'Teilnahmen wurden zurückgesetzt.',
@@ -426,6 +484,54 @@ export default function AdminBracketPage() {
       })
     } finally {
       setParticipationResetLoading(false)
+    }
+  }
+
+  const saveParticipationDeadline = async () => {
+    if (participationDeadlineSaving) {
+      return
+    }
+
+    const deadlineIso = datetimeLocalToIso(participationDeadlineInput)
+    if (deadlineIso === undefined) {
+      setSettingsAlert({ type: 'error', text: 'Bitte gib eine gültige Teilnahme-Endzeit ein.' })
+      return
+    }
+
+    setParticipationDeadlineSaving(true)
+    setSettingsAlert(null)
+
+    try {
+      const response = await fetch('/api/admin/participation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          action: 'deadline',
+          participationEndsAt: deadlineIso,
+        }),
+      })
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Endzeit konnte nicht gespeichert werden.')
+      }
+
+      setParticipationOpen(Boolean(data.open))
+      setParticipatingCount(Number(data.participatingCount) || 0)
+      setParticipationEndsAt(data.participationEndsAt || null)
+      setParticipationDeadlineInput(toDatetimeLocalValue(data.participationEndsAt))
+      setSettingsAlert({
+        type: 'success',
+        text: data.message || 'Teilnahme-Endzeit wurde gespeichert.',
+      })
+    } catch (error) {
+      setSettingsAlert({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Endzeit konnte nicht gespeichert werden.',
+      })
+    } finally {
+      setParticipationDeadlineSaving(false)
     }
   }
 
@@ -975,7 +1081,24 @@ export default function AdminBracketPage() {
 
             <div>
               <p className="mb-2 text-xs font-semibold uppercase text-gray-500">Teilnahme</p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-end gap-2">
+                <label className="min-w-56 flex-1">
+                  <span className="mb-1 block text-xs font-semibold text-gray-400">Endzeit</span>
+                  <input
+                    type="datetime-local"
+                    value={participationDeadlineInput}
+                    onChange={(event) => setParticipationDeadlineInput(event.target.value)}
+                    className="min-h-10 w-full rounded-md border border-gray-600 bg-gray-950 px-3 py-2 text-sm font-semibold text-white outline-none transition-colors focus:border-yellow-400"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={saveParticipationDeadline}
+                  disabled={participationDeadlineSaving || participationLoading}
+                  className="min-h-10 rounded-md border border-yellow-500/40 bg-yellow-500/10 px-4 py-2 text-sm font-bold text-yellow-100 transition-colors hover:bg-yellow-500/20 disabled:cursor-wait disabled:opacity-60"
+                >
+                  {participationDeadlineSaving ? 'Speichere...' : 'Endzeit speichern'}
+                </button>
                 <button
                   type="button"
                   onClick={toggleParticipation}
@@ -1001,6 +1124,11 @@ export default function AdminBracketPage() {
                   {participationResetLoading ? 'Setze zurück...' : 'Zurücksetzen'}
                 </button>
               </div>
+              <p className="mt-2 text-xs text-gray-400">
+                {participationOpen
+                  ? `Aktiv bis ${formatParticipationDeadline(participationEndsAt)}`
+                  : `Geschlossen · ${formatParticipationDeadline(participationEndsAt)}`}
+              </p>
             </div>
 
             <div className="xl:justify-self-end">

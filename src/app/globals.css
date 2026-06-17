@@ -80,31 +80,8 @@ h1, h2, h3, h4, h5, h6, .font-bold {
   will-change: opacity;
 }
 
-@keyframes participation-attention {
-  0%,
-  100% {
-    transform: translateY(0) scale(1);
-    box-shadow:
-      0 22px 60px rgba(0, 0, 0, 0.48),
-      0 0 0 0 rgba(251, 191, 36, 0.42);
-  }
-
-  50% {
-    transform: translateY(-6px) scale(1.025);
-    box-shadow:
-      0 30px 70px rgba(0, 0, 0, 0.52),
-      0 0 0 16px rgba(251, 191, 36, 0);
-  }
-}
-
-.participation-attention {
-  animation: participation-attention 2.2s ease-in-out infinite;
-  will-change: transform, box-shadow;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .live-match-pulse,
-  .participation-attention {
+  .live-match-pulse {
     animation: none;
   }
 }

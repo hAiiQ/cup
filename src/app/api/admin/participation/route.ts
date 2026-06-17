@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
-import { getBracketSettings, updateBracketSettings } from '@/lib/bracketSettings'
+import { getBracketSettings, isParticipationOpenNow, updateBracketSettings } from '@/lib/bracketSettings'
 import { ensureParticipationSchema } from '@/lib/participation'
 import { prisma } from '@/lib/prisma'
 
@@ -24,6 +24,23 @@ const verifyAdmin = async (request: NextRequest) => {
   })
 }
 
+const parseParticipationEndsAt = (value: unknown): Date | null | undefined => {
+  if (value === null || value === '') {
+    return null
+  }
+
+  if (typeof value !== 'string') {
+    return undefined
+  }
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return undefined
+  }
+
+  return date
+}
+
 const getSummary = async () => {
   const [settings, participatingCount, userCount] = await Promise.all([
     getBracketSettings(),
@@ -31,8 +48,19 @@ const getSummary = async () => {
     prisma.user.count(),
   ])
 
+  const now = new Date()
+  const participationOpen = isParticipationOpenNow(settings, now)
+  const participationEndsAt = settings.participationEndsAt
+  const remainingMs = participationEndsAt
+    ? Math.max(participationEndsAt.getTime() - now.getTime(), 0)
+    : null
+
   return {
-    open: settings.participationOpen,
+    open: participationOpen,
+    configuredOpen: settings.participationOpen,
+    participationEndsAt: participationEndsAt?.toISOString() || null,
+    participationEnded: Boolean(settings.participationOpen && participationEndsAt && remainingMs === 0),
+    participationSecondsRemaining: remainingMs === null ? null : Math.floor(remainingMs / 1000),
     participatingCount,
     userCount,
   }
@@ -61,7 +89,12 @@ export async function POST(request: NextRequest) {
     }
 
     await ensureParticipationSchema()
-    const { action } = await request.json().catch(() => ({}))
+    const { action, participationEndsAt } = await request.json().catch(() => ({}))
+    const parsedEndsAt = parseParticipationEndsAt(participationEndsAt)
+
+    if (participationEndsAt !== undefined && parsedEndsAt === undefined) {
+      return NextResponse.json({ error: 'Ungültige Endzeit.' }, { status: 400 })
+    }
 
     if (action === 'reset') {
       await prisma.user.updateMany({
@@ -75,11 +108,28 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    if (action === 'deadline') {
+      await updateBracketSettings({ participationEndsAt: parsedEndsAt ?? null })
+
+      return NextResponse.json({
+        success: true,
+        message: parsedEndsAt ? 'Teilnahme-Endzeit wurde gespeichert.' : 'Teilnahme-Endzeit wurde entfernt.',
+        ...(await getSummary()),
+      })
+    }
+
     if (action !== 'open' && action !== 'close') {
       return NextResponse.json({ error: 'Ungültige Aktion.' }, { status: 400 })
     }
 
-    await updateBracketSettings({ participationOpen: action === 'open' })
+    if (action === 'open' && parsedEndsAt && parsedEndsAt.getTime() <= Date.now()) {
+      return NextResponse.json({ error: 'Die Endzeit muss in der Zukunft liegen.' }, { status: 400 })
+    }
+
+    await updateBracketSettings({
+      participationOpen: action === 'open',
+      ...(participationEndsAt !== undefined ? { participationEndsAt: parsedEndsAt ?? null } : {}),
+    })
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
-import { getBracketSettings } from '@/lib/bracketSettings'
+import { getBracketSettings, isParticipationOpenNow } from '@/lib/bracketSettings'
 import { ensureParticipationSchema } from '@/lib/participation'
 import { prisma } from '@/lib/prisma'
 
@@ -12,11 +12,17 @@ const getUserId = (request: NextRequest) => {
   return token ? verifyToken(token)?.userId : undefined
 }
 
+const closedPayload = {
+  open: false,
+  participating: false,
+  participationEndsAt: null,
+}
+
 export async function GET(request: NextRequest) {
   try {
     const userId = getUserId(request)
     if (!userId || userId.startsWith('admin_')) {
-      return NextResponse.json({ open: false, participating: false }, { status: 401 })
+      return NextResponse.json(closedPayload, { status: 401 })
     }
 
     await ensureParticipationSchema()
@@ -29,16 +35,17 @@ export async function GET(request: NextRequest) {
     ])
 
     if (!user) {
-      return NextResponse.json({ open: false, participating: false }, { status: 404 })
+      return NextResponse.json(closedPayload, { status: 404 })
     }
 
     return NextResponse.json({
-      open: settings.participationOpen,
+      open: isParticipationOpenNow(settings),
       participating: user.isParticipating,
+      participationEndsAt: settings.participationEndsAt?.toISOString() || null,
     })
   } catch (error) {
     console.error('Participation status error:', error)
-    return NextResponse.json({ open: false, participating: false }, { status: 500 })
+    return NextResponse.json(closedPayload, { status: 500 })
   }
 }
 
@@ -51,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     await ensureParticipationSchema()
     const settings = await getBracketSettings()
-    if (!settings.participationOpen) {
+    if (!isParticipationOpenNow(settings)) {
       return NextResponse.json({ error: 'Die Teilnahme ist aktuell geschlossen.' }, { status: 409 })
     }
 
@@ -64,6 +71,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       participating: user.isParticipating,
+      participationEndsAt: settings.participationEndsAt?.toISOString() || null,
       message: 'Deine Teilnahme wurde bestätigt.',
     })
   } catch (error) {

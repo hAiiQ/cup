@@ -12,6 +12,7 @@ export interface BracketSettings {
   groupCount: number
   activeGroupRound: number
   participationOpen: boolean
+  participationEndsAt: Date | null
 }
 
 const DEFAULT_SETTINGS: BracketSettings = {
@@ -21,7 +22,8 @@ const DEFAULT_SETTINGS: BracketSettings = {
   groupPhaseEnabled: false,
   groupCount: 4,
   activeGroupRound: 0,
-  participationOpen: false
+  participationOpen: false,
+  participationEndsAt: null
 }
 
 const MIN_TEAM_SLOTS = 2
@@ -39,6 +41,27 @@ const clampTeamSlots = (value?: number | null) => {
 
 const normalizeMode = (mode?: string | null): BracketMode => {
   return mode === 'single' ? 'single' : 'double'
+}
+
+const normalizeParticipationEndsAt = (value?: Date | string | null): Date | null => {
+  if (!value) {
+    return null
+  }
+
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return null
+  }
+
+  return date
+}
+
+export const isParticipationOpenNow = (
+  settings: Pick<BracketSettings, 'participationOpen' | 'participationEndsAt'>,
+  now = new Date()
+) => {
+  const endsAt = normalizeParticipationEndsAt(settings.participationEndsAt)
+  return Boolean(settings.participationOpen && (!endsAt || endsAt.getTime() > now.getTime()))
 }
 
 let ensureTablePromise: Promise<void> | null = null
@@ -85,6 +108,7 @@ const ensureBracketSettingsTable = async () => {
             "groupCount" INTEGER NOT NULL DEFAULT 4,
             "activeGroupRound" INTEGER NOT NULL DEFAULT 0,
             "participationOpen" BOOLEAN NOT NULL DEFAULT FALSE,
+            "participationEndsAt" TIMESTAMPTZ,
             "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
           );
@@ -110,6 +134,10 @@ const ensureBracketSettingsTable = async () => {
           ALTER TABLE "BracketSetting"
           ADD COLUMN IF NOT EXISTS "participationOpen" BOOLEAN NOT NULL DEFAULT FALSE;
         `)
+        await prisma.$executeRawUnsafe(`
+          ALTER TABLE "BracketSetting"
+          ADD COLUMN IF NOT EXISTS "participationEndsAt" TIMESTAMPTZ;
+        `)
       }
 
       if (!exists) {
@@ -123,7 +151,8 @@ const ensureBracketSettingsTable = async () => {
             groupPhaseEnabled: DEFAULT_SETTINGS.groupPhaseEnabled,
             groupCount: DEFAULT_SETTINGS.groupCount,
             activeGroupRound: DEFAULT_SETTINGS.activeGroupRound,
-            participationOpen: DEFAULT_SETTINGS.participationOpen
+            participationOpen: DEFAULT_SETTINGS.participationOpen,
+            participationEndsAt: DEFAULT_SETTINGS.participationEndsAt
           },
           update: {}
         })
@@ -157,7 +186,8 @@ export async function getBracketSettings(): Promise<BracketSettings> {
       groupPhaseEnabled: Boolean(record.groupPhaseEnabled),
       groupCount: clampGroupCount(record.groupCount, clampTeamSlots(record.teamSlots)),
       activeGroupRound: Math.max(0, Math.floor(record.activeGroupRound || 0)),
-      participationOpen: Boolean(record.participationOpen)
+      participationOpen: Boolean(record.participationOpen),
+      participationEndsAt: normalizeParticipationEndsAt(record.participationEndsAt)
     }
   } catch (error) {
     console.warn('Failed to load bracket settings, falling back to defaults:', error)
@@ -188,6 +218,9 @@ export async function updateBracketSettings(
   const participationOpen = update.participationOpen === undefined
     ? current.participationOpen
     : Boolean(update.participationOpen)
+  const participationEndsAt = update.participationEndsAt === undefined
+    ? current.participationEndsAt
+    : normalizeParticipationEndsAt(update.participationEndsAt)
 
   const saved = await prisma.bracketSetting.upsert({
     where: { id: SETTINGS_ID },
@@ -199,7 +232,8 @@ export async function updateBracketSettings(
       groupPhaseEnabled,
       groupCount,
       activeGroupRound,
-      participationOpen
+      participationOpen,
+      participationEndsAt
     },
     update: {
       mode,
@@ -208,7 +242,8 @@ export async function updateBracketSettings(
       groupPhaseEnabled,
       groupCount,
       activeGroupRound,
-      participationOpen
+      participationOpen,
+      participationEndsAt
     }
   })
 
@@ -219,6 +254,7 @@ export async function updateBracketSettings(
     groupPhaseEnabled: Boolean(saved.groupPhaseEnabled),
     groupCount: clampGroupCount(saved.groupCount, clampTeamSlots(saved.teamSlots)),
     activeGroupRound: Math.max(0, Math.floor(saved.activeGroupRound || 0)),
-    participationOpen: Boolean(saved.participationOpen)
+    participationOpen: Boolean(saved.participationOpen),
+    participationEndsAt: normalizeParticipationEndsAt(saved.participationEndsAt)
   }
 }
