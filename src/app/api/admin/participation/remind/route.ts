@@ -6,6 +6,8 @@ import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
+const PARTICIPATION_DASHBOARD_URL = 'https://summercup-bnfu.onrender.com/dashboard'
+
 type DiscordMember = {
   nick?: string | null
   user?: {
@@ -185,7 +187,6 @@ export async function POST(request: NextRequest) {
 
     const members = await loadGuildMembers(guildId, token)
     const memberIndex = buildMemberIndex(members)
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin
     const deadline = settings.participationEndsAt
       ? ` Die Teilnahme ist bis ${settings.participationEndsAt.toLocaleString('de-DE', {
           timeZone: 'Europe/Berlin',
@@ -196,7 +197,7 @@ export async function POST(request: NextRequest) {
     const content = [
       'Hey! Die Teilnahme für den Summer Cup ist geöffnet.',
       'Du hast deine Teilnahme noch nicht bestätigt.',
-      `Öffne ${siteUrl}/dashboard und klicke dort auf „Teilnehmen“.${deadline}`,
+      `Öffne ${PARTICIPATION_DASHBOARD_URL} und klicke dort auf „Teilnehmen“.${deadline}`,
       'Falls du nicht mitmachen möchtest, kannst du diese Nachricht ignorieren.',
     ].join('\n\n')
 
