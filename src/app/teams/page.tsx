@@ -312,6 +312,12 @@ export default function TeamsPage() {
                                   </div>
                                 )}
                                 
+                                {member.discord && (
+                                  <div className="mb-2 text-sm text-indigo-200">
+                                    Discord: <span className="font-semibold text-white">{member.discord}</span>
+                                  </div>
+                                )}
+
                                 <div className="flex items-center space-x-2 flex-wrap gap-2">
                                   {/* Verification Status */}
                                   <div className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center ${
