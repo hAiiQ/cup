@@ -143,6 +143,7 @@ export async function PATCH(
     const currentUser = await prisma.user.findUnique({
       where: { id: userId },
       select: {
+        inGameName: true,
         discordName: true,
         instagramName: true,
         tiktokName: true,
@@ -157,6 +158,25 @@ export async function PATCH(
 
     if (typeof body.isVerified === 'boolean') {
       updateData.isVerified = body.isVerified
+    }
+
+    if ('inGameName' in body) {
+      if (body.inGameName !== null && typeof body.inGameName !== 'string') {
+        return NextResponse.json({ error: 'Ungültiger Ingame-Name' }, { status: 400 })
+      }
+
+      const value = typeof body.inGameName === 'string' ? body.inGameName.trim() : ''
+      if (value.length > 100) {
+        return NextResponse.json({ error: 'Der Ingame-Name darf maximal 100 Zeichen lang sein.' }, { status: 400 })
+      }
+
+      const nextValue = value || null
+      updateData.inGameName = nextValue
+
+      if (currentUser.inGameName !== nextValue) {
+        updateData.inGameNameVerified = Boolean(nextValue)
+        if (!nextValue) updateData.isVerified = false
+      }
     }
 
     const editableSocialFields = ['discordName', 'instagramName', 'tiktokName'] as const

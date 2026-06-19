@@ -105,6 +105,7 @@ type ValorantDetailsState = {
 }
 
 type UserProfileForm = {
+  inGameName: string
   discordName: string
   instagramName: string
   tiktokName: string
@@ -183,6 +184,7 @@ export default function AdminDashboard() {
   const [deletingUser, setDeletingUser] = useState<string | null>(null)
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [userProfileForm, setUserProfileForm] = useState<UserProfileForm>({
+    inGameName: '',
     discordName: '',
     instagramName: '',
     tiktokName: '',
@@ -465,6 +467,7 @@ export default function AdminDashboard() {
   const openUserProfileEditor = (user: User) => {
     setEditingUser(user)
     setUserProfileForm({
+      inGameName: user.inGameName || '',
       discordName: user.discordName || '',
       instagramName: user.instagramName || '',
       tiktokName: user.tiktokName || '',
@@ -1122,6 +1125,7 @@ export default function AdminDashboard() {
                             </span>
                           </div>
                           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-400">
+                            <span>Ingame: {user.inGameName || 'Nicht angegeben'}</span>
                             <span>{user.team?.name || 'Kein Team'}</span>
                             <span>Seit {formatJoinDate(user.createdAt)}</span>
                           </div>
@@ -1455,8 +1459,8 @@ export default function AdminDashboard() {
               }
             }}
           >
-            <div className="w-full max-w-lg overflow-hidden rounded-lg border border-gray-600 bg-gray-900 shadow-2xl">
-              <div className="flex items-center justify-between gap-4 border-b border-gray-700 px-5 py-4">
+            <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-lg border border-gray-600 bg-gray-900 shadow-2xl">
+              <div className="flex shrink-0 items-center justify-between gap-4 border-b border-gray-700 px-5 py-4">
                 <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-wide text-sky-300">User Management</p>
                   <h2 id="edit-user-title" className="truncate text-2xl font-bold text-white">
@@ -1475,7 +1479,24 @@ export default function AdminDashboard() {
                 </button>
               </div>
 
-              <div className="space-y-4 p-5">
+              <div className="min-h-0 space-y-4 overflow-y-auto p-5">
+                <div>
+                  <label htmlFor="edit-ingame-name" className="mb-1.5 block text-sm font-semibold text-gray-200">
+                    Ingame-Name
+                  </label>
+                  <input
+                    id="edit-ingame-name"
+                    type="text"
+                    maxLength={100}
+                    value={userProfileForm.inGameName}
+                    onChange={(event) =>
+                      setUserProfileForm((prev) => ({ ...prev, inGameName: event.target.value }))
+                    }
+                    className="w-full rounded-md border border-gray-700 bg-gray-950 px-3 py-2.5 text-white outline-none transition-colors focus:border-sky-400"
+                    placeholder="Name#Tag"
+                  />
+                </div>
+
                 <div>
                   <label htmlFor="edit-discord-name" className="mb-1.5 block text-sm font-semibold text-gray-200">
                     Discord-Name
@@ -1534,7 +1555,7 @@ export default function AdminDashboard() {
                 )}
               </div>
 
-              <div className="flex flex-col-reverse gap-2 border-t border-gray-700 bg-gray-950/60 px-5 py-4 sm:flex-row sm:justify-end">
+              <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-gray-700 bg-gray-950/60 px-5 py-4 sm:flex-row sm:justify-end">
                 <button
                   type="button"
                   onClick={closeUserProfileEditor}
