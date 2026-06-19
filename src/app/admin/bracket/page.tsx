@@ -68,6 +68,19 @@ type AdminChatThread = {
 const MIN_TEAM_SLOTS = 2
 const MAX_TEAM_SLOTS = MAX_TEAMS
 
+const formatAdminTeamName = (team?: BracketTeam | null, fallback = 'TBD') => {
+  if (!team) {
+    return fallback
+  }
+
+  const slotName = team.position > 0 ? `Team ${team.position}` : ''
+  if (!slotName || team.name === slotName) {
+    return team.name
+  }
+
+  return `${team.name} (${slotName})`
+}
+
 const clampTeamSlots = (value: number): number => {
   const numericValue = Number.isFinite(value) ? value : Number(value)
   const fallback = Number.isFinite(numericValue) ? numericValue : MIN_TEAM_SLOTS
@@ -984,8 +997,8 @@ export default function AdminBracketPage() {
       )
     }
 
-    const team1Name = match.team1?.name || 'TBD'
-    const team2Name = match.team2?.name || 'TBD'
+    const team1Name = formatAdminTeamName(match.team1)
+    const team2Name = formatAdminTeamName(match.team2)
     const team1Wins = match.isFinished && match.winnerId === 'team1'
     const team2Wins = match.isFinished && match.winnerId === 'team2'
 
@@ -1396,7 +1409,7 @@ export default function AdminBracketPage() {
                         key={standing.team.id}
                         className={`grid grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-md border px-3 py-2 text-sm ${standing.qualified ? 'border-emerald-300/40 bg-emerald-500/15 text-emerald-50' : 'border-white/10 bg-black/25 text-white/75'}`}
                       >
-                        <span className="min-w-0 truncate font-semibold">{standing.rank}. {standing.team.name}</span>
+                        <span className="min-w-0 truncate font-semibold">{standing.rank}. {formatAdminTeamName(standing.team)}</span>
                         <span className="shrink-0 text-xs text-white/70" title="RA = abgegebene Runden">
                           {standing.wins}S · {standing.losses}N · RA {standing.scoreAgainst}
                         </span>
@@ -1546,8 +1559,12 @@ export default function AdminBracketPage() {
                           ...(groupPhase?.rounds.flatMap((round) => round.matches) || []),
                           ...bracket,
                         ].find((match) => match.id === thread.matchId)
-                        const team1Name = bracketMatch?.team1?.name || thread.team1Name
-                        const team2Name = bracketMatch?.team2?.name || thread.team2Name
+                        const team1Name = bracketMatch?.team1
+                          ? formatAdminTeamName(bracketMatch.team1)
+                          : thread.team1Name
+                        const team2Name = bracketMatch?.team2
+                          ? formatAdminTeamName(bracketMatch.team2)
+                          : thread.team2Name
                         const title = team1Name && team2Name
                           ? `${team1Name} gegen ${team2Name}`
                           : thread.matchId
@@ -1605,8 +1622,12 @@ export default function AdminBracketPage() {
                         ...(groupPhase?.rounds.flatMap((round) => round.matches) || []),
                         ...bracket,
                       ].find((match) => match.id === thread.matchId)
-                      const team1Name = bracketMatch?.team1?.name || thread.team1Name
-                      const team2Name = bracketMatch?.team2?.name || thread.team2Name
+                      const team1Name = bracketMatch?.team1
+                        ? formatAdminTeamName(bracketMatch.team1)
+                        : thread.team1Name
+                      const team2Name = bracketMatch?.team2
+                        ? formatAdminTeamName(bracketMatch.team2)
+                        : thread.team2Name
 
                       return (
                         <>
@@ -1697,7 +1718,7 @@ export default function AdminBracketPage() {
                     Match bearbeiten
                   </h2>
                   <p className="mt-1 truncate text-sm text-gray-400">
-                    {selectedMatch.team1?.name || 'TBD'} gegen {selectedMatch.team2?.name || 'TBD'}
+                    {formatAdminTeamName(selectedMatch.team1)} gegen {formatAdminTeamName(selectedMatch.team2)}
                   </p>
                 </div>
                 <button
@@ -1716,7 +1737,7 @@ export default function AdminBracketPage() {
                   <div className="space-y-4">
                     <div className="rounded-lg border border-white/10 bg-gray-900/60 p-4">
                       <p className="mb-1 text-xs uppercase text-white/50">Runden Team 1</p>
-                      <p className="mb-3 text-lg font-semibold text-white">{selectedMatch.team1?.name || 'TBD'}</p>
+                      <p className="mb-3 text-lg font-semibold text-white">{formatAdminTeamName(selectedMatch.team1)}</p>
                       <input
                         type="number"
                         min="0"
@@ -1729,7 +1750,7 @@ export default function AdminBracketPage() {
 
                     <div className="rounded-lg border border-white/10 bg-gray-900/60 p-4">
                       <p className="mb-1 text-xs uppercase text-white/50">Runden Team 2</p>
-                      <p className="mb-3 text-lg font-semibold text-white">{selectedMatch.team2?.name || 'TBD'}</p>
+                      <p className="mb-3 text-lg font-semibold text-white">{formatAdminTeamName(selectedMatch.team2)}</p>
                       <input
                         type="number"
                         min="0"
@@ -1757,7 +1778,7 @@ export default function AdminBracketPage() {
                         </span>
                         {selectedMatch.winnerId && (
                           <span className="rounded bg-green-500/20 px-2 py-1 text-xs font-semibold text-green-200">
-                            Gewinner: {selectedMatch.winnerId === 'team1' ? (selectedMatch.team1?.name || 'Team 1') : (selectedMatch.team2?.name || 'Team 2')}
+                            Gewinner: {selectedMatch.winnerId === 'team1' ? formatAdminTeamName(selectedMatch.team1, 'Team 1') : formatAdminTeamName(selectedMatch.team2, 'Team 2')}
                           </span>
                         )}
                         {selectedMatch.autoAdvance && (
@@ -1805,7 +1826,7 @@ export default function AdminBracketPage() {
                           <div key={key} className="space-y-2">
                             <div className="flex items-center justify-between text-sm">
                               <p className="text-white/80">{label}</p>
-                              {team?.name && <span className="text-xs text-white/50">Aktuell: {team.name}</span>}
+                              {team?.name && <span className="text-xs text-white/50">Aktuell: {formatAdminTeamName(team)}</span>}
                             </div>
                             <div className="flex flex-col gap-2 sm:flex-row">
                               <input
@@ -1842,7 +1863,7 @@ export default function AdminBracketPage() {
           <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             {teams.map(team => (
               <div key={team.id} className="bg-purple-600/20 backdrop-blur-sm rounded-lg p-3 border border-purple-500/50">
-                <h3 className="text-white font-semibold text-center text-base">{team.name}</h3>
+                <h3 className="text-white font-semibold text-center text-base">{formatAdminTeamName(team)}</h3>
                 <p className="text-purple-200 text-center text-xs">Position {team.position}</p>
               </div>
             ))}

@@ -20,11 +20,15 @@ async function verifyAdmin(request: NextRequest) {
   }
 
   const adminId = decoded.userId.replace('admin_', '')
+  if (adminId === 'env_admin') {
+    return true
+  }
+
   const admin = await prisma.admin.findUnique({
     where: { id: adminId }
   })
 
-  return admin
+  return Boolean(admin)
 }
 
 // Force dynamic rendering

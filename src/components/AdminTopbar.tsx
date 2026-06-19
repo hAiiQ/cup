@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
-export type AdminSection = 'overview' | 'users' | 'wheel' | 'bracket'
+export type AdminSection = 'overview' | 'users' | 'teams' | 'wheel' | 'bracket'
 export type DashboardView = 'overview' | 'users'
 
 type AdminTopbarProps = {
@@ -34,6 +34,13 @@ const navItems: Array<{
     dashboardView: 'users',
     color: 'bg-red-700 hover:bg-red-600',
     activeColor: 'bg-red-600 ring-red-300/70',
+  },
+  {
+    id: 'teams',
+    label: 'Team Management',
+    href: '/admin/teams',
+    color: 'bg-emerald-700 hover:bg-emerald-600',
+    activeColor: 'bg-emerald-600 ring-emerald-300/70',
   },
   {
     id: 'wheel',
