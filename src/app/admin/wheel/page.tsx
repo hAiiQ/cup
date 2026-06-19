@@ -25,8 +25,11 @@ interface User {
   instagramName: string | null
   tier: string | null
   isStreamer: boolean
+  isParticipating: boolean
   teamId: string | null
 }
+
+type ParticipationFilter = 'participating' | 'not-participating' | 'all'
 
 interface Team {
   id: string
@@ -56,7 +59,7 @@ export default function WheelPage() {
   const [wheelSizePercent, setWheelSizePercent] = useState(DEFAULT_WHEEL_SIZE_PERCENT)
   
   // Filter states
-  const [verificationFilter, setVerificationFilter] = useState('all')
+  const [participationFilter, setParticipationFilter] = useState<ParticipationFilter>('participating')
   const [streamerFilter, setStreamerFilter] = useState('all')
   const [tierFilter, setTierFilter] = useState('all')
 
@@ -132,12 +135,12 @@ export default function WheelPage() {
 
   useEffect(() => {
     applyFilters()
-  }, [users, verificationFilter, streamerFilter, tierFilter])
+  }, [users, participationFilter, streamerFilter, tierFilter])
 
   const fetchData = async () => {
     try {
-      console.log('🎯 Fetching users for wheel (public test)')
-      const usersResponse = await fetch('/api/wheel/users', {
+      console.log('🎯 Fetching users for wheel')
+      const usersResponse = await fetch('/api/admin/wheel/users', {
         cache: 'no-store'
       })
       
@@ -149,13 +152,14 @@ export default function WheelPage() {
       if (usersResponse.ok && teamsResponse.ok) {
         const usersData = await usersResponse.json()
         const teamsData = await teamsResponse.json()
+        const loadedUsers: User[] = Array.isArray(usersData.users) ? usersData.users : []
         
         const sortedTeams: Team[] = Array.isArray(teamsData)
           ? [...teamsData].sort((a, b) => (a.position ?? 999) - (b.position ?? 999))
           : []
 
-        console.log('✅ Data loaded:', { users: usersData.length, teams: sortedTeams.length })
-        setUsers(usersData)
+        console.log('✅ Data loaded:', { users: loadedUsers.length, teams: sortedTeams.length })
+        setUsers(loadedUsers)
         setTeams(sortedTeams)
       } else {
         console.error('❌ Failed to fetch data:', { 
@@ -177,15 +181,15 @@ export default function WheelPage() {
   const applyFilters = () => {
     let filtered = users.filter(user => !user.teamId) // Nur Users ohne Team
     
-    if (verificationFilter === 'verified') {
-      filtered = filtered.filter(user => user.username?.includes('✅') || user.discordName?.includes('✅'))
-    } else if (verificationFilter === 'unverified') {
-      filtered = filtered.filter(user => !(user.username?.includes('✅') || user.discordName?.includes('✅')))
+    if (participationFilter === 'participating') {
+      filtered = filtered.filter(user => user.isParticipating)
+    } else if (participationFilter === 'not-participating') {
+      filtered = filtered.filter(user => !user.isParticipating)
     }
     
     if (streamerFilter === 'streamers') {
       filtered = filtered.filter(user => user.isStreamer)
-    } else if (streamerFilter === 'participants') {
+    } else if (streamerFilter === 'non-streamers') {
       filtered = filtered.filter(user => !user.isStreamer)
     }
     
@@ -537,7 +541,7 @@ export default function WheelPage() {
     0
   )
   const streamerCount = filteredUsers.filter((user) => user.isStreamer).length
-  const participantCount = filteredUsers.length - streamerCount
+  const participantCount = filteredUsers.filter((user) => user.isParticipating).length
   const wheelPixelSize = Math.round((WHEEL_CANVAS_SIZE * wheelSizePercent) / 100)
 
   // Show loading screen while checking authentication
@@ -605,16 +609,16 @@ export default function WheelPage() {
               <div className="space-y-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-300 mb-1">
-                    Verifizierung:
+                    Teilnahme:
                   </label>
                   <select
-                    value={verificationFilter}
-                    onChange={(e) => setVerificationFilter(e.target.value)}
+                    value={participationFilter}
+                    onChange={(e) => setParticipationFilter(e.target.value as ParticipationFilter)}
                     className="w-full rounded-md border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white focus:border-purple-400 focus:outline-none"
                   >
+                    <option value="participating">Nur Teilnehmer</option>
+                    <option value="not-participating">Nur Nicht-Teilnehmer</option>
                     <option value="all">Alle Benutzer</option>
-                    <option value="verified">Nur verifizierte</option>
-                    <option value="unverified">Nur unverifizierte</option>
                   </select>
                 </div>
                 
@@ -629,7 +633,7 @@ export default function WheelPage() {
                   >
                     <option value="all">Alle</option>
                     <option value="streamers">Nur Streamer</option>
-                    <option value="participants">Nur Teilnehmer</option>
+                    <option value="non-streamers">Nur Nicht-Streamer</option>
                   </select>
                 </div>
                 
@@ -654,7 +658,7 @@ export default function WheelPage() {
               </div>
               
               <div className="mt-4 rounded-md border border-gray-800 bg-gray-950 px-3 py-2 text-xs text-gray-400">
-                Nur bestätigte Teilnehmer ohne Team werden angezeigt.
+                Es werden nur Spieler ohne Team angezeigt.
               </div>
             </div>
 
@@ -752,7 +756,7 @@ export default function WheelPage() {
               {filteredUsers.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-gray-700 bg-gray-950/60 py-16 text-center text-gray-400">
                   <p className="text-lg font-semibold text-gray-200">Keine verfügbaren Spieler</p>
-                  <p className="mt-1 text-sm text-gray-500">Öffne die Teilnahme oder prüfe, ob bestätigte Spieler ohne Team vorhanden sind.</p>
+                  <p className="mt-1 text-sm text-gray-500">Passe die Filter an oder prüfe, ob Spieler ohne Team vorhanden sind.</p>
                 </div>
               ) : (
                 <div className="flex flex-1 items-center justify-center">
@@ -777,8 +781,13 @@ export default function WheelPage() {
                   <p className="truncate text-2xl font-bold text-white">{selectedUser.twitchName || selectedUser.username}</p>
                   <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold">
                     <span className="rounded-full border border-green-500/40 bg-green-500/10 px-2.5 py-1 text-green-100">
-                      {selectedUser.isStreamer ? 'Streamer' : 'Teilnehmer'}
+                      {selectedUser.isParticipating ? 'Teilnehmer' : 'Kein Teilnehmer'}
                     </span>
+                    {selectedUser.isStreamer && (
+                      <span className="rounded-full border border-pink-500/40 bg-pink-500/10 px-2.5 py-1 text-pink-100">
+                        Streamer
+                      </span>
+                    )}
                     {selectedUser.tier && (
                       <span className="rounded-full border border-purple-500/40 bg-purple-500/10 px-2.5 py-1 text-purple-100">
                         {formatTierLabel(selectedUser.tier)}
@@ -827,6 +836,13 @@ export default function WheelPage() {
                       <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] font-semibold">
                         <span className="rounded-full bg-gray-800 px-2 py-0.5 text-gray-300">
                           {user.tier ? formatTierLabel(user.tier) : 'Kein Tier'}
+                        </span>
+                        <span className={`rounded-full px-2 py-0.5 ${
+                          user.isParticipating
+                            ? 'bg-green-500/15 text-green-200'
+                            : 'bg-gray-800 text-gray-400'
+                        }`}>
+                          {user.isParticipating ? 'Teilnehmer' : 'Kein Teilnehmer'}
                         </span>
                         {user.isStreamer && (
                           <span className="rounded-full bg-pink-500/15 px-2 py-0.5 text-pink-200">

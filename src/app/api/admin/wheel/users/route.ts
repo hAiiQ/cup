@@ -39,27 +39,33 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    console.log('🎯 Fetching confirmed participants for wheel assignment')
+    console.log('🎯 Fetching users for wheel assignment')
 
     await ensureParticipationSchema()
 
     // Keep assigned players out of subsequent wheel spins.
     const users = await prisma.user.findMany({
       where: {
-        isParticipating: true,
         teamId: null
         // teamMemberships: { none: {} } // Disabled due to Render deployment
       },
       select: {
         id: true,
         username: true,
-        inGameName: true,
+        discordName: true,
+        twitchName: true,
+        instagramName: true,
         tier: true,
-        isStreamer: true
+        isStreamer: true,
+        isParticipating: true,
+        teamId: true,
+      },
+      orderBy: {
+        username: 'asc'
       }
     })
 
-    console.log(`✅ Found ${users.length} verified users for wheel`)
+    console.log(`✅ Found ${users.length} users for wheel`)
 
     return NextResponse.json({ users })
 
