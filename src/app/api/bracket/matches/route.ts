@@ -163,7 +163,8 @@ export async function GET() {
           PLAYOFF_TEAM_COUNT,
           requestedSlots,
           combinedStates,
-          settings.activeGroupRound
+          settings.activeGroupRound,
+          settings.groupTeamOrder
         )
       : null
     const bracketTeams = groupPhase?.advancingTeams || dbTeams

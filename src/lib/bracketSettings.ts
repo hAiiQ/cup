@@ -11,6 +11,7 @@ export interface BracketSettings {
   groupPhaseEnabled: boolean
   groupCount: number
   activeGroupRound: number
+  groupTeamOrder: string[]
   participationOpen: boolean
   participationEndsAt: Date | null
 }
@@ -22,6 +23,7 @@ const DEFAULT_SETTINGS: BracketSettings = {
   groupPhaseEnabled: false,
   groupCount: 4,
   activeGroupRound: 0,
+  groupTeamOrder: [],
   participationOpen: false,
   participationEndsAt: null
 }
@@ -54,6 +56,19 @@ const normalizeParticipationEndsAt = (value?: Date | string | null): Date | null
   }
 
   return date
+}
+
+export const normalizeGroupTeamOrder = (value: unknown): string[] => {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return Array.from(new Set(
+    value
+      .filter((teamId): teamId is string => typeof teamId === 'string')
+      .map((teamId) => teamId.trim())
+      .filter(Boolean)
+  ))
 }
 
 export const isParticipationOpenNow = (
@@ -107,6 +122,7 @@ const ensureBracketSettingsTable = async () => {
             "groupPhaseEnabled" BOOLEAN NOT NULL DEFAULT FALSE,
             "groupCount" INTEGER NOT NULL DEFAULT 4,
             "activeGroupRound" INTEGER NOT NULL DEFAULT 0,
+            "groupTeamOrder" JSONB NOT NULL DEFAULT '[]'::jsonb,
             "participationOpen" BOOLEAN NOT NULL DEFAULT FALSE,
             "participationEndsAt" TIMESTAMPTZ,
             "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -132,6 +148,10 @@ const ensureBracketSettingsTable = async () => {
         `)
         await prisma.$executeRawUnsafe(`
           ALTER TABLE "BracketSetting"
+          ADD COLUMN IF NOT EXISTS "groupTeamOrder" JSONB NOT NULL DEFAULT '[]'::jsonb;
+        `)
+        await prisma.$executeRawUnsafe(`
+          ALTER TABLE "BracketSetting"
           ADD COLUMN IF NOT EXISTS "participationOpen" BOOLEAN NOT NULL DEFAULT FALSE;
         `)
         await prisma.$executeRawUnsafe(`
@@ -151,6 +171,7 @@ const ensureBracketSettingsTable = async () => {
             groupPhaseEnabled: DEFAULT_SETTINGS.groupPhaseEnabled,
             groupCount: DEFAULT_SETTINGS.groupCount,
             activeGroupRound: DEFAULT_SETTINGS.activeGroupRound,
+            groupTeamOrder: DEFAULT_SETTINGS.groupTeamOrder,
             participationOpen: DEFAULT_SETTINGS.participationOpen,
             participationEndsAt: DEFAULT_SETTINGS.participationEndsAt
           },
@@ -186,6 +207,7 @@ export async function getBracketSettings(): Promise<BracketSettings> {
       groupPhaseEnabled: Boolean(record.groupPhaseEnabled),
       groupCount: clampGroupCount(record.groupCount, clampTeamSlots(record.teamSlots)),
       activeGroupRound: Math.max(0, Math.floor(record.activeGroupRound || 0)),
+      groupTeamOrder: normalizeGroupTeamOrder(record.groupTeamOrder),
       participationOpen: Boolean(record.participationOpen),
       participationEndsAt: normalizeParticipationEndsAt(record.participationEndsAt)
     }
@@ -215,6 +237,9 @@ export async function updateBracketSettings(
   const activeGroupRound = update.activeGroupRound === undefined
     ? current.activeGroupRound
     : Math.max(0, Math.floor(Number(update.activeGroupRound) || 0))
+  const groupTeamOrder = update.groupTeamOrder === undefined
+    ? current.groupTeamOrder
+    : normalizeGroupTeamOrder(update.groupTeamOrder)
   const participationOpen = update.participationOpen === undefined
     ? current.participationOpen
     : Boolean(update.participationOpen)
@@ -232,6 +257,7 @@ export async function updateBracketSettings(
       groupPhaseEnabled,
       groupCount,
       activeGroupRound,
+      groupTeamOrder,
       participationOpen,
       participationEndsAt
     },
@@ -242,6 +268,7 @@ export async function updateBracketSettings(
       groupPhaseEnabled,
       groupCount,
       activeGroupRound,
+      groupTeamOrder,
       participationOpen,
       participationEndsAt
     }
@@ -254,6 +281,7 @@ export async function updateBracketSettings(
     groupPhaseEnabled: Boolean(saved.groupPhaseEnabled),
     groupCount: clampGroupCount(saved.groupCount, clampTeamSlots(saved.teamSlots)),
     activeGroupRound: Math.max(0, Math.floor(saved.activeGroupRound || 0)),
+    groupTeamOrder: normalizeGroupTeamOrder(saved.groupTeamOrder),
     participationOpen: Boolean(saved.participationOpen),
     participationEndsAt: normalizeParticipationEndsAt(saved.participationEndsAt)
   }

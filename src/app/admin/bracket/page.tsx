@@ -42,6 +42,7 @@ type BracketSettingsState = {
   groupPhaseEnabled: boolean
   groupCount: number
   activeGroupRound: number
+  groupTeamOrder: string[]
 }
 
 type AdminChatMessage = {
@@ -93,7 +94,8 @@ const DEFAULT_BRACKET_SETTINGS: BracketSettingsState = {
   tournamentStarted: false,
   groupPhaseEnabled: false,
   groupCount: 4,
-  activeGroupRound: 0
+  activeGroupRound: 0,
+  groupTeamOrder: []
 }
 
 const MODE_LABELS: Record<BracketMode, string> = {
@@ -164,6 +166,9 @@ export default function AdminBracketPage() {
   const [settingsSaving, setSettingsSaving] = useState(false)
   const [tournamentStartLoading, setTournamentStartLoading] = useState(false)
   const [groupRoundLoading, setGroupRoundLoading] = useState(false)
+  const [groupOrderSaving, setGroupOrderSaving] = useState(false)
+  const [draggedTeamId, setDraggedTeamId] = useState<string | null>(null)
+  const [dropTargetTeamId, setDropTargetTeamId] = useState<string | null>(null)
   const [participationOpen, setParticipationOpen] = useState(false)
   const [participatingCount, setParticipatingCount] = useState(0)
   const [registeredUserCount, setRegisteredUserCount] = useState(0)
@@ -202,6 +207,12 @@ export default function AdminBracketPage() {
     groupPhase &&
     bracketSettings.activeGroupRound < groupPhase.totalRounds &&
     (bracketSettings.activeGroupRound === 0 || currentGroupRound?.isComplete)
+  )
+  const canReorderGroupTeams = Boolean(
+    groupPhase &&
+    bracketSettings.groupPhaseEnabled &&
+    bracketSettings.activeGroupRound === 0 &&
+    !groupOrderSaving
   )
 
   useEffect(() => {
@@ -315,7 +326,10 @@ export default function AdminBracketPage() {
             tournamentStarted: Boolean(settingsPayload.settings.tournamentStarted),
             groupPhaseEnabled: Boolean(settingsPayload.settings.groupPhaseEnabled),
             groupCount: clampGroupCount(settingsPayload.settings.groupCount, clampTeamSlots(settingsPayload.settings.teamSlots)),
-            activeGroupRound: Math.max(0, Math.floor(Number(settingsPayload.settings.activeGroupRound) || 0))
+            activeGroupRound: Math.max(0, Math.floor(Number(settingsPayload.settings.activeGroupRound) || 0)),
+            groupTeamOrder: Array.isArray(settingsPayload.settings.groupTeamOrder)
+              ? settingsPayload.settings.groupTeamOrder.filter((teamId: unknown): teamId is string => typeof teamId === 'string')
+              : []
           }
         }
       }
@@ -335,7 +349,8 @@ export default function AdminBracketPage() {
             PLAYOFF_TEAM_COUNT,
             persistedSettings.teamSlots,
             stateMap,
-            persistedSettings.activeGroupRound
+            persistedSettings.activeGroupRound,
+            persistedSettings.groupTeamOrder
           )
         : null
       const bracketTeams = nextGroupPhase?.advancingTeams || limitedTeams
@@ -643,7 +658,10 @@ export default function AdminBracketPage() {
         tournamentStarted: Boolean(payload?.settings?.tournamentStarted),
         groupPhaseEnabled: Boolean(payload?.settings?.groupPhaseEnabled),
         groupCount: clampGroupCount(payload?.settings?.groupCount ?? settingsDraft.groupCount, clampTeamSlots(payload?.settings?.teamSlots ?? settingsDraft.teamSlots)),
-        activeGroupRound: Math.max(0, Math.floor(Number(payload?.settings?.activeGroupRound) || 0))
+        activeGroupRound: Math.max(0, Math.floor(Number(payload?.settings?.activeGroupRound) || 0)),
+        groupTeamOrder: Array.isArray(payload?.settings?.groupTeamOrder)
+          ? payload.settings.groupTeamOrder.filter((teamId: unknown): teamId is string => typeof teamId === 'string')
+          : settingsDraft.groupTeamOrder
       }
 
       setBracketSettings(updatedSettings)
@@ -655,6 +673,70 @@ export default function AdminBracketPage() {
       setSettingsAlert({ type: 'error', text: 'Einstellungen konnten nicht gespeichert werden.' })
     } finally {
       setSettingsSaving(false)
+    }
+  }
+
+  const swapGroupTeams = async (targetTeamId: string) => {
+    const sourceTeamId = draggedTeamId
+    setDraggedTeamId(null)
+    setDropTargetTeamId(null)
+
+    if (
+      !sourceTeamId ||
+      sourceTeamId === targetTeamId ||
+      groupOrderSaving ||
+      bracketSettings.activeGroupRound > 0
+    ) {
+      return
+    }
+
+    const activeTeamIds = new Set(teams.map((team) => team.id))
+    const nextOrder = bracketSettings.groupTeamOrder.filter((teamId) => activeTeamIds.has(teamId))
+
+    for (const team of [...teams].sort((a, b) => a.position - b.position)) {
+      if (!nextOrder.includes(team.id)) {
+        nextOrder.push(team.id)
+      }
+    }
+
+    const sourceIndex = nextOrder.indexOf(sourceTeamId)
+    const targetIndex = nextOrder.indexOf(targetTeamId)
+    if (sourceIndex < 0 || targetIndex < 0) {
+      return
+    }
+
+    const sourceTeam = nextOrder[sourceIndex]
+    nextOrder[sourceIndex] = nextOrder[targetIndex]
+    nextOrder[targetIndex] = sourceTeam
+
+    setGroupOrderSaving(true)
+    setSettingsAlert(null)
+
+    try {
+      const response = await fetch('/api/admin/bracket/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ groupTeamOrder: nextOrder }),
+      })
+      const payload = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Teams konnten nicht getauscht werden.')
+      }
+
+      setSettingsAlert({
+        type: 'success',
+        text: 'Teams getauscht. Gruppen und Bracket wurden aktualisiert.',
+      })
+      await fetchData(false)
+    } catch (error) {
+      setSettingsAlert({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Teams konnten nicht getauscht werden.',
+      })
+    } finally {
+      setGroupOrderSaving(false)
     }
   }
 
@@ -698,7 +780,10 @@ export default function AdminBracketPage() {
         tournamentStarted: Boolean(payload?.settings?.tournamentStarted),
         groupPhaseEnabled: Boolean(payload?.settings?.groupPhaseEnabled),
         groupCount: clampGroupCount(payload?.settings?.groupCount ?? bracketSettings.groupCount, clampTeamSlots(payload?.settings?.teamSlots ?? bracketSettings.teamSlots)),
-        activeGroupRound: Math.max(0, Math.floor(Number(payload?.settings?.activeGroupRound) || 0))
+        activeGroupRound: Math.max(0, Math.floor(Number(payload?.settings?.activeGroupRound) || 0)),
+        groupTeamOrder: Array.isArray(payload?.settings?.groupTeamOrder)
+          ? payload.settings.groupTeamOrder.filter((teamId: unknown): teamId is string => typeof teamId === 'string')
+          : bracketSettings.groupTeamOrder
       }
 
       setBracketSettings(updatedSettings)
@@ -1390,6 +1475,13 @@ export default function AdminBracketPage() {
                 <p className="text-cyan-100 text-sm">
                   Jeder spielt einmal gegen jedes andere Team der Gruppe. Grün markiert ist die aktuelle Top-{PLAYOFF_TEAM_COUNT}-Prognose.
                 </p>
+                <p className="mt-1 text-xs text-cyan-200/70">
+                  {groupOrderSaving
+                    ? 'Tausch wird gespeichert...'
+                    : bracketSettings.activeGroupRound > 0
+                      ? 'Drag-and-drop ist nach dem Start der ersten Gruppenrunde gesperrt.'
+                      : 'Ziehe ein Team auf ein anderes Team, um beide Plaetze zu tauschen.'}
+                </p>
               </div>
               <div className="rounded-md border border-cyan-300/30 bg-cyan-500/10 px-3 py-2 text-sm font-semibold text-cyan-100">
                 Runde {bracketSettings.activeGroupRound}/{groupPhase.totalRounds}
@@ -1407,7 +1499,44 @@ export default function AdminBracketPage() {
                     {group.standings.map((standing) => (
                       <div
                         key={standing.team.id}
-                        className={`grid grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-md border px-3 py-2 text-sm ${standing.qualified ? 'border-emerald-300/40 bg-emerald-500/15 text-emerald-50' : 'border-white/10 bg-black/25 text-white/75'}`}
+                        draggable={canReorderGroupTeams}
+                        onDragStart={(event) => {
+                          if (!canReorderGroupTeams) return
+                          event.dataTransfer.effectAllowed = 'move'
+                          event.dataTransfer.setData('text/plain', standing.team.id)
+                          setDraggedTeamId(standing.team.id)
+                        }}
+                        onDragOver={(event) => {
+                          if (!canReorderGroupTeams || draggedTeamId === standing.team.id) return
+                          event.preventDefault()
+                          event.dataTransfer.dropEffect = 'move'
+                          setDropTargetTeamId(standing.team.id)
+                        }}
+                        onDragLeave={() => {
+                          if (dropTargetTeamId === standing.team.id) {
+                            setDropTargetTeamId(null)
+                          }
+                        }}
+                        onDrop={(event) => {
+                          event.preventDefault()
+                          void swapGroupTeams(standing.team.id)
+                        }}
+                        onDragEnd={() => {
+                          setDraggedTeamId(null)
+                          setDropTargetTeamId(null)
+                        }}
+                        title={canReorderGroupTeams ? 'Ziehen, um Teams zu tauschen' : undefined}
+                        className={`grid grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-md border px-3 py-2 text-sm transition-all ${
+                          canReorderGroupTeams ? 'cursor-grab active:cursor-grabbing' : ''
+                        } ${
+                          draggedTeamId === standing.team.id ? 'opacity-40' : ''
+                        } ${
+                          dropTargetTeamId === standing.team.id
+                            ? 'scale-[1.02] border-cyan-300 bg-cyan-500/20 ring-2 ring-cyan-300/30'
+                            : standing.qualified
+                              ? 'border-emerald-300/40 bg-emerald-500/15 text-emerald-50'
+                              : 'border-white/10 bg-black/25 text-white/75'
+                        }`}
                       >
                         <span className="min-w-0 truncate font-semibold">{standing.rank}. {formatAdminTeamName(standing.team)}</span>
                         <span className="shrink-0 text-xs text-white/70" title="RA = abgegebene Runden">

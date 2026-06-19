@@ -72,7 +72,13 @@ export const groupNameForIndex = (index: number): string => {
   return `Gruppe ${GROUP_LABELS[index] || index + 1}`
 }
 
-export const normalizeGroupPhaseTeams = (teams: BracketTeam[], limit: number = MAX_TEAMS): BracketTeam[] => {
+export const normalizeGroupPhaseTeams = (
+  teams: BracketTeam[],
+  limit: number = MAX_TEAMS,
+  teamOrder: string[] = []
+): BracketTeam[] => {
+  const orderByTeamId = new Map(teamOrder.map((teamId, index) => [teamId, index]))
+
   return teams
     .filter(Boolean)
     .map((team, index) => {
@@ -84,7 +90,16 @@ export const normalizeGroupPhaseTeams = (teams: BracketTeam[], limit: number = M
       }
     })
     .filter((team) => team.position >= 1 && team.position <= limit)
-    .sort((a, b) => a.position - b.position)
+    .sort((a, b) => {
+      const aOrder = orderByTeamId.get(a.id)
+      const bOrder = orderByTeamId.get(b.id)
+
+      if (aOrder !== undefined || bOrder !== undefined) {
+        return (aOrder ?? teamOrder.length + a.position) - (bOrder ?? teamOrder.length + b.position)
+      }
+
+      return a.position - b.position
+    })
 }
 
 const distributeTeams = (teams: BracketTeam[], groupCount: number): GroupPhaseGroup[] => {
@@ -258,9 +273,10 @@ export const buildGroupPhase = (
   playoffTeamCount: number = PLAYOFF_TEAM_COUNT,
   teamLimit: number = MAX_TEAMS,
   stateMap: Map<string, MatchState> = new Map(),
-  activeRound: number = 0
+  activeRound: number = 0,
+  teamOrder: string[] = []
 ): GroupPhaseResult => {
-  const teams = normalizeGroupPhaseTeams(inputTeams, teamLimit)
+  const teams = normalizeGroupPhaseTeams(inputTeams, teamLimit, teamOrder)
   const safeGroupCount = clampGroupCount(groupCount, Math.max(teams.length, 1))
   const groups = distributeTeams(teams, safeGroupCount)
   const groupRounds = groups.map((group) => createGroupMatches(group, stateMap))

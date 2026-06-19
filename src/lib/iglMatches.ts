@@ -230,7 +230,8 @@ export async function loadIglBracketData(): Promise<IglBracketData> {
         PLAYOFF_TEAM_COUNT,
         requestedSlots,
         stateMap,
-        settings.activeGroupRound
+        settings.activeGroupRound,
+        settings.groupTeamOrder
       )
     : null
   const bracketTeams = groupPhase?.advancingTeams || teams

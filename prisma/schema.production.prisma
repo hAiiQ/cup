@@ -144,6 +144,7 @@ model BracketSetting {
   groupPhaseEnabled Boolean  @default(false)
   groupCount        Int      @default(4)
   activeGroupRound  Int      @default(0)
+  groupTeamOrder    Json     @default("[]")
   participationOpen Boolean  @default(false)
   participationEndsAt DateTime?
   createdAt         DateTime @default(now())

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
-import { getBracketSettings, updateBracketSettings } from '@/lib/bracketSettings'
+import { getBracketSettings, normalizeGroupTeamOrder, updateBracketSettings } from '@/lib/bracketSettings'
 
 const SETTINGS_ENDPOINT_LOG = '[AdminBracketSettings]'
 
@@ -18,11 +18,15 @@ async function verifyAdmin(request: NextRequest) {
   }
 
   const adminId = decoded.userId.replace('admin_', '')
+  if (adminId === 'env_admin') {
+    return true
+  }
+
   const admin = await prisma.admin.findUnique({
     where: { id: adminId }
   })
 
-  return admin
+  return Boolean(admin)
 }
 
 export const dynamic = 'force-dynamic'
@@ -47,12 +51,28 @@ export async function POST(request: NextRequest) {
     }
 
     const payload = await request.json().catch(() => ({}))
-    const { mode, teamSlots, tournamentStarted, groupPhaseEnabled, groupCount, activeGroupRound } = payload || {}
+    const { mode, teamSlots, tournamentStarted, groupPhaseEnabled, groupCount, activeGroupRound, groupTeamOrder } = payload || {}
     const current = await getBracketSettings()
+    const normalizedGroupTeamOrder = groupTeamOrder === undefined
+      ? current.groupTeamOrder
+      : normalizeGroupTeamOrder(groupTeamOrder)
+    const groupOrderChanged = groupTeamOrder !== undefined && (
+      normalizedGroupTeamOrder.length !== current.groupTeamOrder.length ||
+      normalizedGroupTeamOrder.some((teamId, index) => teamId !== current.groupTeamOrder[index])
+    )
+
+    if (groupOrderChanged && current.activeGroupRound > 0) {
+      return NextResponse.json(
+        { error: 'Teams koennen nach dem Start der ersten Gruppenrunde nicht mehr getauscht werden.' },
+        { status: 409 }
+      )
+    }
+
     const structureChanged =
       (teamSlots !== undefined && Number(teamSlots) !== current.teamSlots) ||
       (groupPhaseEnabled !== undefined && Boolean(groupPhaseEnabled) !== current.groupPhaseEnabled) ||
-      (groupCount !== undefined && Number(groupCount) !== current.groupCount)
+      (groupCount !== undefined && Number(groupCount) !== current.groupCount) ||
+      groupOrderChanged
 
     if (structureChanged) {
       await prisma.$transaction([
@@ -72,6 +92,7 @@ export async function POST(request: NextRequest) {
       groupPhaseEnabled,
       groupCount,
       activeGroupRound: structureChanged ? 0 : activeGroupRound,
+      groupTeamOrder: normalizedGroupTeamOrder,
     })
     console.log(`${SETTINGS_ENDPOINT_LOG} Updated settings`, updated)
 
