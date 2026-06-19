@@ -249,7 +249,7 @@ export default function HomePage() {
             
             {/* Tournament Details */}
             <div className="flex justify-center gap-6 mb-8 flex-wrap">
-              <div className="bg-gradient-to-r from-yellow-400 via-orange-400 to-pink-500 rounded-xl px-6 py-4 border-2 border-yellow-400/50 shadow-[0_16px_38px_rgba(251,146,60,0.36),0_0_24px_rgba(236,72,153,0.28)] hover:shadow-[0_18px_44px_rgba(251,146,60,0.44),0_0_30px_rgba(236,72,153,0.34)] transform hover:scale-105 transition-all duration-300">
+              <div className="bg-gradient-to-r from-yellow-950/90 via-orange-950/90 to-pink-950/90 rounded-xl px-6 py-4 border-2 border-yellow-400/50 shadow-[0_16px_38px_rgba(251,146,60,0.36),0_0_24px_rgba(236,72,153,0.28)] hover:shadow-[0_18px_44px_rgba(251,146,60,0.44),0_0_30px_rgba(236,72,153,0.34)] transform hover:scale-105 transition-all duration-300">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-white mb-1">📅 19.06.2026 - 21.06.2026</div>
                   <div className="text-orange-100 text-sm font-medium">Sommerturnier</div>
@@ -259,7 +259,7 @@ export default function HomePage() {
               <button
                 type="button"
                 onClick={handleCaseOpening}
-                className="bg-gradient-to-r from-yellow-500 to-orange-600 rounded-xl px-6 py-4 border-2 border-orange-300/50 shadow-[0_16px_38px_rgba(234,88,12,0.38),0_0_22px_rgba(250,204,21,0.24)] hover:shadow-[0_18px_44px_rgba(234,88,12,0.46),0_0_28px_rgba(250,204,21,0.3)] transform hover:scale-105 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-100"
+                className="bg-gradient-to-r from-yellow-950/90 to-orange-950/90 rounded-xl px-6 py-4 border-2 border-orange-300/50 shadow-[0_16px_38px_rgba(234,88,12,0.38),0_0_22px_rgba(250,204,21,0.24)] hover:shadow-[0_18px_44px_rgba(234,88,12,0.46),0_0_28px_rgba(250,204,21,0.3)] transform hover:scale-105 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-100"
                 aria-label="Preisgeld Animation starten"
               >
                 <div className="text-center">
@@ -296,19 +296,19 @@ export default function HomePage() {
 
           {/* Tournament Info Cards */}
             <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 transform hover:scale-105">
+            <div className="bg-black/70 backdrop-blur-sm rounded-lg p-6 border border-white/20 hover:bg-black/80 transition-all duration-300 transform hover:scale-105">
               <h3 className="text-xl font-semibold text-white mb-4">Turniersystem</h3>
               <p className="text-white/80">
                 Wird noch bekanntgegeben — das finale Turniersystem steht noch nicht fest.
               </p>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 transform hover:scale-105">
+            <div className="bg-black/70 backdrop-blur-sm rounded-lg p-6 border border-white/20 hover:bg-black/80 transition-all duration-300 transform hover:scale-105">
               <h3 className="text-xl font-semibold text-white mb-4">Teamanzahl</h3>
               <p className="text-white/80">
                 Die genaue Anzahl der teilnehmenden Teams ist noch unklar und wird noch bekanntgegeben.
               </p>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 transform hover:scale-105">
+            <div className="bg-black/70 backdrop-blur-sm rounded-lg p-6 border border-white/20 hover:bg-black/80 transition-all duration-300 transform hover:scale-105">
               <h3 className="text-xl font-semibold text-white mb-4">Live Updates</h3>
               <p className="text-white/80">
                 Verfolge das Tournament live mit automatischen Updates des Brackets und Ergebnissen.
