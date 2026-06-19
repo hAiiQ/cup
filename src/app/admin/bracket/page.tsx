@@ -153,11 +153,13 @@ export default function AdminBracketPage() {
   const [groupRoundLoading, setGroupRoundLoading] = useState(false)
   const [participationOpen, setParticipationOpen] = useState(false)
   const [participatingCount, setParticipatingCount] = useState(0)
+  const [registeredUserCount, setRegisteredUserCount] = useState(0)
   const [participationEndsAt, setParticipationEndsAt] = useState<string | null>(null)
   const [participationDeadlineInput, setParticipationDeadlineInput] = useState('')
   const [participationLoading, setParticipationLoading] = useState(false)
   const [participationResetLoading, setParticipationResetLoading] = useState(false)
   const [participationDeadlineSaving, setParticipationDeadlineSaving] = useState(false)
+  const [participationReminderLoading, setParticipationReminderLoading] = useState(false)
   const [chatModalOpen, setChatModalOpen] = useState(false)
   const [chatThreads, setChatThreads] = useState<AdminChatThread[]>([])
   const [selectedChatMatchId, setSelectedChatMatchId] = useState<string | null>(null)
@@ -177,6 +179,7 @@ export default function AdminBracketPage() {
   const autoFreilosCount = slotCount > 0 && configuredSlotCount > 0
     ? Math.max(slotCount - activeBracketSlots, 0)
     : 0
+  const pendingParticipationCount = Math.max(registeredUserCount - participatingCount, 0)
   const currentGroupRound = groupPhase?.rounds.find(
     (round) => round.round === bracketSettings.activeGroupRound
   )
@@ -393,6 +396,7 @@ export default function AdminBracketPage() {
       if (response.ok) {
         setParticipationOpen(Boolean(data.open))
         setParticipatingCount(Number(data.participatingCount) || 0)
+        setRegisteredUserCount(Number(data.userCount) || 0)
         setParticipationEndsAt(data.participationEndsAt || null)
         if (!participationDeadlineEditingRef.current && !participationDeadlineDirtyRef.current) {
           setParticipationDeadlineInput(toDatetimeLocalValue(data.participationEndsAt))
@@ -436,6 +440,7 @@ export default function AdminBracketPage() {
 
       setParticipationOpen(Boolean(data.open))
       setParticipatingCount(Number(data.participatingCount) || 0)
+      setRegisteredUserCount(Number(data.userCount) || 0)
       setParticipationEndsAt(data.participationEndsAt || null)
       participationDeadlineDirtyRef.current = false
       setParticipationDeadlineInput(toDatetimeLocalValue(data.participationEndsAt))
@@ -476,6 +481,7 @@ export default function AdminBracketPage() {
 
       setParticipationOpen(Boolean(data.open))
       setParticipatingCount(Number(data.participatingCount) || 0)
+      setRegisteredUserCount(Number(data.userCount) || 0)
       setParticipationEndsAt(data.participationEndsAt || null)
       participationDeadlineDirtyRef.current = false
       setParticipationDeadlineInput(toDatetimeLocalValue(data.participationEndsAt))
@@ -490,6 +496,46 @@ export default function AdminBracketPage() {
       })
     } finally {
       setParticipationResetLoading(false)
+    }
+  }
+
+  const sendParticipationReminders = async () => {
+    if (
+      participationReminderLoading ||
+      !participationOpen ||
+      !window.confirm(
+        `Discord-Erinnerung an bis zu ${pendingParticipationCount} Nicht-Teilnehmer senden?`
+      )
+    ) {
+      return
+    }
+
+    setParticipationReminderLoading(true)
+    setSettingsAlert(null)
+
+    try {
+      const response = await fetch('/api/admin/participation/remind', {
+        method: 'POST',
+        credentials: 'include',
+      })
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Discord-Erinnerungen konnten nicht gesendet werden.')
+      }
+
+      setSettingsAlert({
+        type: 'success',
+        text: data.message || 'Discord-Erinnerungen wurden versendet.',
+      })
+      await fetchParticipationStatus()
+    } catch (error) {
+      setSettingsAlert({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Discord-Erinnerungen konnten nicht gesendet werden.',
+      })
+    } finally {
+      setParticipationReminderLoading(false)
     }
   }
 
@@ -525,6 +571,7 @@ export default function AdminBracketPage() {
 
       setParticipationOpen(Boolean(data.open))
       setParticipatingCount(Number(data.participatingCount) || 0)
+      setRegisteredUserCount(Number(data.userCount) || 0)
       setParticipationEndsAt(data.participationEndsAt || null)
       participationDeadlineDirtyRef.current = false
       setParticipationDeadlineInput(toDatetimeLocalValue(data.participationEndsAt))
@@ -1138,6 +1185,21 @@ export default function AdminBracketPage() {
                   className="min-h-10 rounded-md border border-gray-600 bg-gray-800 px-4 py-2 text-sm font-bold text-gray-100 transition-colors hover:border-gray-400 hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   {participationResetLoading ? 'Setze zurück...' : 'Zurücksetzen'}
+                </button>
+                <button
+                  type="button"
+                  onClick={sendParticipationReminders}
+                  disabled={
+                    participationReminderLoading ||
+                    participationLoading ||
+                    !participationOpen ||
+                    pendingParticipationCount === 0
+                  }
+                  className="min-h-10 rounded-md border border-indigo-500/50 bg-indigo-600/20 px-4 py-2 text-sm font-bold text-indigo-100 transition-colors hover:bg-indigo-600/35 disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  {participationReminderLoading
+                    ? 'Sende DMs...'
+                    : `Discord erinnern (${pendingParticipationCount})`}
                 </button>
               </div>
               <p className="mt-2 text-xs text-gray-400">
