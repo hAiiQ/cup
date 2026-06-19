@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatTierLabel, TIER_SELECT_OPTIONS } from '@/lib/tierConfig'
 import { TEAM_PLAYER_LIMIT } from '@/lib/teamCapacity'
@@ -30,6 +30,7 @@ interface User {
 }
 
 type ParticipationFilter = 'participating' | 'not-participating' | 'all'
+type StreamerFilter = 'all' | 'streamers' | 'non-streamers'
 
 interface Team {
   id: string
@@ -49,7 +50,6 @@ export default function WheelPage() {
   
   const [users, setUsers] = useState<User[]>([])
   const [teams, setTeams] = useState<Team[]>([])
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([])
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [selectedTeam, setSelectedTeam] = useState<string>('')
   const [isSpinning, setIsSpinning] = useState(false)
@@ -60,8 +60,31 @@ export default function WheelPage() {
   
   // Filter states
   const [participationFilter, setParticipationFilter] = useState<ParticipationFilter>('participating')
-  const [streamerFilter, setStreamerFilter] = useState('all')
+  const [streamerFilter, setStreamerFilter] = useState<StreamerFilter>('all')
   const [tierFilter, setTierFilter] = useState('all')
+  const filteredUsers = useMemo(() => {
+    let filtered = users.filter((user) => !user.teamId)
+
+    if (participationFilter === 'participating') {
+      filtered = filtered.filter((user) => user.isParticipating)
+    } else if (participationFilter === 'not-participating') {
+      filtered = filtered.filter((user) => !user.isParticipating)
+    }
+
+    if (streamerFilter === 'streamers') {
+      filtered = filtered.filter((user) => user.isStreamer)
+    } else if (streamerFilter === 'non-streamers') {
+      filtered = filtered.filter((user) => !user.isStreamer)
+    }
+
+    if (tierFilter === 'none') {
+      filtered = filtered.filter((user) => !user.tier)
+    } else if (tierFilter !== 'all') {
+      filtered = filtered.filter((user) => user.tier === tierFilter)
+    }
+
+    return filtered
+  }, [users, participationFilter, streamerFilter, tierFilter])
 
   // Admin Authentication Check
   useEffect(() => {
@@ -133,10 +156,6 @@ export default function WheelPage() {
     return () => window.clearInterval(interval)
   }, [isAuthenticated, isSpinning])
 
-  useEffect(() => {
-    applyFilters()
-  }, [users, participationFilter, streamerFilter, tierFilter])
-
   const fetchData = async () => {
     try {
       console.log('🎯 Fetching users for wheel')
@@ -176,32 +195,6 @@ export default function WheelPage() {
     const nextSize = Math.min(Math.max(value, MIN_WHEEL_SIZE_PERCENT), MAX_WHEEL_SIZE_PERCENT)
     setWheelSizePercent(nextSize)
     window.localStorage.setItem(WHEEL_SIZE_STORAGE_KEY, String(nextSize))
-  }
-
-  const applyFilters = () => {
-    let filtered = users.filter(user => !user.teamId) // Nur Users ohne Team
-    
-    if (participationFilter === 'participating') {
-      filtered = filtered.filter(user => user.isParticipating)
-    } else if (participationFilter === 'not-participating') {
-      filtered = filtered.filter(user => !user.isParticipating)
-    }
-    
-    if (streamerFilter === 'streamers') {
-      filtered = filtered.filter(user => user.isStreamer)
-    } else if (streamerFilter === 'non-streamers') {
-      filtered = filtered.filter(user => !user.isStreamer)
-    }
-    
-    if (tierFilter !== 'all') {
-      if (tierFilter === 'none') {
-        filtered = filtered.filter(user => !user.tier)
-      } else {
-        filtered = filtered.filter(user => user.tier === tierFilter)
-      }
-    }
-    
-    setFilteredUsers(filtered)
   }
 
   const playWheelTick = () => {
@@ -628,7 +621,7 @@ export default function WheelPage() {
                   </label>
                   <select
                     value={streamerFilter}
-                    onChange={(e) => setStreamerFilter(e.target.value)}
+                    onChange={(e) => setStreamerFilter(e.target.value as StreamerFilter)}
                     className="w-full rounded-md border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white focus:border-purple-400 focus:outline-none"
                   >
                     <option value="all">Alle</option>
