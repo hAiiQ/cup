@@ -147,11 +147,10 @@ export default function TeamsPage() {
     }
   }
 
-  const TEAM_SIZE = 6
   const totalPlayers = teams.reduce((sum, team) => sum + team.members.length, 0)
   const verifiedPlayers = teams.reduce((sum, team) => sum + team.members.filter(m => m.isVerified).length, 0)
-  const fullTeamsCount = teams.filter(team => team.members.length === TEAM_SIZE).length
-  const totalCapacity = teamSlots * TEAM_SIZE
+  const fullTeamsCount = teams.filter(team => team.members.length >= TEAM_PLAYER_LIMIT).length
+  const totalCapacity = teamSlots * TEAM_PLAYER_LIMIT
   const freeSlots = Math.max(totalCapacity - totalPlayers, 0)
 
   if (loading) {
@@ -241,11 +240,11 @@ export default function TeamsPage() {
                       <div className="w-full bg-white/20 rounded-full h-2">
                         <div 
                           className={`h-2 rounded-full transition-all duration-500 ${
-                            team.members.length === 6 ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
-                            team.members.length >= 4 ? 'bg-gradient-to-r from-yellow-500 to-orange-500' :
+                            team.members.length >= TEAM_PLAYER_LIMIT ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
+                            team.members.length >= TEAM_PLAYER_LIMIT - 1 ? 'bg-gradient-to-r from-yellow-500 to-orange-500' :
                             'bg-gradient-to-r from-red-500 to-pink-500'
                           }`}
-                          style={{width: `${(team.members.length / 6) * 100}%`}}
+                          style={{width: `${Math.min((team.members.length / TEAM_PLAYER_LIMIT) * 100, 100)}%`}}
                         ></div>
                       </div>
                     </div>
@@ -264,12 +263,12 @@ export default function TeamsPage() {
                       </div>
                       <div className="bg-black/40 rounded-lg p-2 text-center">
                         <div className={`font-bold text-lg ${
-                          team.members.length === 6 ? 'text-green-400' :
-                          team.members.length >= 4 ? 'text-yellow-400' :
+                          team.members.length >= TEAM_PLAYER_LIMIT ? 'text-green-400' :
+                          team.members.length >= TEAM_PLAYER_LIMIT - 1 ? 'text-yellow-400' :
                           'text-red-400'
                         }`}>
-                          {team.members.length === 6 ? '✅' :
-                           team.members.length >= 4 ? '⚠️' :
+                          {team.members.length >= TEAM_PLAYER_LIMIT ? '✅' :
+                           team.members.length >= TEAM_PLAYER_LIMIT - 1 ? '⚠️' :
                            '❌'}
                         </div>
                         <div className="text-white/60 text-xs">Status</div>
@@ -352,7 +351,7 @@ export default function TeamsPage() {
                         ))}
 
                         {/* Empty slots with better design */}
-                        {Array.from({ length: 6 - team.members.length }).map((_, index) => (
+                        {Array.from({ length: Math.max(TEAM_PLAYER_LIMIT - team.members.length, 0) }).map((_, index) => (
                           <div
                             key={`empty-${index}`}
                             className="bg-black/35 rounded-xl p-4 border-2 border-dashed border-white/20 hover:border-purple-400/50 transition-all duration-300"

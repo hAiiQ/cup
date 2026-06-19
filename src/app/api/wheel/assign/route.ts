@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { TEAM_PLAYER_LIMIT } from '@/lib/teamCapacity'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -16,6 +17,14 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('🎯 Assigning user to team:', { userId, teamId })
+
+    const teamMemberCount = await prisma.user.count({ where: { teamId } })
+    if (teamMemberCount >= TEAM_PLAYER_LIMIT) {
+      return NextResponse.json(
+        { error: `Team ist bereits voll (${TEAM_PLAYER_LIMIT}/${TEAM_PLAYER_LIMIT} Mitglieder)` },
+        { status: 400 }
+      )
+    }
 
     // Update user with team assignment
     const updatedUser = await prisma.user.update({

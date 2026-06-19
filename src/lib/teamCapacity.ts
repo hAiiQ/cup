@@ -1,6 +1,6 @@
 export const ACTIVE_TEAM_PLAYER_LIMIT = 5
-export const RESERVE_TEAM_PLAYER_LIMIT = 2
+export const RESERVE_TEAM_PLAYER_LIMIT = 0
 export const TEAM_PLAYER_LIMIT = ACTIVE_TEAM_PLAYER_LIMIT + RESERVE_TEAM_PLAYER_LIMIT
 
-export const TEAM_CAPACITY_SHORT_LABEL = '5 + 2 Reserve'
-export const TEAM_CAPACITY_FULL_LABEL = '5 Spieler + 2 Reserve-Slots'
+export const TEAM_CAPACITY_SHORT_LABEL = '5 Spieler'
+export const TEAM_CAPACITY_FULL_LABEL = '5 Spieler pro Team'

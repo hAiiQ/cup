@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { TEAM_PLAYER_LIMIT } from '@/lib/teamCapacity'
 
 
 // Force dynamic rendering
@@ -34,6 +35,25 @@ export async function POST(
       if (!team) {
         console.log(`❌ Team not found: ${teamName}`)
         return NextResponse.json({ error: 'Team nicht gefunden' }, { status: 404 })
+      }
+
+      const [user, teamMemberCount] = await Promise.all([
+        prisma.user.findUnique({
+          where: { id: userId },
+          select: { teamId: true },
+        }),
+        prisma.user.count({ where: { teamId: team.id } }),
+      ])
+
+      if (!user) {
+        return NextResponse.json({ error: 'User nicht gefunden' }, { status: 404 })
+      }
+
+      if (user.teamId !== team.id && teamMemberCount >= TEAM_PLAYER_LIMIT) {
+        return NextResponse.json(
+          { error: `Team ist bereits voll (${TEAM_PLAYER_LIMIT}/${TEAM_PLAYER_LIMIT} Mitglieder)` },
+          { status: 400 }
+        )
       }
 
       // Update user with teamId directly
