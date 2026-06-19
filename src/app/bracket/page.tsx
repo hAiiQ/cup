@@ -54,7 +54,7 @@ const BracketMatchBox = ({
 }) => {
   if (!match) {
     return (
-      <div className={`bg-gray-800/80 border border-white/10 rounded-lg p-3 w-full h-full flex items-center justify-center text-gray-400 text-sm ${className}`}>
+      <div className={`bg-black/75 border border-white/10 rounded-lg p-3 w-full h-full flex items-center justify-center text-gray-400 text-sm ${className}`}>
         Match folgt
       </div>
     )
@@ -68,7 +68,7 @@ const BracketMatchBox = ({
   const team2Wins = match.isFinished && match.winnerId === 'team2'
 
   return (
-    <div className={`bg-gray-900/70 border border-white/10 rounded-lg px-2 py-2 w-full h-full flex flex-col justify-center ${className}`}>
+    <div className={`bg-black/80 border border-white/10 rounded-lg px-2 py-2 w-full h-full flex flex-col justify-center ${className}`}>
       {match.isLive && (
         <div className="live-match-pulse mb-1 text-center text-[10px] font-bold uppercase text-red-300">
           Live Match
@@ -195,7 +195,7 @@ export default function BracketPage() {
       <div className="w-full px-4 py-6 max-w-[1800px] mx-auto">
         
         {/* Header */}
-        <div className="bg-black/20 backdrop-blur-sm rounded-xl p-5 border border-purple-500/50 mb-5">
+        <div className="bg-black/70 backdrop-blur-sm rounded-xl p-5 border border-purple-500/50 mb-5">
           <h1 className="text-4xl font-bold text-white text-center mb-4">🏆 TOURNAMENT BRACKET</h1>
           
           <div className="text-center">
@@ -219,7 +219,7 @@ export default function BracketPage() {
         </div>
 
         {groupPhase && (
-          <section className="bg-black/20 backdrop-blur-sm rounded-xl p-5 border border-cyan-500/45 mb-5">
+          <section className="bg-black/70 backdrop-blur-sm rounded-xl p-5 border border-cyan-500/45 mb-5">
             <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
               <div>
                 <h2 className="text-2xl font-bold text-white">GRUPPENPHASE</h2>
@@ -234,7 +234,7 @@ export default function BracketPage() {
 
             <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               {groupPhase.groups.map((group) => (
-                <article key={group.name} className="rounded-lg border border-white/15 bg-gray-950/60 p-4">
+                <article key={group.name} className="rounded-lg border border-white/15 bg-black/65 p-4">
                   <div className="mb-3 flex items-center justify-between">
                     <h3 className="text-lg font-bold text-white">{group.name}</h3>
                     <span className="text-xs text-white/50">{group.teams.length} Teams</span>
@@ -243,7 +243,7 @@ export default function BracketPage() {
                     {group.standings.map((standing) => (
                       <div
                         key={standing.team.id}
-                        className={`grid grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-md border px-3 py-2 text-sm ${standing.qualified ? 'border-emerald-300/40 bg-emerald-500/15 text-emerald-50' : 'border-white/10 bg-black/25 text-white/75'}`}
+                        className={`grid grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-md border px-3 py-2 text-sm ${standing.qualified ? 'border-emerald-300/40 bg-emerald-950/70 text-emerald-50' : 'border-white/10 bg-black/45 text-white/75'}`}
                       >
                         <span className="min-w-0 truncate font-semibold">
                           {standing.rank}. {standing.team.name}
@@ -261,7 +261,7 @@ export default function BracketPage() {
         )}
 
         {groupPhase && (
-          <section className="bg-black/20 backdrop-blur-sm rounded-xl p-5 border border-blue-500/45 mb-5">
+          <section className="bg-black/70 backdrop-blur-sm rounded-xl p-5 border border-blue-500/45 mb-5">
             <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
               <div>
                 <h2 className="text-2xl font-bold text-white">GRUPPENRUNDEN</h2>
@@ -280,10 +280,10 @@ export default function BracketPage() {
                   key={round.round}
                   className={`rounded-lg border p-4 ${
                     round.isActive
-                      ? 'border-cyan-300/60 bg-cyan-500/10'
+                      ? 'border-cyan-300/60 bg-cyan-950/75'
                       : round.isComplete
-                        ? 'border-green-400/30 bg-green-500/5'
-                        : 'border-white/10 bg-gray-950/50'
+                        ? 'border-green-400/30 bg-green-950/70'
+                        : 'border-white/10 bg-black/60'
                   }`}
                 >
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -312,7 +312,7 @@ export default function BracketPage() {
         )}
 
         {/* Combined Tournament Bracket */}
-        <section className="bg-black/20 backdrop-blur-sm rounded-xl p-5 border border-purple-500/50">
+        <section className="bg-black/70 backdrop-blur-sm rounded-xl p-5 border border-purple-500/50">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end mb-6">
             <span className="text-sm text-purple-200">Angezeigt werden die gewonnenen Runden pro Team</span>
           </div>
@@ -336,14 +336,14 @@ export default function BracketPage() {
           <h2 className="text-2xl font-bold text-white text-center mb-4">TEILNEHMENDE TEAMS</h2>
           <div className="grid md:grid-cols-4 gap-3">
             {teams.length > 0 ? teams.map((team, index) => (
-              <div key={team.id} className="bg-purple-600/20 backdrop-blur-sm rounded-lg p-3 border border-purple-500/50">
+              <div key={team.id} className="bg-black/65 backdrop-blur-sm rounded-lg p-3 border border-purple-500/50">
                 <h3 className="text-white font-semibold text-center text-base">{team.name}</h3>
                 <p className="text-purple-200 text-center text-xs">Position {team.position}</p>
               </div>
             )) : (
               // Fallback teams if no teams are loaded
               DEFAULT_TEAM_NAMES.slice(0, requestedSlotCount || slotCount || DEFAULT_TEAM_NAMES.length).map((teamName, index) => (
-                <div key={index} className="bg-purple-600/20 backdrop-blur-sm rounded-lg p-3 border border-purple-500/50">
+                <div key={index} className="bg-black/65 backdrop-blur-sm rounded-lg p-3 border border-purple-500/50">
                   <h3 className="text-white font-semibold text-center text-base">{teamName}</h3>
                   <p className="text-purple-200 text-center text-xs">Position {index + 1}</p>
                 </div>
