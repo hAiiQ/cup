@@ -1,1 +1,1 @@
-export const MIN_VALORANT_LEVEL = 50
+export const MIN_VALORANT_LEVEL = 40
