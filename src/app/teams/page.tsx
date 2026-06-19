@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react'
 import { MAX_TEAMS, getDefaultTeamName, normalizeTeamName } from '@/lib/teamDefaults'
 import { TEAM_PLAYER_LIMIT } from '@/lib/teamCapacity'
+import { resolveTierKey, tierToNumber } from '@/lib/tierConfig'
 
 interface TeamMember {
   id: string
   username: string
   inGameName?: string
   rank?: string
-  tier?: number | null
+  tier?: string | number | null
   isVerified: boolean
   discord?: string
   twitch?: string
@@ -23,6 +24,15 @@ interface Team {
   position: number
   imageUrl?: string
   members: TeamMember[]
+}
+
+const compareTeamMembersByTier = (a: TeamMember, b: TeamMember) => {
+  const tierDifference = (tierToNumber(a.tier) ?? 99) - (tierToNumber(b.tier) ?? 99)
+  if (tierDifference !== 0) {
+    return tierDifference
+  }
+
+  return (a.inGameName || a.username).localeCompare(b.inGameName || b.username, 'de')
 }
 
 const createPlaceholderTeam = (position: number): Team => ({
@@ -43,7 +53,9 @@ const ensureFullTeamList = (inputTeams: Team[] = [], slotLimit: number = MAX_TEA
         ...team,
         name: normalizeTeamName(position, team.name),
         position,
-        members: Array.isArray(team.members) ? team.members : []
+        members: Array.isArray(team.members)
+          ? [...team.members].sort(compareTeamMembersByTier)
+          : []
       }
     })
 
@@ -108,40 +120,31 @@ export default function TeamsPage() {
     }
   }
 
-  const getTierColor = (tier?: number | null) => {
-    switch (tier) {
-      case 1:
+  const getTierColor = (tier?: string | number | null) => {
+    switch (resolveTierKey(tier)) {
+      case 'tier1':
         return 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-black'
-      case 2:
+      case 'tier2':
         return 'bg-gradient-to-r from-orange-500 to-orange-600 text-white'
-      case 3:
+      case 'tier3':
         return 'bg-gradient-to-r from-gray-500 to-gray-600 text-white'
-      default:
+      case 'tier4':
         return 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
-    }
-  }
-
-  const getTierIcon = (tier?: number | null) => {
-    switch (tier) {
-      case 1:
-        return '🥇'
-      case 2:
-        return '🥈'
-      case 3:
-        return '🥉'
       default:
-        return '❓'
+        return 'bg-gray-700 text-gray-300'
     }
   }
 
-  const getTierName = (tier?: number | null) => {
-    switch (tier) {
-      case 1:
+  const getTierName = (tier?: string | number | null) => {
+    switch (resolveTierKey(tier)) {
+      case 'tier1':
         return 'TIER 1'
-      case 2:
+      case 'tier2':
         return 'TIER 2'
-      case 3:
+      case 'tier3':
         return 'TIER 3'
+      case 'tier4':
+        return 'TIER 4'
       default:
         return 'UNRANKED'
     }
@@ -329,9 +332,8 @@ export default function TeamsPage() {
                                   </div>
                                   
                                   {/* Tier Badge */}
-                                  {member.tier && member.tier >= 1 && member.tier <= 3 && (
+                                  {resolveTierKey(member.tier) && (
                                     <div className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center ${getTierColor(member.tier)}`}>
-                                      <span className="mr-1">{getTierIcon(member.tier)}</span>
                                       {getTierName(member.tier)}
                                     </div>
                                   )}
