@@ -9,6 +9,24 @@ import { PLAYOFF_TEAM_COUNT, buildGroupPhase } from '@/lib/groupPhase'
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
 
+const getTwitchChannel = (value: string | null): string | null => {
+  if (!value) return null
+
+  let channel = value.trim().replace(/^@/, '')
+
+  try {
+    const url = new URL(channel.startsWith('http') ? channel : `https://${channel}`)
+    const hostname = url.hostname.toLowerCase().replace(/^www\./, '')
+    if (hostname === 'twitch.tv' || hostname === 'm.twitch.tv') {
+      channel = url.pathname.split('/').filter(Boolean)[0] || ''
+    }
+  } catch {
+    // A plain Twitch channel name is the expected input.
+  }
+
+  return /^[a-zA-Z0-9_]{1,25}$/.test(channel) ? channel.toLowerCase() : null
+}
+
 export async function GET() {
   try {
     console.log('🔄 Fetching matches for bracket with persistent live states...')
@@ -103,15 +121,35 @@ export async function GET() {
     try {
       console.log('🔍 Fetching teams for bracket...')
       const teamsFromDB = await prisma.team.findMany({
+        include: {
+          users: {
+            where: {
+              isStreamer: true,
+              twitchName: { not: null }
+            },
+            select: {
+              twitchName: true
+            }
+          }
+        },
         orderBy: { position: 'asc' },
         take: requestedSlots
       })
 
-      dbTeams = teamsFromDB.map(team => ({
-        id: team.id,
-        name: team.name,
-        position: team.position || 0
-      }))
+      dbTeams = teamsFromDB.map(team => {
+        const twitchChannels = Array.from(new Set(
+          team.users
+            .map(user => getTwitchChannel(user.twitchName))
+            .filter((channel): channel is string => Boolean(channel))
+        ))
+
+        return {
+          id: team.id,
+          name: team.name,
+          position: team.position || 0,
+          twitchChannels
+        }
+      })
 
       console.log(`📋 Loaded ${dbTeams.length} teams from database (limit: ${requestedSlots})`)
     } catch (error) {

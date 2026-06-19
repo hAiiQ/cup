@@ -17,6 +17,34 @@ const getTeamName = (team?: BracketTeam, fallback: string = 'TBD') => {
   return team?.name || fallback
 }
 
+const TwitchLogo = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" className="h-3.5 w-3.5 fill-current">
+    <path d="M4.3 2 2.8 5.8v13.7h5.1V22h2.8l2.5-2.5H17l4.2-4.2V2H4.3Zm15 12.4-2.4 2.4h-4.2l-2.5 2.5v-2.5H6.8V4.5h12.5v9.9Zm-3.4-6.5v5h-2.1v-5h2.1Zm-4.6 0v5H9.2v-5h2.1Z" />
+  </svg>
+)
+
+const TeamTwitchLinks = ({ team }: { team?: BracketTeam }) => {
+  if (!team?.twitchChannels?.length) return null
+
+  return (
+    <span className="flex shrink-0 items-center gap-0.5">
+      {team.twitchChannels.map(channel => (
+        <a
+          key={channel.toLowerCase()}
+          href={`https://www.twitch.tv/${encodeURIComponent(channel)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={`${channel} auf Twitch ansehen`}
+          aria-label={`${channel} auf Twitch ansehen`}
+          className="rounded bg-[#9146ff] p-1 text-white transition-colors hover:bg-[#772ce8] focus:outline-none focus:ring-2 focus:ring-purple-300"
+        >
+          <TwitchLogo />
+        </a>
+      ))}
+    </span>
+  )
+}
+
 const BracketMatchBox = ({
   match,
   className = ''
@@ -47,9 +75,15 @@ const BracketMatchBox = ({
         </div>
       )}
       <div className="flex items-center gap-1 text-white text-[13px] font-semibold w-full justify-center">
-        <span className={`flex-1 min-w-0 truncate text-right ${team1Wins ? 'text-green-400' : ''}`}>{team1Name}</span>
+        <span className="flex min-w-0 flex-1 items-center justify-end gap-1">
+          <span className={`min-w-0 truncate text-right ${team1Wins ? 'text-green-400' : ''}`}>{team1Name}</span>
+          {match.isLive && <TeamTwitchLinks team={match.team1} />}
+        </span>
         <span className={`flex-none w-14 text-center whitespace-nowrap ${match.isLive ? 'text-yellow-300' : 'text-purple-200'}`}>{team1Score} - {team2Score}</span>
-        <span className={`flex-1 min-w-0 truncate text-left ${team2Wins ? 'text-green-400' : ''}`}>{team2Name}</span>
+        <span className="flex min-w-0 flex-1 items-center gap-1">
+          {match.isLive && <TeamTwitchLinks team={match.team2} />}
+          <span className={`min-w-0 truncate text-left ${team2Wins ? 'text-green-400' : ''}`}>{team2Name}</span>
+        </span>
       </div>
       {match.mapName && (
         <div className="mt-1 text-center text-[11px] font-semibold text-cyan-200">

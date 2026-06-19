@@ -37,6 +37,7 @@ interface User {
   isIGL: boolean
   isVerified: boolean
   rulesAccepted: boolean
+  isParticipating: boolean
   twitchVerified: boolean
   instagramVerified: boolean
   discordVerified: boolean
@@ -121,6 +122,17 @@ type ValorantBulkSyncState = {
   status?: string
 }
 
+type ParticipationFilter = 'all' | 'participating' | 'not-participating'
+
+const PARTICIPATION_FILTER_OPTIONS: Array<{
+  value: ParticipationFilter
+  label: string
+}> = [
+  { value: 'all', label: 'Alle' },
+  { value: 'participating', label: 'Nimmt teil' },
+  { value: 'not-participating', label: 'Nimmt nicht teil' },
+]
+
 const wait = (milliseconds: number, shouldCancel?: () => boolean) =>
   new Promise<boolean>((resolve) => {
     const startedAt = Date.now()
@@ -167,6 +179,7 @@ export default function AdminDashboard() {
   })
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('users')
+  const [participationFilter, setParticipationFilter] = useState<ParticipationFilter>('all')
   const [deletingUser, setDeletingUser] = useState<string | null>(null)
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [userProfileForm, setUserProfileForm] = useState<UserProfileForm>({
@@ -197,6 +210,11 @@ export default function AdminDashboard() {
         position: index + 1
       }))
   const valorantBulkSyncUsers = users.filter((user) => user.inGameName?.trim())
+  const filteredUsers = users.filter((user) => {
+    if (participationFilter === 'participating') return user.isParticipating
+    if (participationFilter === 'not-participating') return !user.isParticipating
+    return true
+  })
   const valorantBulkEstimatedSeconds = getValorantBulkSyncSeconds(valorantBulkSyncUsers.length)
   const valorantBulkProgressPercent = valorantBulkSync.total > 0
     ? Math.round((valorantBulkSync.completed / valorantBulkSync.total) * 100)
@@ -947,6 +965,38 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
+              <div className="mt-5 flex flex-col gap-3 rounded-lg border border-gray-700 bg-gray-900/50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="text-sm font-semibold uppercase tracking-wide text-gray-300">
+                    Teilnahme filtern
+                  </div>
+                  <div className="mt-1 text-xs text-gray-500">
+                    {filteredUsers.length} von {users.length} Usern werden angezeigt
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2" role="group" aria-label="User nach Teilnahme filtern">
+                  {PARTICIPATION_FILTER_OPTIONS.map((option) => {
+                    const isActive = participationFilter === option.value
+
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setParticipationFilter(option.value)}
+                        aria-pressed={isActive}
+                        className={`rounded-md border px-3 py-2 text-sm font-semibold transition-colors ${
+                          isActive
+                            ? 'border-red-400 bg-red-600 text-white'
+                            : 'border-gray-600 bg-gray-800 text-gray-300 hover:border-gray-500 hover:bg-gray-700'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
               <div className="mt-5 rounded-lg border border-sky-500/25 bg-sky-950/30 p-4">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                   <div>
@@ -1022,9 +1072,14 @@ export default function AdminDashboard() {
                 <h2 className="text-2xl font-bold text-white">Noch keine User</h2>
                 <p className="text-gray-400 mt-2">Sobald sich Spieler registrieren, erscheinen sie hier.</p>
               </div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="bg-gray-800 rounded-lg border border-gray-700 p-10 text-center">
+                <h2 className="text-2xl font-bold text-white">Keine passenden User</h2>
+                <p className="text-gray-400 mt-2">Für diesen Teilnahmefilter wurden keine User gefunden.</p>
+              </div>
             ) : (
               <div className="grid gap-4 xl:grid-cols-2">
-                {users.map((user) => {
+                {filteredUsers.map((user) => {
                   const displayName = getUserDisplayName(user)
                   const verification = getVerificationSummary(user)
                   const tierKey = resolveTierKey(user.tier)

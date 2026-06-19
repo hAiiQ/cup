@@ -5,6 +5,7 @@ export interface BracketTeam {
   id: string
   name: string
   position: number
+  twitchChannels?: string[]
 }
 
 export interface ParticipantSourceSeed {
