@@ -11,6 +11,7 @@ export async function GET() {
       select: {
         id: true,
         username: true,
+        discordName: true,
         inGameName: true,
         inGameRank: true,
         valorantCurrentRank: true,

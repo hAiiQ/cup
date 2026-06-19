@@ -188,7 +188,7 @@ export default function TeamsPage() {
       <div className="container mx-auto px-4 py-8">
         
         {/* Header */}
-        <div className="bg-black/20 backdrop-blur-sm rounded-xl p-6 border border-purple-500/50 mb-8">
+        <div className="bg-black/70 backdrop-blur-sm rounded-xl p-6 border border-purple-500/50 mb-8">
           <div className="text-center">
             <h1 className="text-5xl font-bold text-white mb-4">
               🏆 TOURNAMENT TEAMS
@@ -202,7 +202,7 @@ export default function TeamsPage() {
 
         {teams.length === 0 ? (
           <div className="text-center">
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 p-12 max-w-md mx-auto">
+            <div className="bg-black/70 backdrop-blur-sm rounded-xl border border-white/20 p-12 max-w-md mx-auto">
               <div className="text-8xl mb-6">🎯</div>
               <h3 className="text-3xl font-bold text-white mb-4">Noch keine Teams</h3>
               <p className="text-gray-300 mb-8 text-lg">
@@ -221,7 +221,7 @@ export default function TeamsPage() {
             {/* Teams Grid */}
             <div className="grid lg:grid-cols-2 gap-8 mb-8">
               {teams.map((team) => (
-                <div key={team.id} className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 overflow-hidden hover:border-purple-500/50 transition-all duration-300 hover:scale-[1.02]">
+                <div key={team.id} className="bg-black/70 backdrop-blur-sm rounded-xl border border-white/20 overflow-hidden hover:border-purple-500/50 transition-all duration-300 hover:scale-[1.02]">
                   
                   {/* Team Header */}
                   <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 p-6 border-b border-white/10">
@@ -252,17 +252,17 @@ export default function TeamsPage() {
                     
                     {/* Quick Stats */}
                     <div className="grid grid-cols-3 gap-3">
-                      <div className="bg-white/10 rounded-lg p-2 text-center">
+                      <div className="bg-black/40 rounded-lg p-2 text-center">
                         <div className="text-blue-400 font-bold text-lg">{team.members.length}</div>
                         <div className="text-white/60 text-xs">Mitglieder</div>
                       </div>
-                      <div className="bg-white/10 rounded-lg p-2 text-center">
+                      <div className="bg-black/40 rounded-lg p-2 text-center">
                         <div className="text-green-400 font-bold text-lg">
                           {team.members.filter(m => m.isVerified).length}
                         </div>
                         <div className="text-white/60 text-xs">Verifiziert</div>
                       </div>
-                      <div className="bg-white/10 rounded-lg p-2 text-center">
+                      <div className="bg-black/40 rounded-lg p-2 text-center">
                         <div className={`font-bold text-lg ${
                           team.members.length === 6 ? 'text-green-400' :
                           team.members.length >= 4 ? 'text-yellow-400' :
@@ -293,7 +293,7 @@ export default function TeamsPage() {
                         {team.members.map((member) => (
                           <div
                             key={member.id}
-                            className="bg-gradient-to-r from-white/10 to-white/5 rounded-xl p-4 border border-white/20 hover:border-purple-400/50 transition-all duration-300"
+                            className="bg-black/55 rounded-xl p-4 border border-white/20 hover:border-purple-400/50 transition-all duration-300"
                           >
                             <div className="flex justify-between items-start">
                               <div className="flex-1">
@@ -355,7 +355,7 @@ export default function TeamsPage() {
                         {Array.from({ length: 6 - team.members.length }).map((_, index) => (
                           <div
                             key={`empty-${index}`}
-                            className="bg-white/5 rounded-xl p-4 border-2 border-dashed border-white/20 hover:border-purple-400/50 transition-all duration-300"
+                            className="bg-black/35 rounded-xl p-4 border-2 border-dashed border-white/20 hover:border-purple-400/50 transition-all duration-300"
                           >
                             <div className="text-center text-white/40">
                               <div className="text-3xl mb-2">👤</div>
@@ -372,7 +372,7 @@ export default function TeamsPage() {
             </div>
 
             {/* Summary */}
-            <div className="mt-12 bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
+            <div className="mt-12 bg-black/70 backdrop-blur-sm rounded-lg p-6 border border-white/20">
               <h2 className="text-2xl font-bold mb-4 no-text-shadow">
                 <span className="text-white" style={{textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)'}}>📊 </span>
                 <span 
