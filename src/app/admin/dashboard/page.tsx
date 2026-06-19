@@ -192,6 +192,7 @@ export default function AdminDashboard() {
   const [savingUserProfile, setSavingUserProfile] = useState(false)
   const [userProfileError, setUserProfileError] = useState<string | null>(null)
   const [resettingTeams, setResettingTeams] = useState(false)
+  const [assigningAutomaticTiers, setAssigningAutomaticTiers] = useState(false)
   const [valorantDetailsByUser, setValorantDetailsByUser] = useState<Record<string, ValorantDetailsState>>({})
   const [valorantBulkSync, setValorantBulkSync] = useState<ValorantBulkSyncState>({
     isRunning: false,
@@ -461,6 +462,38 @@ export default function AdminDashboard() {
       }
     } catch (error) {
       alert('Ein Fehler ist aufgetreten')
+    }
+  }
+
+  const assignAutomaticTiers = async () => {
+    if (assigningAutomaticTiers || valorantBulkSync.isRunning) {
+      return
+    }
+
+    const confirmed = window.confirm(
+      'Tiers fuer alle 100 Teilnehmer automatisch verteilen? Ziel: 20x Tier 1, 20x Tier 2, 20x Tier 3 und 40x Tier 4.'
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    setAssigningAutomaticTiers(true)
+
+    try {
+      const response = await fetch('/api/admin/users/auto-tiers', { method: 'POST' })
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Tiers konnten nicht automatisch verteilt werden')
+      }
+
+      await fetchData()
+      alert('Tiers erfolgreich verteilt: 20 / 20 / 20 / 40')
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Ein Fehler ist aufgetreten')
+    } finally {
+      setAssigningAutomaticTiers(false)
     }
   }
 
@@ -1025,6 +1058,14 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={assignAutomaticTiers}
+                      disabled={assigningAutomaticTiers || valorantBulkSync.isRunning}
+                      className="rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-violet-500 disabled:cursor-not-allowed disabled:bg-gray-700 disabled:text-gray-400"
+                    >
+                      {assigningAutomaticTiers ? 'Tiers werden verteilt...' : 'Tiers automatisch verteilen'}
+                    </button>
                     <button
                       type="button"
                       onClick={runValorantBulkSync}
