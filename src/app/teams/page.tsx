@@ -15,6 +15,7 @@ interface TeamMember {
   discord?: string
   twitch?: string
   isStreamer: boolean
+  isIGL: boolean
   role: string
 }
 
@@ -350,6 +351,13 @@ export default function TeamsPage() {
                                     <div className="px-3 py-1 rounded-lg text-xs font-bold flex items-center bg-gradient-to-r from-purple-500 to-pink-500 text-white">
                                       <span className="mr-1">🎥</span>
                                       STREAMER
+                                    </div>
+                                  )}
+
+                                  {/* IGL Badge */}
+                                  {member.isIGL && (
+                                    <div className="px-3 py-1 rounded-lg border border-blue-400/60 bg-blue-500/25 text-xs font-bold text-blue-100">
+                                      IGL
                                     </div>
                                   )}
                                 </div>

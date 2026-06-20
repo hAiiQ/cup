@@ -50,7 +50,8 @@ export async function GET() {
             isVerified: true,
             discordName: true,
             twitchName: true,
-            isStreamer: true
+            isStreamer: true,
+            isIGL: true
           }
         }
       },
@@ -78,6 +79,7 @@ export async function GET() {
         discord: user.discordName,
         twitch: user.twitchName,
         isStreamer: user.isStreamer,
+        isIGL: user.isIGL,
         role: 'member' // Default role
       }))
     }))
