@@ -79,6 +79,34 @@ export interface BracketBuildOptions {
   autoAdvanceByes?: boolean
 }
 
+export const applyEliminationTeamOrder = (
+  inputTeams: BracketTeam[],
+  teamOrder: string[] = []
+): BracketTeam[] => {
+  if (teamOrder.length === 0) {
+    return inputTeams
+  }
+
+  const teamsById = new Map(inputTeams.map((team) => [team.id, team]))
+  const orderedTeams: BracketTeam[] = []
+
+  for (const teamId of teamOrder) {
+    const team = teamsById.get(teamId)
+    if (team) {
+      orderedTeams.push(team)
+      teamsById.delete(teamId)
+    }
+  }
+
+  orderedTeams.push(...Array.from(teamsById.values()).sort((a, b) => a.position - b.position))
+
+  return orderedTeams.map((team, index) => ({
+    ...team,
+    slotPosition: team.slotPosition ?? team.position,
+    position: index + 1,
+  }))
+}
+
 const MIN_BRACKET_TEAMS = 2
 const GRAND_FINAL_ID = 'GF'
 const WINNER_FINAL_ID = 'WB-F'

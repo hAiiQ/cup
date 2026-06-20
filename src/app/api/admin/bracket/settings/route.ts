@@ -51,7 +51,16 @@ export async function POST(request: NextRequest) {
     }
 
     const payload = await request.json().catch(() => ({}))
-    const { mode, teamSlots, tournamentStarted, groupPhaseEnabled, groupCount, activeGroupRound, groupTeamOrder } = payload || {}
+    const {
+      mode,
+      teamSlots,
+      tournamentStarted,
+      groupPhaseEnabled,
+      groupCount,
+      activeGroupRound,
+      groupTeamOrder,
+      eliminationTeamOrder,
+    } = payload || {}
     const current = await getBracketSettings()
     const normalizedGroupTeamOrder = groupTeamOrder === undefined
       ? current.groupTeamOrder
@@ -59,6 +68,13 @@ export async function POST(request: NextRequest) {
     const groupOrderChanged = groupTeamOrder !== undefined && (
       normalizedGroupTeamOrder.length !== current.groupTeamOrder.length ||
       normalizedGroupTeamOrder.some((teamId, index) => teamId !== current.groupTeamOrder[index])
+    )
+    const normalizedEliminationTeamOrder = eliminationTeamOrder === undefined
+      ? current.eliminationTeamOrder
+      : normalizeGroupTeamOrder(eliminationTeamOrder)
+    const eliminationOrderChanged = eliminationTeamOrder !== undefined && (
+      normalizedEliminationTeamOrder.length !== current.eliminationTeamOrder.length ||
+      normalizedEliminationTeamOrder.some((teamId, index) => teamId !== current.eliminationTeamOrder[index])
     )
 
     if (groupOrderChanged && current.activeGroupRound > 0) {
@@ -68,13 +84,36 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const structureChanged =
+    if (eliminationOrderChanged) {
+      const startedEliminationMatch = await prisma.match.findFirst({
+        where: {
+          bracket: { not: 'group' },
+          OR: [
+            { isLive: true },
+            { isFinished: true },
+            { team1Score: { gt: 0 } },
+            { team2Score: { gt: 0 } },
+            { winnerId: { not: null } },
+          ],
+        },
+        select: { id: true },
+      })
+
+      if (startedEliminationMatch) {
+        return NextResponse.json(
+          { error: 'Teams koennen nach dem Start des Elimination-Brackets nicht mehr getauscht werden.' },
+          { status: 409 }
+        )
+      }
+    }
+
+    const groupStructureChanged =
       (teamSlots !== undefined && Number(teamSlots) !== current.teamSlots) ||
       (groupPhaseEnabled !== undefined && Boolean(groupPhaseEnabled) !== current.groupPhaseEnabled) ||
       (groupCount !== undefined && Number(groupCount) !== current.groupCount) ||
       groupOrderChanged
 
-    if (structureChanged) {
+    if (groupStructureChanged) {
       await prisma.$transaction([
         prisma.matchResultReport.deleteMany({
           where: { matchId: { startsWith: 'GP-' } }
@@ -85,14 +124,33 @@ export async function POST(request: NextRequest) {
       ])
     }
 
+    if (eliminationOrderChanged) {
+      await prisma.$transaction([
+        prisma.matchResultReport.deleteMany({
+          where: {
+            OR: [
+              { matchId: { startsWith: 'WB-' } },
+              { matchId: { startsWith: 'LB-' } },
+              { matchId: { startsWith: 'SE-' } },
+              { matchId: 'GF' },
+            ],
+          },
+        }),
+        prisma.match.deleteMany({
+          where: { bracket: { not: 'group' } },
+        }),
+      ])
+    }
+
     const updated = await updateBracketSettings({
       mode,
       teamSlots,
       tournamentStarted,
       groupPhaseEnabled,
       groupCount,
-      activeGroupRound: structureChanged ? 0 : activeGroupRound,
+      activeGroupRound: groupStructureChanged ? 0 : activeGroupRound,
       groupTeamOrder: normalizedGroupTeamOrder,
+      eliminationTeamOrder: normalizedEliminationTeamOrder,
     })
     console.log(`${SETTINGS_ENDPOINT_LOG} Updated settings`, updated)
 

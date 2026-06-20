@@ -12,6 +12,7 @@ export interface BracketSettings {
   groupCount: number
   activeGroupRound: number
   groupTeamOrder: string[]
+  eliminationTeamOrder: string[]
   participationOpen: boolean
   participationEndsAt: Date | null
 }
@@ -24,6 +25,7 @@ const DEFAULT_SETTINGS: BracketSettings = {
   groupCount: 4,
   activeGroupRound: 0,
   groupTeamOrder: [],
+  eliminationTeamOrder: [],
   participationOpen: false,
   participationEndsAt: null
 }
@@ -123,6 +125,7 @@ const ensureBracketSettingsTable = async () => {
             "groupCount" INTEGER NOT NULL DEFAULT 4,
             "activeGroupRound" INTEGER NOT NULL DEFAULT 0,
             "groupTeamOrder" JSONB NOT NULL DEFAULT '[]'::jsonb,
+            "eliminationTeamOrder" JSONB NOT NULL DEFAULT '[]'::jsonb,
             "participationOpen" BOOLEAN NOT NULL DEFAULT FALSE,
             "participationEndsAt" TIMESTAMPTZ,
             "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -152,6 +155,10 @@ const ensureBracketSettingsTable = async () => {
         `)
         await prisma.$executeRawUnsafe(`
           ALTER TABLE "BracketSetting"
+          ADD COLUMN IF NOT EXISTS "eliminationTeamOrder" JSONB NOT NULL DEFAULT '[]'::jsonb;
+        `)
+        await prisma.$executeRawUnsafe(`
+          ALTER TABLE "BracketSetting"
           ADD COLUMN IF NOT EXISTS "participationOpen" BOOLEAN NOT NULL DEFAULT FALSE;
         `)
         await prisma.$executeRawUnsafe(`
@@ -172,6 +179,7 @@ const ensureBracketSettingsTable = async () => {
             groupCount: DEFAULT_SETTINGS.groupCount,
             activeGroupRound: DEFAULT_SETTINGS.activeGroupRound,
             groupTeamOrder: DEFAULT_SETTINGS.groupTeamOrder,
+            eliminationTeamOrder: DEFAULT_SETTINGS.eliminationTeamOrder,
             participationOpen: DEFAULT_SETTINGS.participationOpen,
             participationEndsAt: DEFAULT_SETTINGS.participationEndsAt
           },
@@ -208,6 +216,7 @@ export async function getBracketSettings(): Promise<BracketSettings> {
       groupCount: clampGroupCount(record.groupCount, clampTeamSlots(record.teamSlots)),
       activeGroupRound: Math.max(0, Math.floor(record.activeGroupRound || 0)),
       groupTeamOrder: normalizeGroupTeamOrder(record.groupTeamOrder),
+      eliminationTeamOrder: normalizeGroupTeamOrder(record.eliminationTeamOrder),
       participationOpen: Boolean(record.participationOpen),
       participationEndsAt: normalizeParticipationEndsAt(record.participationEndsAt)
     }
@@ -240,6 +249,9 @@ export async function updateBracketSettings(
   const groupTeamOrder = update.groupTeamOrder === undefined
     ? current.groupTeamOrder
     : normalizeGroupTeamOrder(update.groupTeamOrder)
+  const eliminationTeamOrder = update.eliminationTeamOrder === undefined
+    ? current.eliminationTeamOrder
+    : normalizeGroupTeamOrder(update.eliminationTeamOrder)
   const participationOpen = update.participationOpen === undefined
     ? current.participationOpen
     : Boolean(update.participationOpen)
@@ -258,6 +270,7 @@ export async function updateBracketSettings(
       groupCount,
       activeGroupRound,
       groupTeamOrder,
+      eliminationTeamOrder,
       participationOpen,
       participationEndsAt
     },
@@ -269,6 +282,7 @@ export async function updateBracketSettings(
       groupCount,
       activeGroupRound,
       groupTeamOrder,
+      eliminationTeamOrder,
       participationOpen,
       participationEndsAt
     }
@@ -282,6 +296,7 @@ export async function updateBracketSettings(
     groupCount: clampGroupCount(saved.groupCount, clampTeamSlots(saved.teamSlots)),
     activeGroupRound: Math.max(0, Math.floor(saved.activeGroupRound || 0)),
     groupTeamOrder: normalizeGroupTeamOrder(saved.groupTeamOrder),
+    eliminationTeamOrder: normalizeGroupTeamOrder(saved.eliminationTeamOrder),
     participationOpen: Boolean(saved.participationOpen),
     participationEndsAt: normalizeParticipationEndsAt(saved.participationEndsAt)
   }

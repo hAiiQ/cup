@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import {
+  applyEliminationTeamOrder,
   buildBracketMatches,
   type BracketConnection,
   type BracketMatch,
@@ -43,6 +44,7 @@ type BracketSettingsState = {
   groupCount: number
   activeGroupRound: number
   groupTeamOrder: string[]
+  eliminationTeamOrder: string[]
 }
 
 type AdminChatMessage = {
@@ -83,6 +85,18 @@ const formatAdminTeamName = (team?: BracketTeam | null, fallback = 'TBD') => {
   return `${team.name} (${slotName})`
 }
 
+const isInitialEliminationMatch = (match: BracketMatch) => (
+  match.roundOrder === 1 && (match.bracket === 'winner' || match.bracket === 'grand')
+)
+
+const isRealEliminationTeam = (team?: BracketTeam) => Boolean(
+  team &&
+  !team.id.startsWith('virtual-') &&
+  !team.id.startsWith('placeholder-') &&
+  team.name !== 'TBD' &&
+  team.name !== 'Freilos'
+)
+
 const clampTeamSlots = (value: number): number => {
   const numericValue = Number.isFinite(value) ? value : Number(value)
   const fallback = Number.isFinite(numericValue) ? numericValue : MIN_TEAM_SLOTS
@@ -96,7 +110,8 @@ const DEFAULT_BRACKET_SETTINGS: BracketSettingsState = {
   groupPhaseEnabled: false,
   groupCount: 4,
   activeGroupRound: 0,
-  groupTeamOrder: []
+  groupTeamOrder: [],
+  eliminationTeamOrder: []
 }
 
 const MODE_LABELS: Record<BracketMode, string> = {
@@ -170,6 +185,9 @@ export default function AdminBracketPage() {
   const [groupOrderSaving, setGroupOrderSaving] = useState(false)
   const [draggedTeamId, setDraggedTeamId] = useState<string | null>(null)
   const [dropTargetTeamId, setDropTargetTeamId] = useState<string | null>(null)
+  const [eliminationOrderSaving, setEliminationOrderSaving] = useState(false)
+  const [draggedEliminationTeamId, setDraggedEliminationTeamId] = useState<string | null>(null)
+  const [dropTargetEliminationTeamId, setDropTargetEliminationTeamId] = useState<string | null>(null)
   const [participationOpen, setParticipationOpen] = useState(false)
   const [participatingCount, setParticipatingCount] = useState(0)
   const [registeredUserCount, setRegisteredUserCount] = useState(0)
@@ -214,6 +232,17 @@ export default function AdminBracketPage() {
     bracketSettings.groupPhaseEnabled &&
     bracketSettings.activeGroupRound === 0 &&
     !groupOrderSaving
+  )
+  const eliminationBracketStarted = bracket.some((match) =>
+    match.isLive ||
+    match.isFinished ||
+    (match.team1Score ?? 0) > 0 ||
+    (match.team2Score ?? 0) > 0
+  )
+  const canReorderEliminationTeams = Boolean(
+    bracket.length > 0 &&
+    !eliminationOrderSaving &&
+    !eliminationBracketStarted
   )
 
   useEffect(() => {
@@ -330,6 +359,9 @@ export default function AdminBracketPage() {
             activeGroupRound: Math.max(0, Math.floor(Number(settingsPayload.settings.activeGroupRound) || 0)),
             groupTeamOrder: Array.isArray(settingsPayload.settings.groupTeamOrder)
               ? settingsPayload.settings.groupTeamOrder.filter((teamId: unknown): teamId is string => typeof teamId === 'string')
+              : [],
+            eliminationTeamOrder: Array.isArray(settingsPayload.settings.eliminationTeamOrder)
+              ? settingsPayload.settings.eliminationTeamOrder.filter((teamId: unknown): teamId is string => typeof teamId === 'string')
               : []
           }
         }
@@ -354,7 +386,10 @@ export default function AdminBracketPage() {
             persistedSettings.groupTeamOrder
           )
         : null
-      const bracketTeams = nextGroupPhase?.advancingTeams || limitedTeams
+      const bracketTeams = applyEliminationTeamOrder(
+        nextGroupPhase?.advancingTeams || limitedTeams,
+        persistedSettings.eliminationTeamOrder
+      )
       const bracketSlotCount = persistedSettings.groupPhaseEnabled ? PLAYOFF_TEAM_COUNT : persistedSettings.teamSlots
 
       setGroupPhase(nextGroupPhase)
@@ -662,7 +697,10 @@ export default function AdminBracketPage() {
         activeGroupRound: Math.max(0, Math.floor(Number(payload?.settings?.activeGroupRound) || 0)),
         groupTeamOrder: Array.isArray(payload?.settings?.groupTeamOrder)
           ? payload.settings.groupTeamOrder.filter((teamId: unknown): teamId is string => typeof teamId === 'string')
-          : settingsDraft.groupTeamOrder
+          : settingsDraft.groupTeamOrder,
+        eliminationTeamOrder: Array.isArray(payload?.settings?.eliminationTeamOrder)
+          ? payload.settings.eliminationTeamOrder.filter((teamId: unknown): teamId is string => typeof teamId === 'string')
+          : settingsDraft.eliminationTeamOrder
       }
 
       setBracketSettings(updatedSettings)
@@ -741,6 +779,81 @@ export default function AdminBracketPage() {
     }
   }
 
+  const swapEliminationTeams = async (targetTeamId: string) => {
+    const sourceTeamId = draggedEliminationTeamId
+    setDraggedEliminationTeamId(null)
+    setDropTargetEliminationTeamId(null)
+
+    if (
+      !sourceTeamId ||
+      sourceTeamId === targetTeamId ||
+      eliminationOrderSaving ||
+      eliminationBracketStarted
+    ) {
+      return
+    }
+
+    const eliminationTeamsById = new Map<string, BracketTeam>()
+    for (const match of bracket.filter(isInitialEliminationMatch)) {
+      if (isRealEliminationTeam(match.team1)) {
+        eliminationTeamsById.set(match.team1!.id, match.team1!)
+      }
+      if (isRealEliminationTeam(match.team2)) {
+        eliminationTeamsById.set(match.team2!.id, match.team2!)
+      }
+    }
+
+    const activeTeamIds = new Set(eliminationTeamsById.keys())
+    const nextOrder = bracketSettings.eliminationTeamOrder.filter((teamId) => activeTeamIds.has(teamId))
+    const remainingTeams = Array.from(eliminationTeamsById.values()).sort((a, b) => a.position - b.position)
+
+    for (const team of remainingTeams) {
+      if (!nextOrder.includes(team.id)) {
+        nextOrder.push(team.id)
+      }
+    }
+
+    const sourceIndex = nextOrder.indexOf(sourceTeamId)
+    const targetIndex = nextOrder.indexOf(targetTeamId)
+    if (sourceIndex < 0 || targetIndex < 0) {
+      return
+    }
+
+    const sourceTeam = nextOrder[sourceIndex]
+    nextOrder[sourceIndex] = nextOrder[targetIndex]
+    nextOrder[targetIndex] = sourceTeam
+
+    setEliminationOrderSaving(true)
+    setSettingsAlert(null)
+
+    try {
+      const response = await fetch('/api/admin/bracket/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ eliminationTeamOrder: nextOrder }),
+      })
+      const payload = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Elimination-Teams konnten nicht getauscht werden.')
+      }
+
+      setSettingsAlert({
+        type: 'success',
+        text: 'Elimination-Teams getauscht. Die Gruppenphase blieb unveraendert.',
+      })
+      await fetchData(false)
+    } catch (error) {
+      setSettingsAlert({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Elimination-Teams konnten nicht getauscht werden.',
+      })
+    } finally {
+      setEliminationOrderSaving(false)
+    }
+  }
+
   const startTournament = async () => {
     if (bracketSettings.tournamentStarted || tournamentStartLoading) {
       return
@@ -784,7 +897,10 @@ export default function AdminBracketPage() {
         activeGroupRound: Math.max(0, Math.floor(Number(payload?.settings?.activeGroupRound) || 0)),
         groupTeamOrder: Array.isArray(payload?.settings?.groupTeamOrder)
           ? payload.settings.groupTeamOrder.filter((teamId: unknown): teamId is string => typeof teamId === 'string')
-          : bracketSettings.groupTeamOrder
+          : bracketSettings.groupTeamOrder,
+        eliminationTeamOrder: Array.isArray(payload?.settings?.eliminationTeamOrder)
+          ? payload.settings.eliminationTeamOrder.filter((teamId: unknown): teamId is string => typeof teamId === 'string')
+          : bracketSettings.eliminationTeamOrder
       }
 
       setBracketSettings(updatedSettings)
@@ -1087,6 +1203,9 @@ export default function AdminBracketPage() {
     const team2Name = formatAdminTeamName(match.team2)
     const team1Wins = match.isFinished && match.winnerId === 'team1'
     const team2Wins = match.isFinished && match.winnerId === 'team2'
+    const canDragInitialTeams = canReorderEliminationTeams && isInitialEliminationMatch(match)
+    const canDragTeam1 = canDragInitialTeams && isRealEliminationTeam(match.team1)
+    const canDragTeam2 = canDragInitialTeams && isRealEliminationTeam(match.team2)
 
     return (
       <button
@@ -1107,11 +1226,77 @@ export default function AdminBracketPage() {
         </div>
 
         <div className="flex items-center justify-center gap-3 text-white text-sm font-bold w-full">
-          <span className={`flex-1 min-w-0 truncate text-right ${team1Wins ? 'text-green-400' : ''}`}>{team1Name}</span>
+          <span
+            draggable={canDragTeam1}
+            onDragStart={(event) => {
+              if (!canDragTeam1 || !match.team1) return
+              event.stopPropagation()
+              event.dataTransfer.effectAllowed = 'move'
+              event.dataTransfer.setData('text/plain', match.team1.id)
+              setDraggedEliminationTeamId(match.team1.id)
+            }}
+            onDragOver={(event) => {
+              if (!canDragTeam1 || !match.team1 || draggedEliminationTeamId === match.team1.id) return
+              event.preventDefault()
+              event.stopPropagation()
+              event.dataTransfer.dropEffect = 'move'
+              setDropTargetEliminationTeamId(match.team1.id)
+            }}
+            onDrop={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              if (match.team1) void swapEliminationTeams(match.team1.id)
+            }}
+            onDragEnd={() => {
+              setDraggedEliminationTeamId(null)
+              setDropTargetEliminationTeamId(null)
+            }}
+            title={canDragTeam1 ? 'Ziehen, um Elimination-Teams zu tauschen' : undefined}
+            className={`flex-1 min-w-0 truncate rounded px-1 text-right ${team1Wins ? 'text-green-400' : ''} ${
+              canDragTeam1 ? 'cursor-grab hover:bg-cyan-500/15 active:cursor-grabbing' : ''
+            } ${draggedEliminationTeamId === match.team1?.id ? 'opacity-40' : ''} ${
+              dropTargetEliminationTeamId === match.team1?.id ? 'bg-cyan-500/25 ring-1 ring-cyan-300' : ''
+            }`}
+          >
+            {team1Name}
+          </span>
           <span className={`flex-none w-16 text-center whitespace-nowrap text-purple-200 ${match.isLive ? 'text-yellow-300' : ''}`}>
             {(match.team1Score ?? 0)} - {(match.team2Score ?? 0)}
           </span>
-          <span className={`flex-1 min-w-0 truncate text-left ${team2Wins ? 'text-green-400' : ''}`}>{team2Name}</span>
+          <span
+            draggable={canDragTeam2}
+            onDragStart={(event) => {
+              if (!canDragTeam2 || !match.team2) return
+              event.stopPropagation()
+              event.dataTransfer.effectAllowed = 'move'
+              event.dataTransfer.setData('text/plain', match.team2.id)
+              setDraggedEliminationTeamId(match.team2.id)
+            }}
+            onDragOver={(event) => {
+              if (!canDragTeam2 || !match.team2 || draggedEliminationTeamId === match.team2.id) return
+              event.preventDefault()
+              event.stopPropagation()
+              event.dataTransfer.dropEffect = 'move'
+              setDropTargetEliminationTeamId(match.team2.id)
+            }}
+            onDrop={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              if (match.team2) void swapEliminationTeams(match.team2.id)
+            }}
+            onDragEnd={() => {
+              setDraggedEliminationTeamId(null)
+              setDropTargetEliminationTeamId(null)
+            }}
+            title={canDragTeam2 ? 'Ziehen, um Elimination-Teams zu tauschen' : undefined}
+            className={`flex-1 min-w-0 truncate rounded px-1 text-left ${team2Wins ? 'text-green-400' : ''} ${
+              canDragTeam2 ? 'cursor-grab hover:bg-cyan-500/15 active:cursor-grabbing' : ''
+            } ${draggedEliminationTeamId === match.team2?.id ? 'opacity-40' : ''} ${
+              dropTargetEliminationTeamId === match.team2?.id ? 'bg-cyan-500/25 ring-1 ring-cyan-300' : ''
+            }`}
+          >
+            {team2Name}
+          </span>
         </div>
         {match.mapName && (
           <div className="mt-1 text-center text-[11px] font-semibold text-cyan-200">
@@ -1602,7 +1787,16 @@ export default function AdminBracketPage() {
         )}
 
         <section className="bg-black/20 backdrop-blur-sm rounded-xl p-5 border border-purple-500/50">
-          <div className="mb-6" />
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-white">Elimination Bracket</h2>
+            <p className="mt-1 text-sm text-purple-100/75">
+              {eliminationOrderSaving
+                ? 'Tausch wird gespeichert...'
+                : eliminationBracketStarted
+                  ? 'Drag-and-drop ist nach dem Start des Elimination-Brackets gesperrt.'
+                  : 'Ziehe in der ersten Runde einen Teamnamen auf einen anderen. Die Gruppenphase bleibt unveraendert.'}
+            </p>
+          </div>
           <div className="overflow-x-auto pb-2">
             <BracketDiagram
               matches={bracket}

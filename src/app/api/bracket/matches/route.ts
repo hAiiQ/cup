@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getAllMatchStates, determineWinnerSlot, type MatchState } from '@/lib/matchState'
 import { prisma } from '@/lib/prisma'
-import { buildBracketMatches, type BracketTeam } from '@/lib/bracketStructure'
+import { applyEliminationTeamOrder, buildBracketMatches, type BracketTeam } from '@/lib/bracketStructure'
 import { getBracketSettings } from '@/lib/bracketSettings'
 import { MAX_TEAMS } from '@/lib/teamDefaults'
 import { PLAYOFF_TEAM_COUNT, buildGroupPhase } from '@/lib/groupPhase'
@@ -167,7 +167,10 @@ export async function GET() {
           settings.groupTeamOrder
         )
       : null
-    const bracketTeams = groupPhase?.advancingTeams || dbTeams
+    const bracketTeams = applyEliminationTeamOrder(
+      groupPhase?.advancingTeams || dbTeams,
+      settings.eliminationTeamOrder
+    )
     const bracketSlotCount = settings.groupPhaseEnabled ? PLAYOFF_TEAM_COUNT : requestedSlots
 
     const bracketResult = buildBracketMatches(bracketTeams, combinedStates, {

@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
-import { buildBracketMatches, type BracketMatch, type BracketTeam } from '@/lib/bracketStructure'
+import { applyEliminationTeamOrder, buildBracketMatches, type BracketMatch, type BracketTeam } from '@/lib/bracketStructure'
 import { getBracketSettings } from '@/lib/bracketSettings'
 import { MAX_TEAMS } from '@/lib/teamDefaults'
 import {
@@ -234,7 +234,10 @@ export async function loadIglBracketData(): Promise<IglBracketData> {
         settings.groupTeamOrder
       )
     : null
-  const bracketTeams = groupPhase?.advancingTeams || teams
+  const bracketTeams = applyEliminationTeamOrder(
+    groupPhase?.advancingTeams || teams,
+    settings.eliminationTeamOrder
+  )
   const bracketSlotCount = settings.groupPhaseEnabled ? PLAYOFF_TEAM_COUNT : requestedSlots
 
   const bracketResult = buildBracketMatches(bracketTeams, stateMap, {
