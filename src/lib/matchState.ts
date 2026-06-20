@@ -80,3 +80,8 @@ export function clearMatchStates() {
   matchStates.clear()
   console.log('🧹 Cleared all in-memory match states')
 }
+
+export function clearMatchState(matchId: string) {
+  matchStates.delete(matchId)
+  console.log(`🧹 Cleared in-memory state for match ${matchId}`)
+}

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
-import { determineWinnerSlot, setMatchScore } from '@/lib/matchState'
+import { clearMatchState, determineWinnerSlot, setMatchScore } from '@/lib/matchState'
 
 const getBracketMeta = (matchId: string) => {
   if (matchId === 'GF') {
@@ -145,6 +145,62 @@ export async function POST(request: NextRequest) {
     console.error('Update match score error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Interner Serverfehler' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const admin = await verifyAdmin(request)
+    if (!admin) {
+      return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
+    }
+
+    const { matchId } = await request.json().catch(() => ({}))
+    if (!matchId || typeof matchId !== 'string') {
+      return NextResponse.json({ error: 'Match ID ist erforderlich' }, { status: 400 })
+    }
+
+    const { bracket, round } = getBracketMeta(matchId)
+    await prisma.$transaction([
+      prisma.match.upsert({
+        where: { id: matchId },
+        update: {
+          team1Score: 0,
+          team2Score: 0,
+          winnerId: null,
+          isFinished: false,
+          isLive: false,
+          mapName: null,
+          playedAt: null,
+          updatedAt: new Date()
+        },
+        create: {
+          id: matchId,
+          bracket,
+          round,
+          matchNumber: 1,
+          team1Score: 0,
+          team2Score: 0,
+          isFinished: false,
+          isLive: false
+        }
+      }),
+      prisma.matchResultReport.deleteMany({ where: { matchId } })
+    ])
+
+    clearMatchState(matchId)
+
+    return NextResponse.json({
+      success: true,
+      message: 'Match wurde zurückgesetzt.',
+      matchId
+    })
+  } catch (error) {
+    console.error('Reset match error:', error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Match konnte nicht zurückgesetzt werden.' },
       { status: 500 }
     )
   }

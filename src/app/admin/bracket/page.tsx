@@ -185,6 +185,7 @@ export default function AdminBracketPage() {
   const [panelMessage, setPanelMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [liveMutationLoading, setLiveMutationLoading] = useState(false)
   const [scoreMutationLoading, setScoreMutationLoading] = useState(false)
+  const [matchResetLoading, setMatchResetLoading] = useState(false)
   const [teamRenameLoading, setTeamRenameLoading] = useState<'team1' | 'team2' | null>(null)
   const selectedMatchIdRef = useRef<string | null>(null)
   const [bracketSettings, setBracketSettings] = useState<BracketSettingsState>(() => ({ ...DEFAULT_BRACKET_SETTINGS }))
@@ -1220,6 +1221,44 @@ export default function AdminBracketPage() {
     }
   }
 
+  const resetSelectedMatch = async () => {
+    if (
+      !selectedMatch ||
+      matchResetLoading ||
+      !window.confirm(`Match ${formatAdminTeamName(selectedMatch.team1)} gegen ${formatAdminTeamName(selectedMatch.team2)} wirklich zurücksetzen?`)
+    ) {
+      return
+    }
+
+    setMatchResetLoading(true)
+    setPanelMessage(null)
+
+    try {
+      const response = await fetch('/api/admin/bracket/matches/update', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ matchId: selectedMatch.id })
+      })
+      const payload = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Match konnte nicht zurückgesetzt werden.')
+      }
+
+      setPanelMessage({ type: 'success', text: payload.message || 'Match wurde zurückgesetzt.' })
+      await fetchData(false)
+    } catch (error) {
+      console.error('Error resetting match:', error)
+      setPanelMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Match konnte nicht zurückgesetzt werden.'
+      })
+    } finally {
+      setMatchResetLoading(false)
+    }
+  }
+
   const MatchBox = ({
     match,
     className = '',
@@ -2190,17 +2229,24 @@ export default function AdminBracketPage() {
                       <div className="grid gap-2 sm:grid-cols-2">
                         <button
                           onClick={toggleMatchLive}
-                          disabled={liveMutationLoading}
+                          disabled={liveMutationLoading || matchResetLoading}
                           className={`rounded px-4 py-2 font-semibold text-white transition-colors ${selectedMatch.isLive ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} ${liveMutationLoading ? 'cursor-not-allowed opacity-60' : ''}`}
                         >
                           {liveMutationLoading ? 'Speichere...' : selectedMatch.isLive ? 'Match stoppen' : 'Match starten'}
                         </button>
                         <button
                           onClick={saveMatchScore}
-                          disabled={scoreMutationLoading}
+                          disabled={scoreMutationLoading || matchResetLoading}
                           className={`rounded bg-purple-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-purple-700 ${scoreMutationLoading ? 'cursor-not-allowed opacity-60' : ''}`}
                         >
                           {scoreMutationLoading ? 'Speichere...' : 'Ergebnis speichern'}
+                        </button>
+                        <button
+                          onClick={resetSelectedMatch}
+                          disabled={matchResetLoading || scoreMutationLoading || liveMutationLoading}
+                          className={`rounded bg-red-700 px-4 py-2 font-semibold text-white transition-colors hover:bg-red-600 sm:col-span-2 ${matchResetLoading ? 'cursor-not-allowed opacity-60' : ''}`}
+                        >
+                          {matchResetLoading ? 'Setze zurück...' : 'Match zurücksetzen'}
                         </button>
                       </div>
 
