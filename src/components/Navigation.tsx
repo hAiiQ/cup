@@ -122,7 +122,7 @@ export default function Navigation() {
   }
 
   const confirmSubstitute = async () => {
-    if (!token || substituteLoading || isSubstitute) {
+    if (!token || substituteLoading || isSubstitute || isParticipating) {
       return
     }
 
@@ -283,19 +283,21 @@ export default function Navigation() {
                   </button>
                 )}
 
-                <button
-                  type="button"
-                  onClick={confirmSubstitute}
-                  disabled={substituteLoading || isSubstitute}
-                  className={`rounded px-4 py-2 text-sm font-semibold text-white transition-colors disabled:cursor-default ${
-                    isSubstitute
-                      ? 'bg-indigo-600'
-                      : 'bg-purple-600 hover:bg-purple-500 disabled:bg-purple-700'
-                  }`}
-                  title="Ohne Zeitlimit als Ersatzspieler eintragen"
-                >
-                  {substituteLoading ? 'Speichert...' : isSubstitute ? 'Ersatzspieler' : 'Als Ersatzspieler'}
-                </button>
+                {!isParticipating && (
+                  <button
+                    type="button"
+                    onClick={confirmSubstitute}
+                    disabled={substituteLoading || isSubstitute}
+                    className={`rounded px-4 py-2 text-sm font-semibold text-white transition-colors disabled:cursor-default ${
+                      isSubstitute
+                        ? 'bg-indigo-600'
+                        : 'bg-purple-600 hover:bg-purple-500 disabled:bg-purple-700'
+                    }`}
+                    title="Ohne Zeitlimit als Ersatzspieler eintragen"
+                  >
+                    {substituteLoading ? 'Speichert...' : isSubstitute ? 'Ersatzspieler' : 'Als Ersatzspieler'}
+                  </button>
+                )}
 
                 <button
                   onClick={handleLogout}

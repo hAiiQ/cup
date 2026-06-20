@@ -19,16 +19,22 @@ export async function POST(request: NextRequest) {
     }
 
     await ensureParticipationSchema()
-    const user = await prisma.user.update({
-      where: { id: userId },
-      data: { isSubstitute: true, isParticipating: false },
-      select: { isParticipating: true, isSubstitute: true },
+    const result = await prisma.user.updateMany({
+      where: { id: userId, isParticipating: false },
+      data: { isSubstitute: true },
     })
+
+    if (result.count === 0) {
+      return NextResponse.json(
+        { error: 'Bestätigte Teilnehmer können keine Ersatzspieler werden.' },
+        { status: 409 }
+      )
+    }
 
     return NextResponse.json({
       success: true,
-      participating: user.isParticipating,
-      substitute: user.isSubstitute,
+      participating: false,
+      substitute: true,
       message: 'Du bist jetzt als Ersatzspieler eingetragen.',
     })
   } catch (error) {
