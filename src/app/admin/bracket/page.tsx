@@ -17,10 +17,12 @@ import { MAX_TEAMS } from '@/lib/teamDefaults'
 import {
   MAX_GROUP_COUNT,
   PLAYOFF_TEAM_COUNT,
+  avoidSameGroupFirstRoundMatchups,
   buildGroupPhase,
   clampGroupCount,
   clampGroupRoundCount,
   getMaxGroupRoundCount,
+  hasStartedEliminationMatches,
   type GroupPhaseResult
 } from '@/lib/groupPhase'
 import AdminTopbar from '@/components/AdminTopbar'
@@ -403,10 +405,13 @@ export default function AdminBracketPage() {
             persistedSettings.groupRoundCount
           )
         : null
-      const bracketTeams = applyEliminationTeamOrder(
+      const orderedBracketTeams = applyEliminationTeamOrder(
         nextGroupPhase?.advancingTeams || limitedTeams,
         persistedSettings.eliminationTeamOrder
       )
+      const bracketTeams = nextGroupPhase && !hasStartedEliminationMatches(stateMap)
+        ? avoidSameGroupFirstRoundMatchups(orderedBracketTeams)
+        : orderedBracketTeams
       const bracketSlotCount = persistedSettings.groupPhaseEnabled ? PLAYOFF_TEAM_COUNT : persistedSettings.teamSlots
 
       setGroupPhase(nextGroupPhase)

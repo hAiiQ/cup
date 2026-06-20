@@ -6,7 +6,9 @@ import { getBracketSettings } from '@/lib/bracketSettings'
 import { MAX_TEAMS } from '@/lib/teamDefaults'
 import {
   PLAYOFF_TEAM_COUNT,
+  avoidSameGroupFirstRoundMatchups,
   buildGroupPhase,
+  hasStartedEliminationMatches,
   type GroupPhaseResult,
   type GroupStageMatch,
 } from '@/lib/groupPhase'
@@ -235,10 +237,13 @@ export async function loadIglBracketData(): Promise<IglBracketData> {
         settings.groupRoundCount
       )
     : null
-  const bracketTeams = applyEliminationTeamOrder(
+  const orderedBracketTeams = applyEliminationTeamOrder(
     groupPhase?.advancingTeams || teams,
     settings.eliminationTeamOrder
   )
+  const bracketTeams = groupPhase && !hasStartedEliminationMatches(stateMap)
+    ? avoidSameGroupFirstRoundMatchups(orderedBracketTeams)
+    : orderedBracketTeams
   const bracketSlotCount = settings.groupPhaseEnabled ? PLAYOFF_TEAM_COUNT : requestedSlots
 
   const bracketResult = buildBracketMatches(bracketTeams, stateMap, {

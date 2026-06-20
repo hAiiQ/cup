@@ -4,7 +4,12 @@ import { prisma } from '@/lib/prisma'
 import { applyEliminationTeamOrder, buildBracketMatches, type BracketTeam } from '@/lib/bracketStructure'
 import { getBracketSettings } from '@/lib/bracketSettings'
 import { MAX_TEAMS } from '@/lib/teamDefaults'
-import { PLAYOFF_TEAM_COUNT, buildGroupPhase } from '@/lib/groupPhase'
+import {
+  PLAYOFF_TEAM_COUNT,
+  avoidSameGroupFirstRoundMatchups,
+  buildGroupPhase,
+  hasStartedEliminationMatches,
+} from '@/lib/groupPhase'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -168,10 +173,13 @@ export async function GET() {
           settings.groupRoundCount
         )
       : null
-    const bracketTeams = applyEliminationTeamOrder(
+    const orderedBracketTeams = applyEliminationTeamOrder(
       groupPhase?.advancingTeams || dbTeams,
       settings.eliminationTeamOrder
     )
+    const bracketTeams = groupPhase && !hasStartedEliminationMatches(combinedStates)
+      ? avoidSameGroupFirstRoundMatchups(orderedBracketTeams)
+      : orderedBracketTeams
     const bracketSlotCount = settings.groupPhaseEnabled ? PLAYOFF_TEAM_COUNT : requestedSlots
 
     const bracketResult = buildBracketMatches(bracketTeams, combinedStates, {

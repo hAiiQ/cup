@@ -92,6 +92,72 @@ export const clampGroupRoundCount = (
   return Math.min(Math.max(Math.floor(numericValue), 1), maxRounds)
 }
 
+export const hasStartedEliminationMatches = (stateMap: Map<string, MatchState>): boolean => (
+  Array.from(stateMap.entries()).some(([matchId, state]) => (
+    !matchId.startsWith('GP-') && (
+      state.isLive ||
+      state.isFinished ||
+      Boolean(state.winnerId) ||
+      state.team1Score > 0 ||
+      state.team2Score > 0
+    )
+  ))
+)
+
+export const avoidSameGroupFirstRoundMatchups = <T extends BracketTeam>(inputTeams: T[]): T[] => {
+  if (inputTeams.length !== PLAYOFF_TEAM_COUNT) {
+    return inputTeams
+  }
+
+  const groupIndexOf = (team: T) => (team as T & { groupIndex?: number }).groupIndex
+  if (inputTeams.some((team) => groupIndexOf(team) === undefined)) {
+    return inputTeams
+  }
+
+  const topSeeds = inputTeams.slice(0, PLAYOFF_TEAM_COUNT / 2)
+  const lowerSeeds = inputTeams.slice(PLAYOFF_TEAM_COUNT / 2)
+  let bestLowerSeedOrder: T[] | null = null
+  let bestMovement = Number.POSITIVE_INFINITY
+
+  const visitPermutations = (prefix: T[], remaining: T[]) => {
+    if (remaining.length === 0) {
+      const avoidsRematches = topSeeds.every((team, topIndex) => (
+        groupIndexOf(team) !== groupIndexOf(prefix[prefix.length - 1 - topIndex])
+      ))
+      if (!avoidsRematches) {
+        return
+      }
+
+      const movement = prefix.reduce((sum, team, targetIndex) => (
+        sum + Math.abs(lowerSeeds.findIndex((candidate) => candidate.id === team.id) - targetIndex)
+      ), 0)
+      if (movement < bestMovement) {
+        bestMovement = movement
+        bestLowerSeedOrder = prefix
+      }
+      return
+    }
+
+    remaining.forEach((team, index) => {
+      visitPermutations(
+        [...prefix, team],
+        remaining.filter((_, remainingIndex) => remainingIndex !== index)
+      )
+    })
+  }
+
+  visitPermutations([], lowerSeeds)
+  if (!bestLowerSeedOrder) {
+    return inputTeams
+  }
+
+  return [...topSeeds, ...bestLowerSeedOrder].map((team, index) => ({
+    ...team,
+    position: index + 1,
+    ...('playoffSeed' in team ? { playoffSeed: index + 1 } : {})
+  })) as T[]
+}
+
 export const groupNameForIndex = (index: number): string => {
   return `Gruppe ${GROUP_LABELS[index] || index + 1}`
 }
@@ -418,8 +484,16 @@ export const buildGroupPhase = (
     }
   }
 
+  const selectedTeams = selectedStandings.map((standing, index) => ({
+    ...standing.team,
+    playoffSeed: index + 1,
+    position: index + 1,
+  }))
+  const advancingTeams = hasStartedEliminationMatches(stateMap)
+    ? selectedTeams
+    : avoidSameGroupFirstRoundMatchups(selectedTeams)
   const playoffSeedByTeamId = new Map<string, number>()
-  selectedStandings.forEach((standing, index) => playoffSeedByTeamId.set(standing.team.id, index + 1))
+  advancingTeams.forEach((team, index) => playoffSeedByTeamId.set(team.id, index + 1))
 
   groups.forEach((group) => {
     group.teams = group.teams.map((team) => ({
@@ -440,11 +514,6 @@ export const buildGroupPhase = (
     })
   })
 
-  const advancingTeams = selectedStandings.map((standing, index) => ({
-    ...standing.team,
-    playoffSeed: index + 1,
-    position: index + 1,
-  }))
   const allMatches = rounds.flatMap((round) => round.matches)
 
   return {
