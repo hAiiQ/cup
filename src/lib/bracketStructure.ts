@@ -52,6 +52,7 @@ export interface BracketMatch {
   winnerId?: string
   mapName?: string
   autoAdvance?: boolean
+  isFeatured?: boolean
 }
 
 export interface BracketNodeLayout {

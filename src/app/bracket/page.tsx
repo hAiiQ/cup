@@ -68,10 +68,15 @@ const BracketMatchBox = ({
   const team2Wins = match.isFinished && match.winnerId === 'team2'
 
   return (
-    <div className={`bg-black/80 border border-white/10 rounded-lg px-2 py-2 w-full h-full flex flex-col justify-center ${className}`}>
-      {match.isLive && (
-        <div className="live-match-pulse mb-1 text-center text-[10px] font-bold uppercase text-red-300">
-          Live Match
+    <div className={`${match.isFeatured ? 'border-[#9146ff] bg-[#2b1648]/95 ring-2 ring-[#9146ff]/40 shadow-[0_0_22px_rgba(145,70,255,0.35)]' : 'border-white/10 bg-black/80'} border rounded-lg px-2 py-2 w-full h-full flex flex-col justify-center ${className}`}>
+      {(match.isFeatured || match.isLive) && (
+        <div className="mb-1 flex items-center justify-center gap-2 text-[10px] font-bold uppercase">
+          {match.isFeatured && (
+            <span className="rounded bg-[#9146ff] px-2 py-0.5 text-white">Twitch Cast</span>
+          )}
+          {match.isLive && (
+            <span className="live-match-pulse text-red-300">Live Match</span>
+          )}
         </div>
       )}
       <div className="flex items-center gap-1 text-white text-[13px] font-semibold w-full justify-center">

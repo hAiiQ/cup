@@ -1211,17 +1211,22 @@ export default function AdminBracketPage() {
       <button
         type="button"
         onClick={() => onSelect?.(match)}
-        className={`bg-gray-900/75 border ${isSelected ? 'border-purple-400 ring-2 ring-purple-500/60' : 'border-white/10 hover:border-purple-400/70'} rounded-lg px-3 py-3 w-full h-full flex flex-col justify-center shadow-lg transition-all duration-200 text-left ${className}`}
+        className={`${match.isFeatured ? 'bg-[#2b1648] shadow-[0_0_22px_rgba(145,70,255,0.35)]' : 'bg-gray-900/75'} border ${isSelected ? 'border-purple-300 ring-2 ring-purple-400/70' : match.isFeatured ? 'border-[#9146ff] ring-2 ring-[#9146ff]/40' : 'border-white/10 hover:border-purple-400/70'} rounded-lg px-3 py-3 w-full h-full flex flex-col justify-center shadow-lg transition-all duration-200 text-left ${className}`}
         aria-pressed={isSelected}
       >
         <div className="flex items-center justify-between text-[11px] uppercase tracking-wide text-purple-200/80 mb-2">
-          {match.isLive ? (
-            <span className="text-red-300 font-bold animate-pulse">LIVE</span>
-          ) : match.isFinished ? (
-            <span className="text-green-300 font-semibold">Ergebnis gespeichert</span>
-          ) : (
-            <span className="text-white/50">Bereit</span>
-          )}
+          <div className="flex items-center gap-2">
+            {match.isFeatured && (
+              <span className="rounded bg-[#9146ff] px-2 py-0.5 font-bold text-white">TWITCH CAST</span>
+            )}
+            {match.isLive ? (
+              <span className="text-red-300 font-bold animate-pulse">LIVE</span>
+            ) : match.isFinished ? (
+              <span className="text-green-300 font-semibold">Ergebnis gespeichert</span>
+            ) : !match.isFeatured ? (
+              <span className="text-white/50">Bereit</span>
+            ) : null}
+          </div>
           {isSelected && <span className="text-cyan-300 font-semibold">Ausgewählt</span>}
         </div>
 

@@ -256,6 +256,65 @@ const buildStandings = (group: GroupPhaseGroup, matches: GroupStageMatch[]): Gro
     }))
 }
 
+const selectFeaturedGroupMatches = (rounds: GroupStageRound[]): Set<string> => {
+  const selectedMatchIds = new Set<string>()
+  const usedTeamIds = new Set<string>()
+  const groupCount = Math.max(
+    1,
+    ...rounds.flatMap((round) => round.matches.map((match) => match.groupIndex + 1))
+  )
+  const selectByGroup = groupCount === 5 && rounds.length !== 5
+  const selectionBuckets = selectByGroup
+    ? Array.from({ length: groupCount }, (_, groupIndex) =>
+        rounds.flatMap((round) => round.matches).filter((match) => match.groupIndex === groupIndex)
+      )
+    : rounds.map((round) => round.matches)
+
+  const selectBucket = (bucketIndex: number): boolean => {
+    if (bucketIndex >= selectionBuckets.length) {
+      return true
+    }
+
+    const candidates = [...selectionBuckets[bucketIndex]].sort((a, b) => {
+      const aPriority = selectByGroup
+        ? (a.groupRound - bucketIndex + rounds.length) % rounds.length
+        : (a.groupIndex - bucketIndex + groupCount) % groupCount
+      const bPriority = selectByGroup
+        ? (b.groupRound - bucketIndex + rounds.length) % rounds.length
+        : (b.groupIndex - bucketIndex + groupCount) % groupCount
+      return aPriority - bPriority || a.id.localeCompare(b.id)
+    })
+
+    for (const match of candidates) {
+      const team1Id = match.team1?.id
+      const team2Id = match.team2?.id
+      if (!team1Id || !team2Id || usedTeamIds.has(team1Id) || usedTeamIds.has(team2Id)) {
+        continue
+      }
+
+      selectedMatchIds.add(match.id)
+      usedTeamIds.add(team1Id)
+      usedTeamIds.add(team2Id)
+
+      if (selectBucket(bucketIndex + 1)) {
+        return true
+      }
+
+      selectedMatchIds.delete(match.id)
+      usedTeamIds.delete(team1Id)
+      usedTeamIds.delete(team2Id)
+    }
+
+    return false
+  }
+
+  if (!selectBucket(0)) {
+    selectedMatchIds.clear()
+  }
+
+  return selectedMatchIds
+}
+
 const compareCrossGroupStanding = (a: GroupStanding, b: GroupStanding) => {
   const aRate = a.played > 0 ? a.wins / a.played : 0
   const bRate = b.played > 0 ? b.wins / b.played : 0
@@ -295,6 +354,13 @@ export const buildGroupPhase = (
       isActive: activeRound === roundIndex + 1 && matches.some((match) => match.isLive),
       isComplete: matches.length > 0 && matches.every((match) => match.isFinished),
     }
+  })
+  const featuredMatchIds = selectFeaturedGroupMatches(rounds)
+  rounds.forEach((round) => {
+    round.matches = round.matches.map((match) => ({
+      ...match,
+      isFeatured: featuredMatchIds.has(match.id),
+    }))
   })
 
   groups.forEach((group, groupIndex) => {
