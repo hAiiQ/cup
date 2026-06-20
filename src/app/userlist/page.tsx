@@ -57,6 +57,10 @@ export default function UserListPage() {
   const sortedUsers = useMemo(
     () =>
       [...users].sort((a, b) => {
+        if (a.isSubstitute !== b.isSubstitute) {
+          return a.isSubstitute ? -1 : 1
+        }
+
         const teamA = a.team?.position ?? 999
         const teamB = b.team?.position ?? 999
 
