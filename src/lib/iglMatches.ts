@@ -231,7 +231,8 @@ export async function loadIglBracketData(): Promise<IglBracketData> {
         requestedSlots,
         stateMap,
         settings.activeGroupRound,
-        settings.groupTeamOrder
+        settings.groupTeamOrder,
+        settings.groupRoundCount
       )
     : null
   const bracketTeams = applyEliminationTeamOrder(

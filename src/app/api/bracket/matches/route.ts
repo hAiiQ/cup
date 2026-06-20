@@ -164,7 +164,8 @@ export async function GET() {
           requestedSlots,
           combinedStates,
           settings.activeGroupRound,
-          settings.groupTeamOrder
+          settings.groupTeamOrder,
+          settings.groupRoundCount
         )
       : null
     const bracketTeams = applyEliminationTeamOrder(

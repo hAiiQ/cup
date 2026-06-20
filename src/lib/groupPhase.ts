@@ -68,6 +68,30 @@ export const clampGroupCount = (value?: number | null, teamSlots: number = MAX_T
   return Math.min(Math.max(Math.floor(fallback), MIN_GROUP_COUNT), maxBySlots)
 }
 
+export const getMaxGroupRoundCount = (teamSlots: number, groupCount: number): number => {
+  const safeTeamSlots = Math.max(1, Math.floor(Number(teamSlots) || 1))
+  const safeGroupCount = clampGroupCount(groupCount, safeTeamSlots)
+  const largestGroupSize = Math.ceil(safeTeamSlots / safeGroupCount)
+  const rotationSize = largestGroupSize % 2 === 0 ? largestGroupSize : largestGroupSize + 1
+
+  return Math.max(1, rotationSize - 1)
+}
+
+export const clampGroupRoundCount = (
+  value: number | null | undefined,
+  teamSlots: number,
+  groupCount: number
+): number => {
+  const maxRounds = getMaxGroupRoundCount(teamSlots, groupCount)
+  const numericValue = typeof value === 'number' ? value : Number(value)
+
+  if (!Number.isFinite(numericValue) || numericValue <= 0) {
+    return maxRounds
+  }
+
+  return Math.min(Math.max(Math.floor(numericValue), 1), maxRounds)
+}
+
 export const groupNameForIndex = (index: number): string => {
   return `Gruppe ${GROUP_LABELS[index] || index + 1}`
 }
@@ -337,13 +361,18 @@ export const buildGroupPhase = (
   teamLimit: number = MAX_TEAMS,
   stateMap: Map<string, MatchState> = new Map(),
   activeRound: number = 0,
-  teamOrder: string[] = []
+  teamOrder: string[] = [],
+  groupRoundCount?: number
 ): GroupPhaseResult => {
   const teams = normalizeGroupPhaseTeams(inputTeams, teamLimit, teamOrder)
   const safeGroupCount = clampGroupCount(groupCount, Math.max(teams.length, 1))
   const groups = distributeTeams(teams, safeGroupCount)
-  const groupRounds = groups.map((group) => createGroupMatches(group, stateMap))
-  const totalRounds = Math.max(0, ...groupRounds.map((rounds) => rounds.length))
+  const generatedGroupRounds = groups.map((group) => createGroupMatches(group, stateMap))
+  const generatedRoundCount = Math.max(0, ...generatedGroupRounds.map((rounds) => rounds.length))
+  const totalRounds = groupRoundCount === undefined || groupRoundCount <= 0
+    ? generatedRoundCount
+    : Math.min(Math.max(Math.floor(groupRoundCount), 1), generatedRoundCount)
+  const groupRounds = generatedGroupRounds.map((rounds) => rounds.slice(0, totalRounds))
   const rounds: GroupStageRound[] = Array.from({ length: totalRounds }, (_, roundIndex) => {
     const matches = groupRounds.flatMap((groupRound) => groupRound[roundIndex] || [])
 

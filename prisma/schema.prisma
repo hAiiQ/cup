@@ -150,6 +150,7 @@ model BracketSetting {
   tournamentStarted Boolean  @default(false)
   groupPhaseEnabled Boolean  @default(false)
   groupCount        Int      @default(4)
+  groupRoundCount   Int      @default(0)
   activeGroupRound  Int      @default(0)
   groupTeamOrder    Json     @default("[]")
   eliminationTeamOrder Json  @default("[]")

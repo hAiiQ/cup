@@ -87,7 +87,8 @@ export async function POST(request: NextRequest) {
       requestedSlots,
       stateMap,
       settings.activeGroupRound,
-      settings.groupTeamOrder
+      settings.groupTeamOrder,
+      settings.groupRoundCount
     )
 
     const currentRound = groupPhase.rounds.find((round) => round.round === settings.activeGroupRound)

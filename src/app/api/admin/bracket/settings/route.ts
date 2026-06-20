@@ -57,6 +57,7 @@ export async function POST(request: NextRequest) {
       tournamentStarted,
       groupPhaseEnabled,
       groupCount,
+      groupRoundCount,
       activeGroupRound,
       groupTeamOrder,
       eliminationTeamOrder,
@@ -111,6 +112,7 @@ export async function POST(request: NextRequest) {
       (teamSlots !== undefined && Number(teamSlots) !== current.teamSlots) ||
       (groupPhaseEnabled !== undefined && Boolean(groupPhaseEnabled) !== current.groupPhaseEnabled) ||
       (groupCount !== undefined && Number(groupCount) !== current.groupCount) ||
+      (groupRoundCount !== undefined && Number(groupRoundCount) !== current.groupRoundCount) ||
       groupOrderChanged
 
     if (groupStructureChanged) {
@@ -148,6 +150,7 @@ export async function POST(request: NextRequest) {
       tournamentStarted,
       groupPhaseEnabled,
       groupCount,
+      groupRoundCount,
       activeGroupRound: groupStructureChanged ? 0 : activeGroupRound,
       groupTeamOrder: normalizedGroupTeamOrder,
       eliminationTeamOrder: normalizedEliminationTeamOrder,

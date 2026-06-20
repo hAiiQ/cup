@@ -14,7 +14,15 @@ import {
 import type { MatchState } from '@/lib/matchState'
 import BracketDiagram from '@/components/bracket/BracketDiagram'
 import { MAX_TEAMS } from '@/lib/teamDefaults'
-import { MAX_GROUP_COUNT, PLAYOFF_TEAM_COUNT, buildGroupPhase, clampGroupCount, type GroupPhaseResult } from '@/lib/groupPhase'
+import {
+  MAX_GROUP_COUNT,
+  PLAYOFF_TEAM_COUNT,
+  buildGroupPhase,
+  clampGroupCount,
+  clampGroupRoundCount,
+  getMaxGroupRoundCount,
+  type GroupPhaseResult
+} from '@/lib/groupPhase'
 import AdminTopbar from '@/components/AdminTopbar'
 
 const createStateMap = (states: any[]): Map<string, MatchState> => {
@@ -42,6 +50,7 @@ type BracketSettingsState = {
   tournamentStarted: boolean
   groupPhaseEnabled: boolean
   groupCount: number
+  groupRoundCount: number
   activeGroupRound: number
   groupTeamOrder: string[]
   eliminationTeamOrder: string[]
@@ -109,6 +118,7 @@ const DEFAULT_BRACKET_SETTINGS: BracketSettingsState = {
   tournamentStarted: false,
   groupPhaseEnabled: false,
   groupCount: 4,
+  groupRoundCount: 3,
   activeGroupRound: 0,
   groupTeamOrder: [],
   eliminationTeamOrder: []
@@ -209,9 +219,11 @@ export default function AdminBracketPage() {
     settingsDraft.mode !== bracketSettings.mode ||
     settingsDraft.teamSlots !== bracketSettings.teamSlots ||
     settingsDraft.groupPhaseEnabled !== bracketSettings.groupPhaseEnabled ||
-    settingsDraft.groupCount !== bracketSettings.groupCount
+    settingsDraft.groupCount !== bracketSettings.groupCount ||
+    settingsDraft.groupRoundCount !== bracketSettings.groupRoundCount
   const modeOptions: BracketMode[] = ['double', 'single']
   const configuredSlotCount = bracketSettings.teamSlots
+  const maxDraftGroupRoundCount = getMaxGroupRoundCount(settingsDraft.teamSlots, settingsDraft.groupCount)
   const activeBracketSlots = bracketSettings.groupPhaseEnabled ? PLAYOFF_TEAM_COUNT : configuredSlotCount
   const autoFreilosCount = slotCount > 0 && configuredSlotCount > 0
     ? Math.max(slotCount - activeBracketSlots, 0)
@@ -350,12 +362,15 @@ export default function AdminBracketPage() {
       if (settingsRes.ok) {
         const settingsPayload = await settingsRes.json()
         if (settingsPayload?.settings) {
+          const teamSlots = clampTeamSlots(settingsPayload.settings.teamSlots)
+          const groupCount = clampGroupCount(settingsPayload.settings.groupCount, teamSlots)
           persistedSettings = {
             mode: settingsPayload.settings.mode === 'single' ? 'single' : 'double',
-            teamSlots: clampTeamSlots(settingsPayload.settings.teamSlots),
+            teamSlots,
             tournamentStarted: Boolean(settingsPayload.settings.tournamentStarted),
             groupPhaseEnabled: Boolean(settingsPayload.settings.groupPhaseEnabled),
-            groupCount: clampGroupCount(settingsPayload.settings.groupCount, clampTeamSlots(settingsPayload.settings.teamSlots)),
+            groupCount,
+            groupRoundCount: clampGroupRoundCount(settingsPayload.settings.groupRoundCount, teamSlots, groupCount),
             activeGroupRound: Math.max(0, Math.floor(Number(settingsPayload.settings.activeGroupRound) || 0)),
             groupTeamOrder: Array.isArray(settingsPayload.settings.groupTeamOrder)
               ? settingsPayload.settings.groupTeamOrder.filter((teamId: unknown): teamId is string => typeof teamId === 'string')
@@ -383,7 +398,8 @@ export default function AdminBracketPage() {
             persistedSettings.teamSlots,
             stateMap,
             persistedSettings.activeGroupRound,
-            persistedSettings.groupTeamOrder
+            persistedSettings.groupTeamOrder,
+            persistedSettings.groupRoundCount
           )
         : null
       const bracketTeams = applyEliminationTeamOrder(
@@ -440,10 +456,12 @@ export default function AdminBracketPage() {
   const handleSlotValueChange = (value: number) => {
     setSettingsDraft((prev) => {
       const teamSlots = clampTeamSlots(value)
+      const groupCount = clampGroupCount(prev.groupCount, teamSlots)
       return {
         ...prev,
         teamSlots,
-        groupCount: clampGroupCount(prev.groupCount, teamSlots)
+        groupCount,
+        groupRoundCount: clampGroupRoundCount(prev.groupRoundCount, teamSlots, groupCount)
       }
     })
     setSettingsAlert(null)
@@ -657,13 +675,29 @@ export default function AdminBracketPage() {
     setSettingsDraft((prev) => ({
       ...prev,
       groupPhaseEnabled: !prev.groupPhaseEnabled,
-      groupCount: clampGroupCount(prev.groupCount, prev.teamSlots)
+      groupCount: clampGroupCount(prev.groupCount, prev.teamSlots),
+      groupRoundCount: clampGroupRoundCount(prev.groupRoundCount, prev.teamSlots, prev.groupCount)
     }))
     setSettingsAlert(null)
   }
 
   const handleGroupCountChange = (value: number) => {
-    setSettingsDraft((prev) => ({ ...prev, groupCount: clampGroupCount(value, prev.teamSlots) }))
+    setSettingsDraft((prev) => {
+      const groupCount = clampGroupCount(value, prev.teamSlots)
+      return {
+        ...prev,
+        groupCount,
+        groupRoundCount: clampGroupRoundCount(prev.groupRoundCount, prev.teamSlots, groupCount)
+      }
+    })
+    setSettingsAlert(null)
+  }
+
+  const handleGroupRoundCountChange = (value: number) => {
+    setSettingsDraft((prev) => ({
+      ...prev,
+      groupRoundCount: clampGroupRoundCount(value, prev.teamSlots, prev.groupCount)
+    }))
     setSettingsAlert(null)
   }
 
@@ -688,12 +722,15 @@ export default function AdminBracketPage() {
       }
 
       const payload = await response.json()
+      const teamSlots = clampTeamSlots(payload?.settings?.teamSlots ?? settingsDraft.teamSlots)
+      const groupCount = clampGroupCount(payload?.settings?.groupCount ?? settingsDraft.groupCount, teamSlots)
       const updatedSettings: BracketSettingsState = {
         mode: payload?.settings?.mode === 'single' ? 'single' : 'double',
-        teamSlots: clampTeamSlots(payload?.settings?.teamSlots ?? settingsDraft.teamSlots),
+        teamSlots,
         tournamentStarted: Boolean(payload?.settings?.tournamentStarted),
         groupPhaseEnabled: Boolean(payload?.settings?.groupPhaseEnabled),
-        groupCount: clampGroupCount(payload?.settings?.groupCount ?? settingsDraft.groupCount, clampTeamSlots(payload?.settings?.teamSlots ?? settingsDraft.teamSlots)),
+        groupCount,
+        groupRoundCount: clampGroupRoundCount(payload?.settings?.groupRoundCount ?? settingsDraft.groupRoundCount, teamSlots, groupCount),
         activeGroupRound: Math.max(0, Math.floor(Number(payload?.settings?.activeGroupRound) || 0)),
         groupTeamOrder: Array.isArray(payload?.settings?.groupTeamOrder)
           ? payload.settings.groupTeamOrder.filter((teamId: unknown): teamId is string => typeof teamId === 'string')
@@ -888,12 +925,15 @@ export default function AdminBracketPage() {
       }
 
       const payload = await response.json()
+      const teamSlots = clampTeamSlots(payload?.settings?.teamSlots ?? bracketSettings.teamSlots)
+      const groupCount = clampGroupCount(payload?.settings?.groupCount ?? bracketSettings.groupCount, teamSlots)
       const updatedSettings: BracketSettingsState = {
         mode: payload?.settings?.mode === 'single' ? 'single' : 'double',
-        teamSlots: clampTeamSlots(payload?.settings?.teamSlots ?? bracketSettings.teamSlots),
+        teamSlots,
         tournamentStarted: Boolean(payload?.settings?.tournamentStarted),
         groupPhaseEnabled: Boolean(payload?.settings?.groupPhaseEnabled),
-        groupCount: clampGroupCount(payload?.settings?.groupCount ?? bracketSettings.groupCount, clampTeamSlots(payload?.settings?.teamSlots ?? bracketSettings.teamSlots)),
+        groupCount,
+        groupRoundCount: clampGroupRoundCount(payload?.settings?.groupRoundCount ?? bracketSettings.groupRoundCount, teamSlots, groupCount),
         activeGroupRound: Math.max(0, Math.floor(Number(payload?.settings?.activeGroupRound) || 0)),
         groupTeamOrder: Array.isArray(payload?.settings?.groupTeamOrder)
           ? payload.settings.groupTeamOrder.filter((teamId: unknown): teamId is string => typeof teamId === 'string')
@@ -1364,7 +1404,7 @@ export default function AdminBracketPage() {
               </span>
               <span className="rounded-md border border-white/10 bg-gray-950 px-3 py-2 text-gray-200">
                 {bracketSettings.groupPhaseEnabled
-                  ? `${bracketSettings.groupCount} Gruppen · Top ${PLAYOFF_TEAM_COUNT}`
+                  ? `${bracketSettings.groupCount} Gruppen · ${bracketSettings.groupRoundCount} Runden · Top ${PLAYOFF_TEAM_COUNT}`
                   : `${configuredSlotCount} Slots`}
               </span>
               <span className="rounded-md border border-white/10 bg-gray-950 px-3 py-2 text-gray-200">
@@ -1537,7 +1577,7 @@ export default function AdminBracketPage() {
               <p className="text-purple-200 text-sm">Wähle Gruppenphase, Teamslots und Eliminierungsmodus, bevor Matches generiert werden.</p>
             </div>
             <div className="text-sm text-white/70">
-              Aktiv: {MODE_LABELS[bracketSettings.mode]} • {bracketSettings.groupPhaseEnabled ? `${bracketSettings.groupCount} Gruppen, Top ${PLAYOFF_TEAM_COUNT}` : `${configuredSlotCount} Slots`} (Seeds: {slotCount || '...'})
+              Aktiv: {MODE_LABELS[bracketSettings.mode]} • {bracketSettings.groupPhaseEnabled ? `${bracketSettings.groupCount} Gruppen, ${bracketSettings.groupRoundCount} Runden, Top ${PLAYOFF_TEAM_COUNT}` : `${configuredSlotCount} Slots`} (Seeds: {slotCount || '...'})
             </div>
           </div>
 
@@ -1608,7 +1648,7 @@ export default function AdminBracketPage() {
             </div>
 
             <div className="space-y-3">
-              <p className="text-white/80 text-sm font-semibold">Gruppen</p>
+              <p className="text-white/80 text-sm font-semibold">Gruppen & Runden</p>
               <div className={`space-y-4 ${settingsDraft.groupPhaseEnabled ? '' : 'opacity-45'}`}>
                 <input
                   type="range"
@@ -1631,9 +1671,34 @@ export default function AdminBracketPage() {
                   />
                   <span className="text-white/70 text-sm">Gruppen</span>
                 </div>
+                <div className="space-y-3 border-t border-white/10 pt-4">
+                  <input
+                    type="range"
+                    min={1}
+                    max={maxDraftGroupRoundCount}
+                    value={settingsDraft.groupRoundCount}
+                    onChange={(event) => handleGroupRoundCountChange(Number(event.target.value))}
+                    disabled={!settingsDraft.groupPhaseEnabled}
+                    className="w-full accent-violet-400 disabled:cursor-not-allowed"
+                  />
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      min={1}
+                      max={maxDraftGroupRoundCount}
+                      value={settingsDraft.groupRoundCount}
+                      onChange={(event) => handleGroupRoundCountChange(Number(event.target.value))}
+                      disabled={!settingsDraft.groupPhaseEnabled}
+                      className="w-24 rounded bg-black/40 border border-white/15 px-3 py-2 text-white focus:outline-none focus:border-violet-400 disabled:cursor-not-allowed"
+                    />
+                    <span className="text-white/70 text-sm">
+                      Gruppenrunden (max. {maxDraftGroupRoundCount})
+                    </span>
+                  </div>
+                </div>
               </div>
               <p className="text-xs text-white/50">
-                Teams werden im Snake-Verfahren verteilt, damit die Gruppen möglichst gleich groß bleiben.
+                Teams werden im Snake-Verfahren verteilt. Gespielt werden die gewählten Runden des Jeder-gegen-jeden-Plans.
               </p>
             </div>
 
