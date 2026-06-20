@@ -98,38 +98,40 @@ export async function POST(request: NextRequest) {
 
     console.log(`🏆 Updating match ${matchId}: ${parsedTeam1Score} - ${parsedTeam2Score}`)
 
-    // Update in-memory state for immediate response
-    const updatedState = setMatchScore(matchId, parsedTeam1Score, parsedTeam2Score)
-    console.log('📝 Updated match state:', updatedState)
+    const { bracket, round } = getBracketMeta(matchId)
+    const now = new Date()
 
-    // Persist scores and status
-    try {
-      const { bracket, round } = getBracketMeta(matchId)
-      await prisma.match.upsert({
+    // An admin correction is authoritative. Remove any older IGL report so its
+    // winner cannot override the corrected score when the bracket is rebuilt.
+    await prisma.$transaction([
+      prisma.match.upsert({
         where: { id: matchId },
         update: {
-          team1Score: updatedState.team1Score,
-          team2Score: updatedState.team2Score,
-          isFinished: updatedState.isFinished,
-          isLive: updatedState.isLive,
+          team1Score: parsedTeam1Score,
+          team2Score: parsedTeam2Score,
+          isFinished: true,
+          isLive: false,
           winnerId: null,
-          updatedAt: new Date()
+          playedAt: now,
+          updatedAt: now
         },
         create: {
           id: matchId,
           bracket,
           round,
           matchNumber: 1,
-          team1Score: updatedState.team1Score,
-          team2Score: updatedState.team2Score,
-          isFinished: updatedState.isFinished,
-          isLive: updatedState.isLive
+          team1Score: parsedTeam1Score,
+          team2Score: parsedTeam2Score,
+          isFinished: true,
+          isLive: false,
+          playedAt: now
         }
-      })
-      console.log('💾 Match state persisted to database')
-    } catch (dbError) {
-      console.error('⚠️ Failed to persist match state:', dbError)
-    }
+      }),
+      prisma.matchResultReport.deleteMany({ where: { matchId } })
+    ])
+
+    const updatedState = setMatchScore(matchId, parsedTeam1Score, parsedTeam2Score)
+    console.log('💾 Corrected match state persisted to database:', updatedState)
     
     // Determine winner
     return NextResponse.json({ 

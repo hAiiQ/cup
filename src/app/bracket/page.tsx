@@ -123,7 +123,7 @@ export default function BracketPage() {
       console.log('🔄 Fetching bracket data...')
       
       // Only fetch matches API - it contains both teams and matches
-      const matchesRes = await fetch('/api/bracket/matches')
+      const matchesRes = await fetch('/api/bracket/matches', { cache: 'no-store' })
       
       if (matchesRes.ok) {
         const data = await matchesRes.json()

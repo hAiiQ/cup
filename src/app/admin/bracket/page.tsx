@@ -334,7 +334,7 @@ export default function AdminBracketPage() {
         setRefreshing(true)
       }
 
-      const requestInit: RequestInit = { credentials: 'include' }
+      const requestInit: RequestInit = { credentials: 'include', cache: 'no-store' }
 
       const [teamsRes, statesRes, settingsRes] = await Promise.all([
         fetch('/api/admin/teams', requestInit),
