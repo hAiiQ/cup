@@ -83,9 +83,13 @@ export const normalizeGroupPhaseTeams = (
     .filter(Boolean)
     .map((team, index) => {
       const position = typeof team.position === 'number' && team.position > 0 ? team.position : index + 1
+      const slotPosition = typeof team.slotPosition === 'number' && team.slotPosition > 0
+        ? team.slotPosition
+        : position
       return {
         ...team,
         position,
+        slotPosition,
         name: normalizeTeamName(position, team.name),
       }
     })

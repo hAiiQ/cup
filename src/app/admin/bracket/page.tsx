@@ -74,7 +74,8 @@ const formatAdminTeamName = (team?: BracketTeam | null, fallback = 'TBD') => {
     return fallback
   }
 
-  const slotName = team.position > 0 ? `Team ${team.position}` : ''
+  const slotPosition = team.slotPosition ?? team.position
+  const slotName = slotPosition > 0 ? `Team ${slotPosition}` : ''
   if (!slotName || team.name === slotName) {
     return team.name
   }
