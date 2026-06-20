@@ -38,6 +38,7 @@ interface User {
   isVerified: boolean
   rulesAccepted: boolean
   isParticipating: boolean
+  isSubstitute: boolean
   twitchVerified: boolean
   instagramVerified: boolean
   discordVerified: boolean
@@ -123,7 +124,7 @@ type ValorantBulkSyncState = {
   status?: string
 }
 
-type ParticipationFilter = 'all' | 'participating' | 'not-participating'
+type ParticipationFilter = 'all' | 'participating' | 'substitute' | 'not-participating'
 
 const PARTICIPATION_FILTER_OPTIONS: Array<{
   value: ParticipationFilter
@@ -131,6 +132,7 @@ const PARTICIPATION_FILTER_OPTIONS: Array<{
 }> = [
   { value: 'all', label: 'Alle' },
   { value: 'participating', label: 'Nimmt teil' },
+  { value: 'substitute', label: 'Ersatzspieler' },
   { value: 'not-participating', label: 'Nimmt nicht teil' },
 ]
 
@@ -215,7 +217,8 @@ export default function AdminDashboard() {
   const valorantBulkSyncUsers = users.filter((user) => user.inGameName?.trim())
   const filteredUsers = users.filter((user) => {
     if (participationFilter === 'participating') return user.isParticipating
-    if (participationFilter === 'not-participating') return !user.isParticipating
+    if (participationFilter === 'substitute') return user.isSubstitute
+    if (participationFilter === 'not-participating') return !user.isParticipating && !user.isSubstitute
     return true
   })
   const valorantBulkEstimatedSeconds = getValorantBulkSyncSeconds(valorantBulkSyncUsers.length)
@@ -1218,6 +1221,15 @@ export default function AdminDashboard() {
                             STREAMER
                           </span>
                         )}
+                        {user.isSubstitute ? (
+                          <span className="px-3 py-1 rounded-full border border-purple-500/60 bg-purple-600/20 text-purple-200 text-xs font-bold">
+                            ERSATZSPIELER
+                          </span>
+                        ) : user.isParticipating ? (
+                          <span className="px-3 py-1 rounded-full border border-green-500/60 bg-green-600/20 text-green-200 text-xs font-bold">
+                            TEILNEHMER
+                          </span>
+                        ) : null}
                         {user.isIGL && (
                           <span className="px-3 py-1 rounded-full border border-blue-500/60 bg-blue-600/20 text-blue-200 text-xs font-bold">
                             IGL

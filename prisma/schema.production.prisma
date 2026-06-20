@@ -27,6 +27,7 @@ model User {
   isVerified          Boolean @default(false)
   rulesAccepted       Boolean @default(false)
   isParticipating     Boolean @default(false)
+  isSubstitute        Boolean @default(false)
 
   teamId String?
 

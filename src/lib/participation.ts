@@ -17,6 +17,10 @@ export const ensureParticipationSchema = async () => {
       ALTER TABLE "User"
       ADD COLUMN IF NOT EXISTS "isParticipating" BOOLEAN NOT NULL DEFAULT FALSE;
     `)
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "User"
+      ADD COLUMN IF NOT EXISTS "isSubstitute" BOOLEAN NOT NULL DEFAULT FALSE;
+    `)
     participationSchemaReady = true
   })()
 

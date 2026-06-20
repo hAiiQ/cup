@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
+import { ensureParticipationSchema } from '@/lib/participation'
 
 // Helper function to verify admin
 async function verifyAdmin(request: NextRequest) {
@@ -51,6 +52,7 @@ export async function GET(request: NextRequest) {
 
     console.log('✅ Admin verified, fetching users...')
 
+    await ensureParticipationSchema()
     await Promise.all([
       prisma.user.updateMany({
         where: {

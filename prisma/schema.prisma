@@ -28,6 +28,7 @@ model User {
   isVerified          Boolean @default(false)
   rulesAccepted       Boolean @default(false)
   isParticipating     Boolean @default(false)
+  isSubstitute        Boolean @default(false)
 
   // RENDER FIX: Direct team assignment instead of TeamMember relations
   teamId String? // Direct team assignment

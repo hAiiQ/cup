@@ -15,6 +15,7 @@ const getUserId = (request: NextRequest) => {
 const closedPayload = {
   open: false,
   participating: false,
+  substitute: false,
   participationEndsAt: null,
 }
 
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
       getBracketSettings(),
       prisma.user.findUnique({
         where: { id: userId },
-        select: { isParticipating: true },
+        select: { isParticipating: true, isSubstitute: true },
       }),
     ])
 
@@ -41,6 +42,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       open: isParticipationOpenNow(settings),
       participating: user.isParticipating,
+      substitute: user.isSubstitute,
       participationEndsAt: settings.participationEndsAt?.toISOString() || null,
     })
   } catch (error) {
@@ -64,13 +66,14 @@ export async function POST(request: NextRequest) {
 
     const user = await prisma.user.update({
       where: { id: userId },
-      data: { isParticipating: true },
-      select: { isParticipating: true },
+      data: { isParticipating: true, isSubstitute: false },
+      select: { isParticipating: true, isSubstitute: true },
     })
 
     return NextResponse.json({
       success: true,
       participating: user.isParticipating,
+      substitute: user.isSubstitute,
       participationEndsAt: settings.participationEndsAt?.toISOString() || null,
       message: 'Deine Teilnahme wurde bestätigt.',
     })

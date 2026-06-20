@@ -18,6 +18,7 @@ export async function GET() {
         valorantLevel: true,
         tier: true,
         isParticipating: true,
+        isSubstitute: true,
         createdAt: true,
         team: {
           select: {

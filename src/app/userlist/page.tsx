@@ -13,6 +13,7 @@ interface ListedUser {
   valorantLevel?: number | null
   tier?: string | null
   isParticipating: boolean
+  isSubstitute: boolean
   createdAt: string
   team?: {
     id: string
@@ -71,6 +72,7 @@ export default function UserListPage() {
   const teamCount = new Set(users.filter((user) => user.team).map((user) => user.team?.id)).size
   const rankedCount = users.filter((user) => user.valorantCurrentRank || user.inGameRank).length
   const participatingCount = users.filter((user) => user.isParticipating).length
+  const substituteCount = users.filter((user) => user.isSubstitute).length
 
   if (loading) {
     return (
@@ -114,7 +116,7 @@ export default function UserListPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-center sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 text-center sm:grid-cols-5">
               <div className="rounded-md border border-white/15 bg-black/40 px-4 py-3">
                 <div className="text-2xl font-bold text-white">{users.length}</div>
                 <div className="text-xs uppercase text-white/60">User</div>
@@ -130,6 +132,10 @@ export default function UserListPage() {
               <div className="rounded-md border border-white/15 bg-black/40 px-4 py-3">
                 <div className="text-2xl font-bold text-yellow-200">{participatingCount}</div>
                 <div className="text-xs uppercase text-white/60">Dabei</div>
+              </div>
+              <div className="rounded-md border border-white/15 bg-black/40 px-4 py-3">
+                <div className="text-2xl font-bold text-purple-200">{substituteCount}</div>
+                <div className="text-xs uppercase text-white/60">Ersatz</div>
               </div>
             </div>
           </div>
@@ -183,12 +189,14 @@ export default function UserListPage() {
                       <td className="px-4 py-4">
                         <span
                           className={`rounded-full border px-3 py-1 text-xs font-bold ${
-                            user.isParticipating
+                            user.isSubstitute
+                              ? 'border-purple-400/40 bg-purple-500/15 text-purple-100'
+                              : user.isParticipating
                               ? 'border-green-400/40 bg-green-500/15 text-green-100'
                               : 'border-white/15 bg-white/5 text-white/50'
                           }`}
                         >
-                          {user.isParticipating ? 'Dabei' : 'Nicht dabei'}
+                          {user.isSubstitute ? 'Ersatzspieler' : user.isParticipating ? 'Dabei' : 'Nicht dabei'}
                         </span>
                       </td>
                     </tr>
@@ -212,12 +220,14 @@ export default function UserListPage() {
                       </span>
                       <span
                         className={`rounded-full border px-3 py-1 text-xs font-semibold ${
-                          user.isParticipating
+                          user.isSubstitute
+                            ? 'border-purple-400/40 bg-purple-500/15 text-purple-100'
+                            : user.isParticipating
                             ? 'border-green-400/40 bg-green-500/15 text-green-100'
                             : 'border-white/15 bg-white/5 text-white/50'
                         }`}
                       >
-                        {user.isParticipating ? 'Dabei' : 'Nicht dabei'}
+                        {user.isSubstitute ? 'Ersatzspieler' : user.isParticipating ? 'Dabei' : 'Nicht dabei'}
                       </span>
                     </div>
                   </div>

@@ -33,8 +33,10 @@ export default function Navigation() {
   const { isLoggedIn, user, token, logout } = useAuth()
   const [participationOpen, setParticipationOpen] = useState(false)
   const [isParticipating, setIsParticipating] = useState(false)
+  const [isSubstitute, setIsSubstitute] = useState(false)
   const [participationEndsAt, setParticipationEndsAt] = useState<string | null>(null)
   const [participationLoading, setParticipationLoading] = useState(false)
+  const [substituteLoading, setSubstituteLoading] = useState(false)
   const [now, setNow] = useState(() => Date.now())
   const participationTimeLeftMs = participationEndsAt
     ? Math.max(new Date(participationEndsAt).getTime() - now, 0)
@@ -47,6 +49,7 @@ export default function Navigation() {
     if (!isLoggedIn || !token) {
       setParticipationOpen(false)
       setIsParticipating(false)
+      setIsSubstitute(false)
       setParticipationEndsAt(null)
       return
     }
@@ -64,6 +67,7 @@ export default function Navigation() {
         if (active && response.ok) {
           setParticipationOpen(Boolean(data.open))
           setIsParticipating(Boolean(data.participating))
+          setIsSubstitute(Boolean(data.substitute))
           setParticipationEndsAt(data.participationEndsAt || null)
         }
       } catch {
@@ -107,12 +111,36 @@ export default function Navigation() {
 
       if (response.ok) {
         setIsParticipating(Boolean(data.participating))
+        setIsSubstitute(Boolean(data.substitute))
         setParticipationEndsAt(data.participationEndsAt || participationEndsAt)
       } else if (response.status === 409) {
         setParticipationOpen(false)
       }
     } finally {
       setParticipationLoading(false)
+    }
+  }
+
+  const confirmSubstitute = async () => {
+    if (!token || substituteLoading || isSubstitute) {
+      return
+    }
+
+    setSubstituteLoading(true)
+    try {
+      const response = await fetch('/api/substitute', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
+      })
+      const data = await response.json().catch(() => ({}))
+
+      if (response.ok) {
+        setIsParticipating(Boolean(data.participating))
+        setIsSubstitute(Boolean(data.substitute))
+      }
+    } finally {
+      setSubstituteLoading(false)
     }
   }
 
@@ -254,6 +282,20 @@ export default function Navigation() {
                     )}
                   </button>
                 )}
+
+                <button
+                  type="button"
+                  onClick={confirmSubstitute}
+                  disabled={substituteLoading || isSubstitute}
+                  className={`rounded px-4 py-2 text-sm font-semibold text-white transition-colors disabled:cursor-default ${
+                    isSubstitute
+                      ? 'bg-indigo-600'
+                      : 'bg-purple-600 hover:bg-purple-500 disabled:bg-purple-700'
+                  }`}
+                  title="Ohne Zeitlimit als Ersatzspieler eintragen"
+                >
+                  {substituteLoading ? 'Speichert...' : isSubstitute ? 'Ersatzspieler' : 'Als Ersatzspieler'}
+                </button>
 
                 <button
                   onClick={handleLogout}
