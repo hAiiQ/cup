@@ -210,6 +210,11 @@ export default function AdminBracketPage() {
   const [participationResetLoading, setParticipationResetLoading] = useState(false)
   const [participationDeadlineSaving, setParticipationDeadlineSaving] = useState(false)
   const [participationReminderLoading, setParticipationReminderLoading] = useState(false)
+  const [teamMessageModalOpen, setTeamMessageModalOpen] = useState(false)
+  const [selectedMessageTeamIds, setSelectedMessageTeamIds] = useState<string[]>([])
+  const [teamMessageText, setTeamMessageText] = useState('')
+  const [teamMessageLoading, setTeamMessageLoading] = useState(false)
+  const [teamMessageFeedback, setTeamMessageFeedback] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [chatModalOpen, setChatModalOpen] = useState(false)
   const [chatThreads, setChatThreads] = useState<AdminChatThread[]>([])
   const [selectedChatMatchId, setSelectedChatMatchId] = useState<string | null>(null)
@@ -274,7 +279,7 @@ export default function AdminBracketPage() {
   }, [isAuthenticated])
 
   useEffect(() => {
-    if (!selectedMatch && !chatModalOpen) {
+    if (!selectedMatch && !chatModalOpen && !teamMessageModalOpen) {
       return
     }
 
@@ -283,8 +288,10 @@ export default function AdminBracketPage() {
       if (event.key === 'Escape') {
         if (selectedMatch) {
           clearMatchSelection()
-        } else {
+        } else if (chatModalOpen) {
           setChatModalOpen(false)
+        } else {
+          setTeamMessageModalOpen(false)
         }
       }
     }
@@ -296,7 +303,7 @@ export default function AdminBracketPage() {
       document.body.style.overflow = previousOverflow
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [selectedMatch, chatModalOpen])
+  }, [selectedMatch, chatModalOpen, teamMessageModalOpen])
 
   useEffect(() => {
     if (!chatModalOpen) {
@@ -624,6 +631,66 @@ export default function AdminBracketPage() {
       })
     } finally {
       setParticipationReminderLoading(false)
+    }
+  }
+
+  const openTeamMessageModal = () => {
+    setTeamMessageFeedback(null)
+    setTeamMessageModalOpen(true)
+  }
+
+  const toggleMessageTeam = (teamId: string) => {
+    setSelectedMessageTeamIds((current) => (
+      current.includes(teamId)
+        ? current.filter((id) => id !== teamId)
+        : [...current, teamId]
+    ))
+    setTeamMessageFeedback(null)
+  }
+
+  const sendTeamDiscordMessage = async () => {
+    const message = teamMessageText.trim()
+    if (selectedMessageTeamIds.length === 0) {
+      setTeamMessageFeedback({ type: 'error', text: 'Wähle mindestens ein Team aus.' })
+      return
+    }
+    if (!message) {
+      setTeamMessageFeedback({ type: 'error', text: 'Die Nachricht darf nicht leer sein.' })
+      return
+    }
+    if (!window.confirm(`Discord-DM an die Spieler aus ${selectedMessageTeamIds.length} Team(s) senden?`)) {
+      return
+    }
+
+    setTeamMessageLoading(true)
+    setTeamMessageFeedback(null)
+
+    try {
+      const response = await fetch('/api/admin/discord/team-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          teamIds: selectedMessageTeamIds,
+          message,
+        }),
+      })
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Discord-Nachricht konnte nicht gesendet werden.')
+      }
+
+      setTeamMessageFeedback({ type: 'success', text: data.message || 'Discord-Nachricht wurde gesendet.' })
+      setSelectedMessageTeamIds([])
+      setTeamMessageText('')
+    } catch (error) {
+      setTeamMessageFeedback({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Discord-Nachricht konnte nicht gesendet werden.',
+      })
+    } finally {
+      setTeamMessageLoading(false)
     }
   }
 
@@ -1594,6 +1661,13 @@ export default function AdminBracketPage() {
                 </button>
                 <button
                   type="button"
+                  onClick={openTeamMessageModal}
+                  className="min-h-10 rounded-md bg-violet-700 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-violet-600"
+                >
+                  Team-DMs
+                </button>
+                <button
+                  type="button"
                   onClick={() => fetchData(false)}
                   disabled={refreshing}
                   className="min-h-10 rounded-md bg-blue-700 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-600 disabled:cursor-wait disabled:bg-gray-700"
@@ -1928,6 +2002,144 @@ export default function AdminBracketPage() {
             />
           </div>
         </section>
+
+        {teamMessageModalOpen && (
+          <div
+            className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget && !teamMessageLoading) {
+                setTeamMessageModalOpen(false)
+              }
+            }}
+          >
+            <section
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="team-message-title"
+              className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-violet-400/50 bg-gray-950 shadow-2xl"
+            >
+              <header className="flex items-start justify-between gap-4 border-b border-white/10 bg-gray-900 px-5 py-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase text-violet-300">Discord Bot</p>
+                  <h2 id="team-message-title" className="mt-1 text-2xl font-bold text-white">Nachricht an Teams</h2>
+                  <p className="mt-1 text-sm text-gray-400">
+                    Der vorhandene Discord-Bot sendet jedem Spieler der gewählten Teams eine private Nachricht.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setTeamMessageModalOpen(false)}
+                  disabled={teamMessageLoading}
+                  aria-label="Fenster schließen"
+                  title="Schließen"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded border border-white/15 bg-black/30 text-xl font-bold text-white transition-colors hover:border-violet-300 hover:bg-violet-500/20 disabled:cursor-wait disabled:opacity-50"
+                >
+                  X
+                </button>
+              </header>
+
+              <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-5">
+                {teamMessageFeedback && (
+                  <div className={`rounded border px-4 py-3 text-sm ${
+                    teamMessageFeedback.type === 'success'
+                      ? 'border-green-500/40 bg-green-500/15 text-green-100'
+                      : 'border-red-500/40 bg-red-500/15 text-red-100'
+                  }`}>
+                    {teamMessageFeedback.text}
+                  </div>
+                )}
+
+                <div>
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h3 className="font-bold text-white">Empfänger-Teams</h3>
+                      <p className="text-xs text-gray-500">{selectedMessageTeamIds.length} von {teams.length} Teams ausgewählt</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedMessageTeamIds(teams.map((team) => team.id))}
+                        disabled={teamMessageLoading || teams.length === 0}
+                        className="rounded border border-violet-400/40 bg-violet-500/15 px-3 py-1.5 text-xs font-bold text-violet-100 hover:bg-violet-500/25 disabled:opacity-40"
+                      >
+                        Alle
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedMessageTeamIds([])}
+                        disabled={teamMessageLoading || selectedMessageTeamIds.length === 0}
+                        className="rounded border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-bold text-gray-200 hover:bg-white/10 disabled:opacity-40"
+                      >
+                        Keine
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid max-h-56 gap-2 overflow-y-auto rounded border border-white/10 bg-black/25 p-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {teams.map((team) => {
+                      const selected = selectedMessageTeamIds.includes(team.id)
+                      return (
+                        <label
+                          key={team.id}
+                          className={`flex cursor-pointer items-center gap-3 rounded border px-3 py-2 text-sm transition-colors ${
+                            selected
+                              ? 'border-violet-400 bg-violet-500/20 text-violet-50'
+                              : 'border-white/10 bg-gray-900/60 text-gray-300 hover:border-violet-400/40'
+                          } ${teamMessageLoading ? 'cursor-wait opacity-60' : ''}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            onChange={() => toggleMessageTeam(team.id)}
+                            disabled={teamMessageLoading}
+                            className="h-4 w-4 accent-violet-500"
+                          />
+                          <span className="min-w-0 truncate font-semibold">{formatAdminTeamName(team)}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <label className="block">
+                  <span className="mb-2 block font-bold text-white">Nachricht</span>
+                  <textarea
+                    value={teamMessageText}
+                    onChange={(event) => {
+                      setTeamMessageText(event.target.value)
+                      setTeamMessageFeedback(null)
+                    }}
+                    maxLength={2000}
+                    rows={7}
+                    disabled={teamMessageLoading}
+                    placeholder="Schreibe hier deine Discord-Nachricht..."
+                    className="w-full resize-y rounded border border-white/15 bg-black/40 px-4 py-3 text-white outline-none transition-colors placeholder:text-gray-600 focus:border-violet-400 disabled:cursor-wait disabled:opacity-60"
+                  />
+                  <span className="mt-1 block text-right text-xs text-gray-500">{teamMessageText.length}/2000 Zeichen</span>
+                </label>
+              </div>
+
+              <footer className="flex flex-col-reverse gap-3 border-t border-white/10 bg-gray-900 px-5 py-4 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setTeamMessageModalOpen(false)}
+                  disabled={teamMessageLoading}
+                  className="rounded border border-white/15 bg-white/5 px-5 py-2.5 font-semibold text-gray-200 hover:bg-white/10 disabled:cursor-wait disabled:opacity-50"
+                >
+                  Schließen
+                </button>
+                <button
+                  type="button"
+                  onClick={sendTeamDiscordMessage}
+                  disabled={teamMessageLoading || selectedMessageTeamIds.length === 0 || !teamMessageText.trim()}
+                  className="rounded bg-violet-600 px-5 py-2.5 font-bold text-white transition-colors hover:bg-violet-500 disabled:cursor-not-allowed disabled:bg-gray-700 disabled:text-gray-400"
+                >
+                  {teamMessageLoading ? 'Sende DMs...' : `Nachricht senden (${selectedMessageTeamIds.length} Teams)`}
+                </button>
+              </footer>
+            </section>
+          </div>
+        )}
 
         {chatModalOpen && (
           <div
